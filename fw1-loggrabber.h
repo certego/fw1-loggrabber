@@ -53,6 +53,7 @@
 #       define  BIG_ENDIAN    4321 
 #       define  LITTLE_ENDIAN 1234 
 #       define  BYTE_ORDER LITTLE_ENDIAN 
+#	define  BUFSIZE MAX_PATH
 #	include <windows.h>
 #       include <winsock.h>
 #else
@@ -232,23 +233,18 @@ typedef struct configvalues
 	int	mysql_mode;
 	int	fw1_2000;
 	int	audit_mode;
-	int	auth_mode;
-	int	auth_type;
 	int	showfiles_mode;
 	int 	fieldnames_mode;
 	int 	dateformat;
 	int 	log_mode;
 	char	record_separator;
+	char*	config_filename;
+	char*	leaconfig_filename;
 	char*	mysql_host;
 	char*	mysql_database;
 	char*	mysql_user;
 	char*	mysql_password;
-	char*	fw1_server;
-	char*	fw1_port;
 	char*	fw1_logfile;
-	char*	opsec_certificate;
-	char*	opsec_client_dn;
-	char*	opsec_server_dn;
 	char*	output_file_prefix;
 	long	output_file_rotatesize;
 } configvalues;
@@ -260,7 +256,7 @@ typedef struct configvalues
 /*
  * function to get the content of a given FW-1 Logfile
  */
-int 		   read_fw1_logfile(char **, char **, char **);
+int 		   read_fw1_logfile(char **);
 
 /*
  * event handler used by read_fw1_logfile to approve a rulebase
@@ -333,7 +329,7 @@ int                read_fw1_logfile_established(OpsecSession *);
 /*
  * function to get all available FW-1 Logfile Names
  */
-int                get_fw1_logfiles(char **, char **);
+int                get_fw1_logfiles();
 
 /*
  * event handler used by get_fw1_logfiles to print the Logfile Names
@@ -354,7 +350,7 @@ LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase*, char[255]);
 /* 
  * function to clean up the opsec environment
  */
-void               cleanup_fw1_environment(OpsecEnv *, OpsecEntity *, OpsecEntity *, char**, int);
+void               cleanup_fw1_environment(OpsecEnv *, OpsecEntity *, OpsecEntity *);
 
 /*
  * functions for database support
@@ -465,12 +461,7 @@ int debug_mode 		= -1;
 int show_files 		= -1;
 int online_mode		= -1;
 int resolve_mode        = -1;
-char *ConfigfileName 	= NULL;
 char *LogfileName       = NULL;
-char *ServerName        = NULL;
-char *ServerPort        = NULL;
-int auth_connection	= -1;
-int auth_type		= -1;
 int fw1_2000		= -1;
 int audit_log		= -1;
 stringlist *sl 		= NULL;
@@ -499,7 +490,7 @@ int afield_output[NUMBER_AIDX_FIELDS];
 	MYSQL *mysqlconn, mysql;
 #endif
 
-configvalues cfgvalues = {0, 0, 1, 0, 0, 0, 1, OPSEC_SSLCA, 0, 1, 2, SCREEN, '|', "localhost", "fw1loggrabber", "fw1", "fw1", "localhost", "18184", "fw.log", "opsec.p12", "", "", "fw1-loggrabber", 1048576};
+configvalues cfgvalues = {0, 0, 1, 0, 0, 0, 0, 1, 2, SCREEN, '|', "fw1-loggrabber.conf", "lea.conf", "localhost", "fw1loggrabber", "fw1", "fw1", "fw.log", "fw1-loggrabber", 1048576};
 
 int initialCapacity	= 4096;
 int capacityIncrement	= 1024;

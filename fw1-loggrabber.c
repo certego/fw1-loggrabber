@@ -54,7 +54,6 @@ int main(int argc, char *argv[])
 	stringlist *lstptr;
 	char *foundstring;
 	char *field;
-//	int tempint;
 
 	/*
 	 * initialize field arrays
@@ -111,12 +110,6 @@ int main(int argc, char *argv[])
 	  else if (strcmp(argv[i], "--showlogs") == 0) {
 	    show_files = 0;
 	  }
-	  else if (strcmp(argv[i], "--auth") == 0) {
-	    auth_connection = 1;
-          }
-	  else if (strcmp(argv[i], "--no-auth") == 0) {
-	    auth_connection = 0;
-          }
 	  else if (strcmp(argv[i], "--2000") == 0) {
 	    fw1_2000 = 1;
           }
@@ -149,34 +142,6 @@ int main(int argc, char *argv[])
 	    mysql_mode = 0;
           }
 #endif
-	  else if ((strcmp(argv[i], "-s") == 0) || (strcmp(argv[i], "--server") == 0)) {
-	    i++;
-	    if (argv[i] == NULL) {	
-		fprintf(stderr, "ERROR: Invalid argument: %s\n", argv[i-1]);
-		usage(argv[0]);
-		exit_loggrabber(1);
-	    }
-            if (argv[i][0] == '-') {
-		fprintf(stderr, "ERROR: Value expected for argument %s\n", argv[i-1]);
-		usage(argv[0]);
-		exit_loggrabber(1);
-	    }
-	    ServerName = string_duplicate(argv[i]);
-	  } 
-	  else if ((strcmp(argv[i], "-p") == 0) || (strcmp(argv[i], "--port") == 0)) {
-	    i++;
-	    if (argv[i] == NULL) {	
-		fprintf(stderr, "ERROR: Invalid argument: %s\n", argv[i-1]);
-		usage(argv[0]);
-		exit_loggrabber(1);
-	    }
-            if (argv[i][0] == '-') {
-		fprintf(stderr, "ERROR: Value expected for argument %s\n", argv[i-1]);
-		usage(argv[0]);
-		exit_loggrabber(1);
-	    }
-	    ServerPort = string_duplicate(argv[i]);
-	  }
 	  else if ((strcmp(argv[i], "-f") == 0) || (strcmp(argv[i], "--logfile") == 0)) {
 	    i++;
 	    if (argv[i] == NULL) {	
@@ -203,7 +168,21 @@ int main(int argc, char *argv[])
 		usage(argv[0]);
 		exit_loggrabber(1);
 	    }
-	    ConfigfileName = string_duplicate(argv[i]);
+	    cfgvalues.config_filename = string_duplicate(argv[i]);
+	  }
+	  else if ((strcmp(argv[i], "-l") == 0) || (strcmp(argv[i], "--leaconfigfile") == 0)) {
+	    i++;
+	    if (argv[i] == NULL) {	
+		fprintf(stderr, "ERROR: Invalid argument: %s\n", argv[i-1]);
+		usage(argv[0]);
+		exit_loggrabber(1);
+	    }
+            if (argv[i][0] == '-') {
+		fprintf(stderr, "ERROR: Value expected for argument %s\n", argv[i-1]);
+		usage(argv[0]);
+		exit_loggrabber(1);
+	    }
+	    cfgvalues.leaconfig_filename = string_duplicate(argv[i]);
 	  }
 	  else if (strcmp(argv[i], "--filter") == 0) {
 	    i++;
@@ -241,9 +220,6 @@ int main(int argc, char *argv[])
 		output_fields = 1;
 
 		field = string_trim(string_get_token(&argv[i], ';'), ' ');
-//		for (tempint = 0 ; tempint < strlen(field) ; tempint++) {
-//		    field[tempint] = tolower(field[tempint]);
-//	  	}
 		if (string_icmp(field, *lfield_headers[LIDX_NUM]) == 0) {
 			lfield_output[LIDX_NUM] = 1;
 			afield_output[AIDX_NUM] = 1;
@@ -497,16 +473,9 @@ int main(int argc, char *argv[])
 	}
 	
 	/*
-	 * if not specified, set default value of Configfile-Name
-	 */
-	if (ConfigfileName == NULL) {
-	  ConfigfileName = string_duplicate("fw1-loggrabber.conf");
-	}
-
-	/*
 	 * load configuration file
 	 */
-	read_config_file(ConfigfileName, &cfgvalues);
+	read_config_file(cfgvalues.config_filename, &cfgvalues);
 
 	/*
 	 * check whether command line options override configfile options
@@ -516,24 +485,14 @@ int main(int argc, char *argv[])
 	cfgvalues.online_mode = (online_mode != -1) ? online_mode : cfgvalues.online_mode;
 	cfgvalues.resolve_mode = (resolve_mode != -1) ? resolve_mode : cfgvalues.resolve_mode;
 	cfgvalues.fw1_2000 = (fw1_2000 != -1) ? fw1_2000 : cfgvalues.fw1_2000;
-	cfgvalues.auth_mode = (auth_connection != -1) ? auth_connection : cfgvalues.auth_mode;
 	cfgvalues.showfiles_mode = (show_files != -1) ? show_files : cfgvalues.showfiles_mode;
 	cfgvalues.audit_mode = (audit_log != -1) ? audit_log : cfgvalues.audit_mode;
 	cfgvalues.fieldnames_mode = (fieldnames_mode != -1) ? fieldnames_mode : cfgvalues.fieldnames_mode;
-	cfgvalues.fw1_server = (ServerName != NULL) ? string_duplicate(ServerName) : cfgvalues.fw1_server;
-	cfgvalues.fw1_port = (ServerPort != NULL) ? string_duplicate(ServerPort) : cfgvalues.fw1_port;
 	cfgvalues.fw1_logfile = (LogfileName != NULL) ? string_duplicate(LogfileName) : cfgvalues.fw1_logfile;
+	
 	/*
 	 * free no more used char*
 	 */
-	if (ServerName != NULL) {
-		free(ServerName);
-		ServerName = NULL;
-	}
-	if (ServerPort != NULL) {
-		free(ServerPort);
-		ServerPort = NULL;
-	}
 	if (LogfileName != NULL) {
 		free(LogfileName);
 		LogfileName = NULL;
@@ -558,12 +517,6 @@ int main(int argc, char *argv[])
 #endif
 
 	if (cfgvalues.fw1_2000) {
-		if (cfgvalues.auth_mode) {
-			fprintf (stderr, "ERROR: Authenticated connections are currently only\n"
-					 "       available for connections to FW-1 NG. For connections\n"
-					 "       to FW-1 4.1 (2000), please omit the parameter --auth.\n");
-			exit_loggrabber(1);
-		}
 		if (cfgvalues.showfiles_mode) {
 			fprintf (stderr, "ERROR: --showfiles option is only available for connections\n"
 					 "       to FW-1 NG. For connections to FW-1 4.1 (2000), please\n"
@@ -622,14 +575,10 @@ int main(int argc, char *argv[])
 	opsec_set_debug_level(cfgvalues.debug_mode);
 
 	if (cfgvalues.debug_mode) {
-		fprintf (stderr, "DEBUG: Server-IP        : %s\n", cfgvalues.fw1_server);
-		fprintf (stderr, "DEBUG: Server-Port      : %s\n", cfgvalues.fw1_port);
 		fprintf (stderr, "DEBUG: Logfilename      : %s\n", cfgvalues.fw1_logfile);
-		fprintf (stderr, "DEBUG: Configfilename   : %s\n", ConfigfileName);
 		fprintf (stderr, "DEBUG: Record Separator : %c\n", cfgvalues.record_separator);
 		fprintf (stderr, "DEBUG: Resolve Addresses: %s\n", (cfgvalues.resolve_mode?"Yes":"No"));
 		fprintf (stderr, "DEBUG: Show Filenames   : %s\n", (cfgvalues.showfiles_mode?"Yes":"No"));
-		fprintf (stderr, "DEBUG: Auth. Connection : %s\n", (cfgvalues.auth_mode?"Yes":"No"));
 		fprintf (stderr, "DEBUG: FW1-2000         : %s\n", (cfgvalues.fw1_2000?"Yes":"No"));
 		fprintf (stderr, "DEBUG: Online-Mode      : %s\n", (cfgvalues.online_mode?"Yes":"No"));
 		fprintf (stderr, "DEBUG: Audit-Log        : %s\n", (cfgvalues.audit_mode?"Yes":"No"));
@@ -656,7 +605,7 @@ int main(int argc, char *argv[])
 	 * function call to get available Logfile-Names (not available in FW1-4.1)
 	 */
 	if (!(cfgvalues.fw1_2000) && !(cfgvalues.online_mode)) {
-		get_fw1_logfiles(&(cfgvalues.fw1_server), &(cfgvalues.fw1_port));
+		get_fw1_logfiles();
 	}
 	if (cfgvalues.showfiles_mode) {
 		exit_loggrabber(0);
@@ -672,7 +621,7 @@ int main(int argc, char *argv[])
 			if (cfgvalues.debug_mode) {
 				fprintf(stderr, "DEBUG: Processing Logfile: %s\n", lstptr->data);
 			}
-        		read_fw1_logfile(&(cfgvalues.fw1_server), &(cfgvalues.fw1_port), &(lstptr->data));
+        		read_fw1_logfile(&(lstptr->data));
 			lstptr = lstptr->next;
 		}
 	} 
@@ -690,13 +639,13 @@ int main(int argc, char *argv[])
 			if (cfgvalues.debug_mode) {
 				fprintf(stderr, "DEBUG: Processing Logfile: %s\n", cfgvalues.fw1_logfile);
 			}
-        		read_fw1_logfile(&(cfgvalues.fw1_server), &(cfgvalues.fw1_port), &(cfgvalues.fw1_logfile));
+        		read_fw1_logfile(&(cfgvalues.fw1_logfile));
 	        }       
 		while (lstptr) {
 			if (cfgvalues.debug_mode) {
 				fprintf(stderr, "DEBUG: Processing Logfile: %s\n", foundstring);
 			}
-        		read_fw1_logfile(&(cfgvalues.fw1_server), &(cfgvalues.fw1_port), &foundstring);
+        		read_fw1_logfile(&foundstring);
 			lstptr = stringlist_search(&(lstptr->next), cfgvalues.fw1_logfile, &foundstring);
 		}
 	}
@@ -710,7 +659,7 @@ int main(int argc, char *argv[])
 /*
  * function read_fw1_logfile
  */
-int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
+int read_fw1_logfile(char **LogfileName)
 {
 	OpsecEntity       *pClient    = NULL;
 	OpsecEntity       *pServer    = NULL;
@@ -719,9 +668,6 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 	LeaFilterRulebase *rb;
 	int		  rbid = 1;
 	int		  i;
-	char* OpsecArgv[3];
-	int OpsecArgc = 4;
-	int CopyOpsecArgc = 4;
 	int opsecAlive;
 
 	char*	tmpstr1;
@@ -729,42 +675,139 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 	char* buffer=NULL;
 	char* message=NULL;
 
-	OpsecArgv[0] = string_duplicate("-v");
-	OpsecArgv[1] = string_duplicate("lea_server");
-	OpsecArgv[2] = string_duplicate("opsec_entity_sic_name");
-	OpsecArgv[3] = string_duplicate(cfgvalues.opsec_server_dn);
+	char*	auth_type;
+	char*	fw1_server;
+	char*	fw1_port;
+	char*	opsec_certificate;
+	char*	opsec_client_dn;
+	char*	opsec_server_dn;
+	char*	leaconf;
 
-	/*
-	 * initialize opsec environment for authenticated and unauthenticated connections
-	 */
-	if (cfgvalues.auth_mode) {
-#ifndef WIN32
-	  if (access(ConfigfileName, F_OK) < 0) {
-		fprintf(stderr, "ERROR: Configfile %s does not exist\n",ConfigfileName);
-		exit_loggrabber(1);
-	  } else {
-            if (access(ConfigfileName, R_OK) != 0) {
-		fprintf(stderr, "ERROR: Configfile %s is not readable\n",ConfigfileName);
-		exit_loggrabber(1);
-	    }
-	  }
+#ifdef WIN32
+	TCHAR	buff[BUFSIZE];
+	DWORD	dwRet;
+#else
+	long size;
 #endif
- 
-	  if ((pEnv = opsec_init( OPSEC_SIC_NAME, cfgvalues.opsec_client_dn,
-				  OPSEC_SSLCA_FILE, cfgvalues.opsec_certificate,
-				  OPSEC_CONF_ARGV, &OpsecArgc, OpsecArgv,
-				  OPSEC_EOL ))==NULL)
-	  {  
-		fprintf(stderr, "ERROR: unable to create environment (%s)\n", opsec_errno_str(opsec_errno));
+
+#ifdef WIN32
+	dwRet = GetCurrentDirectory(BUFSIZE, buff);
+
+	if (dwRet == 0) {
+		fprintf (stderr, "ERROR: Cannot get current working directory (error code: %d)\n", GetLastError());
 		exit_loggrabber(1);
-	  }
-	} else {
- 	  if ((pEnv = opsec_init(OPSEC_EOL))==NULL)
-	  {
-		fprintf(stderr, "ERROR: unable to create environment (%s)\n", opsec_errno_str(opsec_errno));
-		exit_loggrabber(1);
-	  }
 	}
+	if (dwRet > BUFSIZE) {
+		fprintf (stderr, "ERROR: Getting the current working directory failed failed since buffer too small, and it needs %d chars\n", dwRet);
+		exit_loggrabber(1);
+	}
+	if ((leaconf = (char *)malloc(BUFSIZE)) == NULL) {
+		fprintf (stderr, "ERROR: Out of memory\n");
+		exit_loggrabber(1);
+	}
+
+	if (cfgvalues.leaconfig_filename == NULL) {
+		strcpy(leaconf, buff);
+		strcat(leaconf, "\\lea.conf");
+	} else {
+		if ((cfgvalues.leaconfig_filename[0] == '\\') || 
+		   ((cfgvalues.leaconfig_filename[1] == ':') && (cfgvalues.leaconfig_filename[2] == '\\'))) {
+			strcpy(leaconf, cfgvalues.leaconfig_filename);
+		} else {
+			strcpy(leaconf, buff);
+			strcat(leaconf, "\\");
+			strcat(leaconf, cfgvalues.leaconfig_filename);
+		}
+	}
+#else
+	size = pathconf(".", _PC_PATH_MAX);
+	if ((leaconf = (char *)malloc((size_t)size)) == NULL) {
+		fprintf (stderr, "ERROR: Out of memory\n");
+		exit_loggrabber(1);
+	}
+		
+	if (cfgvalues.leaconfig_filename == NULL) {
+		if (getcwd(leaconf, (size_t)size) == NULL) {
+			fprintf (stderr, "ERROR: Cannot get current working directory\n");
+			exit_loggrabber(1);
+		}	
+		strcat(leaconf, "/lea.conf");
+	} else {
+		if (cfgvalues.leaconfig_filename[0] == '/') {
+			strcpy(leaconf, cfgvalues.leaconfig_filename);
+		} else {
+			if (getcwd(leaconf, (size_t)size) == NULL) {
+				fprintf (stderr, "ERROR: Cannot get current working directory\n");
+				exit_loggrabber(1);
+			}	
+			strcat(leaconf, "/");
+			strcat(leaconf, cfgvalues.leaconfig_filename);
+		}
+	}
+#endif
+
+	/* create opsec environment for the main loop */
+	if((pEnv = opsec_init(OPSEC_CONF_FILE, leaconf, OPSEC_EOL)) == NULL) {
+		fprintf(stderr, "ERROR: unable to create environment (%s)\n", opsec_errno_str(opsec_errno));
+		exit_loggrabber(1);
+	}
+
+	if (cfgvalues.debug_mode) {
+                                                                                
+		fprintf(stderr, "DEBUG: OPSEC LEA conf file is %s\n", leaconf);
+                                                                                
+		fw1_server = opsec_get_conf(pEnv,"lea_server","ip",NULL);
+		if(fw1_server==NULL) {
+			fprintf(stderr, "ERROR: The fw1 server ip address has not been set.\n");
+			exit_loggrabber(1);
+		}//end of if
+		auth_type = opsec_get_conf(pEnv,"lea_server","auth_type",NULL);
+		if (auth_type!=NULL) {
+			//Authentication mode
+			if (cfgvalues.fw1_2000) {
+				//V4.1.2
+				fw1_port = opsec_get_conf(pEnv,"lea_server","auth_port",NULL);
+				if(fw1_port==NULL) {
+					fprintf(stderr, "ERROR: The parameters about authentication mode have not been set.\n");
+					exit_loggrabber(1);
+				} else {
+					fprintf (stderr, "DEBUG: Authentication mode has been used.\n");
+					fprintf (stderr, "DEBUG: Server-IP     : %s\n", fw1_server);
+					fprintf (stderr, "DEBUG: Server-Port     : %s\n", fw1_port);
+					fprintf (stderr, "DEBUG: Authentication type: %s\n", auth_type);
+				}//end of inner if
+			} else {
+				//NG
+				fw1_port = opsec_get_conf(pEnv,"lea_server","auth_port",NULL);
+				opsec_certificate = opsec_get_conf(pEnv,"opsec_sslca_file",NULL);
+				opsec_client_dn = opsec_get_conf(pEnv,"opsec_sic_name",NULL);
+				opsec_server_dn = opsec_get_conf(pEnv,"lea_server","opsec_entity_sic_name",NULL);
+				if((fw1_port==NULL)||(opsec_certificate==NULL)||(opsec_client_dn==NULL)||(opsec_server_dn==NULL)) {
+					fprintf(stderr, "ERROR: The parameters about authentication mode have not been set.\n");
+					exit_loggrabber(1);
+				} else {
+					fprintf (stderr, "DEBUG: Authentication mode has been used.\n");
+					fprintf (stderr, "DEBUG: Server-IP     : %s\n", fw1_server);
+					fprintf (stderr, "DEBUG: Server-Port     : %s\n", fw1_port);
+					fprintf (stderr, "DEBUG: Authentication type: %s\n", auth_type);
+					fprintf (stderr, "DEBUG: OPSEC sic certificate file name : %s\n", opsec_certificate);
+					fprintf (stderr, "DEBUG: Server DN (sic name) : %s\n", opsec_server_dn);
+					fprintf (stderr, "DEBUG: OPSEC LEA client DN (sic name) : %s\n", opsec_client_dn);
+				}//end of inner if
+			}
+		} else {
+			//Clear Text mode, i.e. non-auth mode
+			fw1_port = opsec_get_conf(pEnv,"lea_server","port",NULL);
+			if(fw1_port!=NULL) {
+				fprintf (stderr, "DEBUG: Clear text mode has been used.\n");
+				fprintf (stderr, "DEBUG: Server-IP        : %s\n", fw1_server);
+				fprintf (stderr, "DEBUG: Server-Port      : %s\n", fw1_port);
+			} else {
+				fprintf(stderr, "ERROR: The fw1 server lea service port has not been set.\n");
+				exit_loggrabber(1);
+			}//end of inner if
+		}//end of middle if
+	}//end of if
 
 	/*
 	 * initialize opsec-client
@@ -798,8 +841,6 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 				OPSEC_SESSION_START_HANDLER, read_fw1_logfile_start,
 				OPSEC_SESSION_END_HANDLER, read_fw1_logfile_end,
 				OPSEC_SESSION_ESTABLISHED_HANDLER, read_fw1_logfile_established,
-				OPSEC_SERVER_AUTH_PORT, (int)htons(atoi(*ServerPort)),
-				OPSEC_SERVER_AUTH_TYPE, OPSEC_AUTH_SSL,
 				OPSEC_EOL);
 #ifdef USE_MYSQL
 	}
@@ -808,27 +849,8 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 	/*
 	 * initialize opsec-server for authenticated and unauthenticated connections
 	 */
-	if (cfgvalues.auth_mode) {
- 	  pServer = opsec_init_entity(pEnv, LEA_SERVER,
-				OPSEC_ENTITY_NAME, "lea_server",
-				OPSEC_SERVER_IP, inet_addr(*ServerName),
-				OPSEC_SERVER_AUTH_PORT, (int)htons(atoi(*ServerPort)),
-				OPSEC_ENTITY_SIC_NAME, "",
-				OPSEC_SERVER_AUTH_TYPE, cfgvalues.auth_type,
-				OPSEC_SESSION_START_HANDLER, read_fw1_logfile_start,
-				OPSEC_SESSION_END_HANDLER, read_fw1_logfile_end,
-				OPSEC_SERVER_FAILED_CONN_HANDLER, read_fw1_logfile_failedconn,
-				OPSEC_EOL);
-	} else {
-	  pServer = opsec_init_entity(pEnv, LEA_SERVER,
-				OPSEC_ENTITY_NAME, "lea_server",
-				OPSEC_SERVER_IP, inet_addr(*ServerName),
-				OPSEC_SERVER_PORT, (int)htons(atoi(*ServerPort)),
-				OPSEC_SESSION_START_HANDLER, read_fw1_logfile_start,
-				OPSEC_SESSION_END_HANDLER, read_fw1_logfile_end,
-				OPSEC_SERVER_FAILED_CONN_HANDLER, read_fw1_logfile_failedconn,
-				OPSEC_EOL);
-	}
+	
+	pServer = opsec_init_entity(pEnv, LEA_SERVER, OPSEC_ENTITY_NAME, "lea_server", OPSEC_EOL);
 
 	/*
 	 * continue only if opsec initializations were successful
@@ -836,7 +858,7 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 	if ((!pClient) || (!pServer))
 	{
 		fprintf(stderr, "ERROR: failed to initialize client/server-pair (%s)\n", opsec_errno_str(opsec_errno));
-		cleanup_fw1_environment(pEnv, pClient, pServer, OpsecArgv, CopyOpsecArgc);
+		cleanup_fw1_environment(pEnv, pClient, pServer);
 		exit_loggrabber(1);
 	}
 
@@ -851,7 +873,7 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 		}
 		if (!pSession) {
 			fprintf(stderr, "ERROR: failed to create session (%s)\n", opsec_errno_str(opsec_errno));
-			cleanup_fw1_environment(pEnv, pClient, pServer, OpsecArgv, CopyOpsecArgc);
+			cleanup_fw1_environment(pEnv, pClient, pServer);
 			exit_loggrabber(1);
 		}
 	} else {
@@ -865,7 +887,7 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 		}
 		if (!pSession) {
 			fprintf(stderr, "ERROR: failed to create session (%s)\n", opsec_errno_str(opsec_errno));
-			cleanup_fw1_environment(pEnv, pClient, pServer, OpsecArgv, CopyOpsecArgc);
+			cleanup_fw1_environment(pEnv, pClient, pServer);
 			exit_loggrabber(1);
 		}
 
@@ -918,7 +940,6 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 
 		if (cfgvalues.audit_mode) {
 			if ((!output_fields) || (afield_output[AIDX_NUM])) {
-//				printf ("%s", string_escape(*afield_headers[AIDX_NUM], cfgvalues.record_separator));
 				tmpstr1 = string_escape(*afield_headers[AIDX_NUM], cfgvalues.record_separator);
 				if(capacity>=(strlen(message)+strlen(tmpstr1))) {
 					strcat(message,tmpstr1);
@@ -946,7 +967,6 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
  
 		        for (i=1 ; i< NUMBER_AIDX_FIELDS ; i++) {
         		        if ((!output_fields) || (afield_output[i])) {
-//					printf("%c%s", cfgvalues.record_separator, string_escape(*afield_headers[i], cfgvalues.record_separator));
 					tmpstr1 = string_escape(*afield_headers[i], cfgvalues.record_separator);
 					sprintf(stringnumber, "%c%s", cfgvalues.record_separator, tmpstr1);
 					if(capacity>=(strlen(message)+strlen(stringnumber))) {
@@ -975,7 +995,6 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 	                }
 		} else {
 			if ((!output_fields) || (lfield_output[LIDX_NUM])) {
-//				printf ("%s", string_escape(*lfield_headers[LIDX_NUM], cfgvalues.record_separator));
 				tmpstr1 = string_escape(*lfield_headers[LIDX_NUM], cfgvalues.record_separator);
 				if(capacity>=(strlen(message)+strlen(tmpstr1))) {
 					strcat(message,tmpstr1);
@@ -1003,7 +1022,6 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
  
 		        for (i=1 ; i< NUMBER_LIDX_FIELDS ; i++) {
         		        if ((!output_fields) || (lfield_output[i])) {
-//					printf("%c%s", cfgvalues.record_separator, string_escape(*lfield_headers[i], cfgvalues.record_separator));
 					tmpstr1 = string_escape(*lfield_headers[i], cfgvalues.record_separator);
 					sprintf(stringnumber, "%c%s", cfgvalues.record_separator, tmpstr1);
 					if(capacity>=(strlen(message)+strlen(stringnumber))) {
@@ -1048,16 +1066,18 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 	/*
 	 * remove opsec stuff
 	 */
-	cleanup_fw1_environment(pEnv, pClient, pServer, OpsecArgv, CopyOpsecArgc);
+	cleanup_fw1_environment(pEnv, pClient, pServer);
 
+#ifdef USE_MYSQL
 	/*
 	 * close database connection
 	 */
-#ifdef USE_MYSQL
 	if (cfgvalues.mysql_mode) {
 		disconnect_from_mysql(mysqlconn);
 	}
 #endif
+
+	free(leaconf);
 
 	return 0;
 }
@@ -2013,53 +2033,133 @@ int read_fw1_logfile_failedconn(OpsecEntity *entity, long peer_ip, int sic_errno
 /*
  * function get_fw1_logfiles
  */
-int get_fw1_logfiles(char **ServerName, char **ServerPort) 
+int get_fw1_logfiles() 
 {
 	OpsecEntity       *pClient    = NULL;
 	OpsecEntity       *pServer    = NULL;
 	OpsecSession      *pSession   = NULL;
 	OpsecEnv          *pEnv       = NULL;
-	char* OpsecArgv[3];
-	int OpsecArgc = 4;
-	int CopyOpsecArgc = 4;
 	int opsecAlive;
 
-	OpsecArgv[0] = string_duplicate("-v");
-	OpsecArgv[1] = string_duplicate("lea_server");
-	OpsecArgv[2] = string_duplicate("opsec_entity_sic_name");
-	OpsecArgv[3] = string_duplicate(cfgvalues.opsec_server_dn);
+	char*   auth_type;
+	char*   fw1_server;
+	char*   fw1_port;
+	char*   opsec_certificate;
+	char*   opsec_client_dn;
+	char*   opsec_server_dn;
+	char*   leaconf;
 
-	/*
-	 * initialize opsec environment for authenticated and unauthenticated connections
-	 */
-	if (cfgvalues.auth_mode) {
-#ifndef WIN32
-	  if (access(ConfigfileName, F_OK) < 0) {
-		fprintf(stderr, "ERROR: Configfile %s does not exist\n",ConfigfileName);
-		exit_loggrabber(1);
-	  } else {
-            if (access(ConfigfileName, R_OK) != 0) {
-		fprintf(stderr, "ERROR: Configfile %s is not readable\n",ConfigfileName);
-		exit_loggrabber(1);
-	    }
-	  }
+#ifdef WIN32
+	TCHAR	buff[BUFSIZE];
+	DWORD	dwRet;
+#else
+	long size;
 #endif
 
-	  if ((pEnv = opsec_init( OPSEC_SIC_NAME, cfgvalues.opsec_client_dn,
-				  OPSEC_SSLCA_FILE, cfgvalues.opsec_certificate,
-				  OPSEC_CONF_ARGV, &OpsecArgc, OpsecArgv,
-				  OPSEC_EOL ))==NULL)
-	  {  
-		fprintf(stderr, "ERROR: unable to create environment (%s)\n", opsec_errno_str(opsec_errno));
+#ifdef WIN32
+	dwRet = GetCurrentDirectory(BUFSIZE, buff);
+
+	if (dwRet == 0) {
+		fprintf (stderr, "ERROR: Cannot get current working directory (error code: %d)\n", GetLastError());
 		exit_loggrabber(1);
-	  }
-	} else {
- 	  if ((pEnv = opsec_init(OPSEC_EOL))==NULL)
-	  {
-		fprintf(stderr, "ERROR: unable to create environment (%s)\n", opsec_errno_str(opsec_errno));
-		exit_loggrabber(1);
-	  }
 	}
+	if (dwRet > BUFSIZE) {
+		fprintf (stderr, "ERROR: Getting the current working directory failed failed since buffer too small, and it needs %d chars\n", dwRet);
+		exit_loggrabber(1);
+	}
+	if ((leaconf = (char *)malloc(BUFSIZE)) == NULL) {
+		fprintf (stderr, "ERROR: Out of memory\n");
+		exit_loggrabber(1);
+	}
+
+	if (cfgvalues.leaconfig_filename == NULL) {
+		strcpy(leaconf, buff);
+		strcat(leaconf, "\\lea.conf");
+	} else {
+		if ((cfgvalues.leaconfig_filename[0] == '\\') || 
+		   ((cfgvalues.leaconfig_filename[1] == ':') && (cfgvalues.leaconfig_filename[2] == '\\'))) {
+			strcpy(leaconf, cfgvalues.leaconfig_filename);
+		} else {
+			strcpy(leaconf, buff);
+			strcat(leaconf, "\\");
+			strcat(leaconf, cfgvalues.leaconfig_filename);
+		}
+	}
+#else
+	size = pathconf(".", _PC_PATH_MAX);
+	if ((leaconf = (char *)malloc((size_t)size)) == NULL) {
+		fprintf (stderr, "ERROR: Out of memory\n");
+		exit_loggrabber(1);
+	}
+		
+	if (cfgvalues.leaconfig_filename == NULL) {
+		if (getcwd(leaconf, (size_t)size) == NULL) {
+			fprintf (stderr, "ERROR: Cannot get current working directory\n");
+			exit_loggrabber(1);
+		}	
+		strcat(leaconf, "/lea.conf");
+	} else {
+		if (cfgvalues.leaconfig_filename[0] == '/') {
+			strcpy(leaconf, cfgvalues.leaconfig_filename);
+		} else {
+			if (getcwd(leaconf, (size_t)size) == NULL) {
+				fprintf (stderr, "ERROR: Cannot get current working directory\n");
+				exit_loggrabber(1);
+			}	
+			strcat(leaconf, "/");
+			strcat(leaconf, cfgvalues.leaconfig_filename);
+		}
+	}
+#endif
+
+	/* create opsec environment for the main loop */
+	if((pEnv = opsec_init(OPSEC_CONF_FILE, leaconf, OPSEC_EOL)) == NULL) {
+		fprintf(stderr, "ERROR: unable to create environment (%s)\n", opsec_errno_str(opsec_errno));
+		exit_loggrabber(1);
+	}
+
+	if (cfgvalues.debug_mode) {
+
+		fprintf(stderr, "DEBUG: OPSEC LEA conf file is %s\n", leaconf);
+
+		fw1_server = opsec_get_conf(pEnv,"lea_server","ip",NULL);
+		if(fw1_server==NULL) {
+			fprintf(stderr, "ERROR: The fw1 server ip address has not been set.\n");
+			exit_loggrabber(1);
+		}//end of if
+		auth_type = opsec_get_conf(pEnv,"lea_server","auth_type",NULL);
+		if (auth_type!=NULL) {
+			//Authentication mode
+			fw1_port = opsec_get_conf(pEnv,"lea_server","auth_port",NULL);
+			opsec_certificate = opsec_get_conf(pEnv,"opsec_sslca_file",NULL);
+			opsec_client_dn = opsec_get_conf(pEnv,"opsec_sic_name",NULL);
+			opsec_server_dn = opsec_get_conf(pEnv,"lea_server","opsec_entity_sic_name",NULL);
+			if((fw1_port==NULL)||(opsec_certificate==NULL)||(opsec_client_dn==NULL)||(opsec_server_dn==NULL)) {
+				fprintf(stderr, "ERROR: The parameters about authentication mode have not been set.\n");
+				exit_loggrabber(1);
+			} else {
+				fprintf (stderr, "DEBUG: Authentication mode has been used.\n");
+				fprintf (stderr, "DEBUG: Server-IP     : %s\n", fw1_server);
+				fprintf (stderr, "DEBUG: Server-Port     : %s\n", fw1_port);
+				fprintf (stderr, "DEBUG: Authentication type: %s\n", auth_type);
+				fprintf (stderr, "DEBUG: OPSEC sic certificate file name : %s\n", opsec_certificate);
+				fprintf (stderr, "DEBUG: Server DN (sic name) : %s\n", opsec_server_dn);
+				fprintf (stderr, "DEBUG: OPSEC LEA client DN (sic name) : %s\n", opsec_client_dn);
+			}//end of inner if
+		} else {
+			//Clear Text mode, i.e. non-auth mode
+			fw1_port = opsec_get_conf(pEnv,"lea_server","port",NULL);
+			if(fw1_port!=NULL) {
+				fprintf (stderr, "DEBUG: Clear text mode has been used.\n");
+				fprintf (stderr, "DEBUG: Server-IP        : %s\n", fw1_server);
+				fprintf (stderr, "DEBUG: Server-Port      : %s\n", fw1_port);
+			} else {
+				fprintf(stderr, "ERROR: The fw1 server lea service port has not been set.\n");
+				exit_loggrabber(1);
+			}//end of inner if
+		}//end of middle if
+	}//end of if
+
 
 	/*
 	 * initialize opsec-client
@@ -2072,23 +2172,7 @@ int get_fw1_logfiles(char **ServerName, char **ServerPort)
 	/*
 	 * initialize opsec-server for authenticated and unauthenticated connections
 	 */
-	if (cfgvalues.auth_mode) {
- 	  pServer = opsec_init_entity(pEnv, LEA_SERVER,
-				OPSEC_ENTITY_NAME, "lea_server",
-				OPSEC_SERVER_IP, inet_addr(*ServerName),
-				OPSEC_SERVER_AUTH_PORT, (int)htons(atoi(*ServerPort)),
-				OPSEC_ENTITY_SIC_NAME, "",
-				OPSEC_SERVER_AUTH_TYPE, cfgvalues.auth_type,
-				OPSEC_SESSION_END_HANDLER, get_fw1_logfiles_end,
-				OPSEC_EOL);
-	} else {
-	  pServer = opsec_init_entity(pEnv, LEA_SERVER,
-				OPSEC_ENTITY_NAME, "lea_server",
-				OPSEC_SERVER_IP, inet_addr(*ServerName),
-				OPSEC_SERVER_PORT, (int)htons(atoi(*ServerPort)),
-				OPSEC_SESSION_END_HANDLER, get_fw1_logfiles_end,
-				OPSEC_EOL);
-	}
+	pServer = opsec_init_entity(pEnv, LEA_SERVER, OPSEC_ENTITY_NAME, "lea_server", OPSEC_EOL);
 
 	/*
 	 * continue only if opsec initializations were successful
@@ -2096,7 +2180,7 @@ int get_fw1_logfiles(char **ServerName, char **ServerPort)
 	if ((!pClient) || (!pServer))
 	{
 		fprintf(stderr, "ERROR: failed to initialize client/server-pair (%s)\n", opsec_errno_str(opsec_errno));
-		cleanup_fw1_environment(pEnv, pClient, pServer, OpsecArgv, CopyOpsecArgc);
+		cleanup_fw1_environment(pEnv, pClient, pServer);
 		exit_loggrabber(1);
 	}
 
@@ -2105,7 +2189,7 @@ int get_fw1_logfiles(char **ServerName, char **ServerPort)
 	 */
 	if (!(pSession = lea_new_session(pClient, pServer, LEA_OFFLINE, LEA_FILENAME, LEA_NORMAL, LEA_AT_START))) {
 		fprintf(stderr, "ERROR: failed to create session (%s)\n", opsec_errno_str(opsec_errno));
-		cleanup_fw1_environment(pEnv, pClient, pServer, OpsecArgv, CopyOpsecArgc);
+		cleanup_fw1_environment(pEnv, pClient, pServer);
 		exit_loggrabber(1);
 	}
 
@@ -2119,7 +2203,9 @@ int get_fw1_logfiles(char **ServerName, char **ServerPort)
 	/*
 	 * remove opsec stuff
 	 */
-	cleanup_fw1_environment(pEnv, pClient, pServer, OpsecArgv, CopyOpsecArgc);
+	cleanup_fw1_environment(pEnv, pClient, pServer);
+
+	free(leaconf);
 
 	return 0;
 }
@@ -2168,18 +2254,11 @@ int get_fw1_logfiles_dict(OpsecSession *pSession, int nDictId, LEA_VT nValType, 
 /*
  * function cleanup_fw1_environment
  */
-void cleanup_fw1_environment(OpsecEnv *env, OpsecEntity *client, OpsecEntity *server, char** OpsecArgv, int OpsecArgc)
+void cleanup_fw1_environment(OpsecEnv *env, OpsecEntity *client, OpsecEntity *server)
 {
-	int i;
-
 	if (client) opsec_destroy_entity(client);
 	if (server) opsec_destroy_entity(server);
 	if (env)    opsec_env_destroy(env);
-	for (i=0 ; i < OpsecArgc ; i++) {
-		if (OpsecArgv[i]) {
-			free(OpsecArgv[i]);
-		}
-	}
 }
 
 /*
@@ -2208,13 +2287,11 @@ void usage(char *szProgName)
 	fprintf(stderr, "\nFW1-Loggrabber v%s, (C)2004, Torsten Fellhauer, Xiaodong Lin\n", VERSION);
 	fprintf(stderr, "Usage:\n");
 	fprintf(stderr, " %s [ options ]\n", szProgName);
-	fprintf(stderr, "  -s|--server Server-IP      : IP-Address of FW-1 Server (default: 127.0.0.1)\n");
-	fprintf(stderr, "  -p|--port LEA-Port         : LEA-Port on FW-1 Server (default: 18184)\n");
+	fprintf(stderr, "  -c|--configfile <file>     : Name of Configfile (default: fw1-loggrabber.conf)\n");
+	fprintf(stderr, "  -l|--leaconfigfile <file>  : Name of Configfile (default: fw1-loggrabber.conf)\n");
 	fprintf(stderr, "  -f|--logfile Logfile|ALL   : Name of Logfile (default: fw.log)\n");
-	fprintf(stderr, "  -c|--configfile Configfile : Name of Configfile (default: fw1-loggrabber.conf)\n");
 	fprintf(stderr, "  --resolve|--no-resolve     : Resolve Port Numbers and IP-Addresses (Default: Resolve)\n");
 	fprintf(stderr, "  --showfiles|--showlogs     : Show only Filenames of all available FW-1 Logfiles (default: showlogs)\n");
-	fprintf(stderr, "  --auth|--no-auth           : Use authenticated and encrypted connection to FW1 (default: no-auth)\n");
 	fprintf(stderr, "  --2000|--ng                : Connect to a CP FW-1 4.1 (2000) (default is ng)\n");
 	fprintf(stderr, "  --filter \"...\"             : Specify filters to be applied\n");
 	fprintf(stderr, "  --fields \"...\"             : Specify fields to be printed\n");
@@ -3830,9 +3907,77 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 	char* configparameter;
 	char* configvalue;
 	char* tmpstr;
+	char* loggrabberconf;
 	
-	if ((configfile = fopen(filename,"r")) == NULL) {
-		fprintf(stderr, "ERROR: Cannot open configfile (%s)\n", filename);
+#ifdef WIN32
+	TCHAR	buff[BUFSIZE];
+	DWORD	dwRet;
+#else
+	long size;
+#endif
+
+#ifdef WIN32
+	dwRet = GetCurrentDirectory(BUFSIZE, buff);
+
+	if (dwRet == 0) {
+		fprintf (stderr, "ERROR: Cannot get current working directory (error code: %d)\n", GetLastError());
+		exit_loggrabber(1);
+	}
+	if (dwRet > BUFSIZE) {
+		fprintf (stderr, "ERROR: Getting the current working directory failed failed since buffer too small, and it needs %d chars\n", dwRet);
+		exit_loggrabber(1);
+	}
+	if ((loggrabberconf = (char *)malloc(BUFSIZE)) == NULL) {
+		fprintf (stderr, "ERROR: Out of memory\n");
+		exit_loggrabber(1);
+	}
+
+	if (filename == NULL) {
+		strcpy(loggrabberconf, buff);
+		strcat(loggrabberconf, "\\fw1-loggrabber.conf");
+	} else {
+		if ((filename[0] == '\\') || 
+		   ((filename[1] == ':') && (filename[2] == '\\'))) {
+			strcpy(loggrabberconf, filename);
+		} else {
+			strcpy(loggrabberconf, buff);
+			strcat(loggrabberconf, "\\");
+			strcat(loggrabberconf, filename);
+		}
+	}
+#else
+	size = pathconf(".", _PC_PATH_MAX);
+	if ((loggrabberconf = (char *)malloc((size_t)size)) == NULL) {
+		fprintf (stderr, "ERROR: Out of memory\n");
+		exit_loggrabber(1);
+	}
+		
+	if (filename == NULL) {
+		if (getcwd(loggrabberconf, (size_t)size) == NULL) {
+			fprintf (stderr, "ERROR: Cannot get current working directory\n");
+			exit_loggrabber(1);
+		}	
+		strcat(loggrabberconf, "/fw1-loggrabber.conf");
+	} else {
+		if (filename[0] == '/') {
+			strcpy(loggrabberconf, filename);
+		} else {
+			if (getcwd(loggrabberconf, (size_t)size) == NULL) {
+				fprintf (stderr, "ERROR: Cannot get current working directory\n");
+				exit_loggrabber(1);
+			}	
+			strcat(loggrabberconf, "/");
+			strcat(loggrabberconf, filename);
+		}
+	}
+#endif
+
+	if (debug_mode) {
+		fprintf(stderr, "DEBUG: fw1-loggrabber conf file is %s\n", loggrabberconf);
+	}
+
+	if ((configfile = fopen(loggrabberconf,"r")) == NULL) {
+		fprintf(stderr, "ERROR: Cannot open configfile (%s)\n", loggrabberconf);
 		exit_loggrabber(1);
 	}
 
@@ -3856,11 +4001,7 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 			if (debug_mode == 1) {
 				fprintf(stderr, "DEBUG: %s=%s\n", configparameter, configvalue);
 			}
-			if (strcmp(configparameter, "FW1_SERVER") == 0) {
-				cfgvalues->fw1_server = string_duplicate(string_trim(configvalue, '"'));
-			} else if (strcmp(configparameter, "FW1_PORT") == 0) {
-				cfgvalues->fw1_port = string_duplicate(string_trim(configvalue, '"'));
-			} else if (strcmp(configparameter, "RECORD_SEPARATOR") == 0) {
+			if (strcmp(configparameter, "RECORD_SEPARATOR") == 0) {
 				tmpstr = string_trim(configvalue, '"');
 				if (tmpstr) {
 					cfgvalues->record_separator = tmpstr[0];
@@ -3951,40 +4092,6 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 					fprintf(stderr, "WARNING: Illegal entry in configuration file: %s=%s\n", configparameter, configvalue);
 				}
 				free(configvalue);
-			} else if (strcmp(configparameter, "AUTHENTICATED") == 0) {
-				configvalue = string_duplicate(string_trim(configvalue, '"'));
-				if (string_icmp(configvalue, "yes") == 0) {
-					cfgvalues->auth_mode = 1;
-				} else if (string_icmp(configvalue, "no") == 0) {
-					cfgvalues->auth_mode = 0;
-				} else {
-					fprintf(stderr, "WARNING: Illegal entry in configuration file: %s=%s\n", configparameter, configvalue);
-				}
-				free(configvalue);
-			} else if (strcmp(configparameter, "AUTHENTICATION_TYPE") == 0) {
-				configvalue = string_duplicate(string_trim(configvalue, '"'));
-				if (string_icmp(configvalue, "SSLCA") == 0) {
-					cfgvalues->auth_type = OPSEC_SSLCA;
-				} else if (string_icmp(configvalue, "SSLCA_COMP") == 0) {
-					cfgvalues->auth_type = OPSEC_SSLCA_COMP;
-				} else if (string_icmp(configvalue, "SSLCA_RC4") == 0) {
-					cfgvalues->auth_type = OPSEC_SSLCA_RC4;
-				} else if (string_icmp(configvalue, "SSLCA_RC4_COMP") == 0) {
-					cfgvalues->auth_type = OPSEC_SSLCA_RC4_COMP;
-				} else if (string_icmp(configvalue, "SSLCA_CLEAR") == 0) {
-					cfgvalues->auth_type = OPSEC_SSLCA_CLEAR;
-				} else if (string_icmp(configvalue, "ASYM_SSLCA") == 0) {
-					cfgvalues->auth_type = OPSEC_ASYM_SSLCA;
-				} else if (string_icmp(configvalue, "ASYM_SSLCA_COMP") == 0) {
-					cfgvalues->auth_type = OPSEC_ASYM_SSLCA_COMP;
-				} else if (string_icmp(configvalue, "ASYM_SSLCA_RC4") == 0) {
-					cfgvalues->auth_type = OPSEC_ASYM_SSLCA_RC4;
-				} else if (string_icmp(configvalue, "ASYM_SSLCA_RC4_COMP") == 0) {
-					cfgvalues->auth_type = OPSEC_ASYM_SSLCA_RC4_COMP;
-				} else {
-					fprintf(stderr, "WARNING: Illegal entry in configuration file: %s=%s\n", configparameter, configvalue);
-				}
-				free(configvalue);
 			} else if (strcmp(configparameter, "LOGGING_CONFIGURATION") == 0) {
 				configvalue = string_duplicate(string_trim(configvalue, '"'));
 				if (string_icmp(configvalue, "screen") == 0) {
@@ -4012,12 +4119,6 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 				free(configvalue);
 			} else if (strcmp(configparameter, "FW1_LOGFILE") == 0) {
 				cfgvalues->fw1_logfile = string_duplicate(string_trim(configvalue, '"'));
-			} else if (strcmp(configparameter, "OPSEC_CERTIFICATE") == 0) {
-				cfgvalues->opsec_certificate = string_duplicate(string_trim(configvalue, '"'));
-			} else if (strcmp(configparameter, "OPSEC_CLIENT_DN") == 0) {
-				cfgvalues->opsec_client_dn = string_duplicate(string_trim(configvalue, '"'));
-			} else if (strcmp(configparameter, "OPSEC_SERVER_DN") == 0) {
-				cfgvalues->opsec_server_dn = string_duplicate(string_trim(configvalue, '"'));
 			} else {
 				fprintf(stderr, "WARNING: Illegal entry in configuration file: %s=%s\n", configparameter, configvalue);
 			}
@@ -4025,6 +4126,8 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 	}
 
 	fclose(configfile);
+
+	free(loggrabberconf);
 }
 
 /*
@@ -4263,17 +4366,8 @@ void exit_loggrabber (int errorcode) {
 	free_lfield_arrays(lfields);
 	free_afield_arrays(afields);
 
-	if (ConfigfileName) {
-		free(ConfigfileName);
-	}
 	if (LogfileName) {
 		free(LogfileName);
-	}
-	if (ServerName) {
-		free(ServerName);
-	}
-	if (ServerPort) {
-		free(ServerPort);
 	}
 #ifdef USE_MYSQL
 	if (cfgvalues.mysql_host) {
@@ -4289,23 +4383,8 @@ void exit_loggrabber (int errorcode) {
 		free(cfgvalues.mysql_password);
 	}
 #endif
-//	if (cfgvalues.fw1_server) {
-//		free(cfgvalues.fw1_server);
-//	}
-//	if (cfgvalues.fw1_port) {
-//		free(cfgvalues.fw1_port);
-//	}
 //	if (cfgvalues.fw1_logfile) {
 //		free(cfgvalues.fw1_logfile);
-//	}
-//	if (cfgvalues.opsec_certificate) {
-//		free(cfgvalues.opsec_certificate);
-//	}
-//	if (cfgvalues.opsec_client_dn) {
-//		free(cfgvalues.opsec_client_dn);
-//	}
-//	if (cfgvalues.opsec_server_dn) {
-//		free(cfgvalues.opsec_server_dn);
 //	}
 	
 	for (i=0 ; i < filtercount ; i++) {
