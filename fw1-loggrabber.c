@@ -1009,11 +1009,41 @@ read_fw1_logfile (char **LogfileName)
 
 	  if ((message != NULL) && (strlen (message) > 0))
 	    {
-	      submit_log (message);
+#ifdef WIN32
+              if (WaitForSingleObject(mutex,INFINITE) == WAIT_FAILED)
+                {
+                  fprintf (stderr, "Error: OPSEC LEA thread.\n");
+                  ReleaseMutex (mutex);
+                  exit_loggrabber (1);
+                }
+              //enter critical section
+              add(message);
+              ReleaseMutex(mutex);
+              //end critical section
+              if (!(cfgvalues.fw1_2000))
+                {
+                  if(isFull())
+                    {
+                      lea_session_suspend(pSession);
+                      suspended = TRUE;
+                    }
+:                }
+#else
+              pthread_mutex_lock(&mutex);
+              //enter critical section
+              add(message);
+              pthread_mutex_unlock(&mutex);
+              //end critical section
+              if (!(cfgvalues.fw1_2000))
+                {
+                  if(isFull())
+                    {
+                      lea_session_suspend(pSession);
+                      suspended = TRUE;
+                    }
+                }
+#endif
 	    }
-
-	  //clean used memory
-	  free (message);
 	}
 
       opsecAlive = opsec_start_keep_alive (pSession, 0);
