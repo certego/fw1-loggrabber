@@ -68,10 +68,20 @@
 #	include <sqlext.h>
 #endif
 
+/*
+ * OPSEC SDK related header files
+ */
+#include "opsec/opsec.h"
+#include "opsec/opsec_event.h"
 #include "opsec/lea.h"
 #include "opsec/lea_filter.h"
 #include "opsec/lea_filter_ext.h"
-#include "opsec/opsec.h"
+
+/*
+ * fw1-loggrabber own header files
+ */
+#include "queue.h"
+#include "thread.h"
 
 /*
  * Constant definitions
@@ -344,6 +354,12 @@ int get_fw1_logfiles_dict (OpsecSession *, int, LEA_VT, int);
 int get_fw1_logfiles_end (OpsecSession *);
 
 /*
+ * user defined event handle, which is used for flow control
+ * P.S.: It is only for NG FP3
+ */
+int fc_handler (OpsecEnv *pEnv, long eventid, void *raise_data, void *set_data);
+
+/*
  * function to create a new rule for a filter rulebase
  */
 LeaFilterRulebase *create_fw1_filter_rule (LeaFilterRulebase *, char[255]);
@@ -471,6 +487,8 @@ void fileCopy (const char *inputfile, const char *outputfile);
 // check and see whether or not a file exists
 int fileExist (const char *fileName);
 
+//Worker thread function
+ThreadFuncReturnType leaRecordProcessor( void *data );
 
 /*
  * Global definitions
@@ -557,7 +575,7 @@ int recoverInterval = 10;
 int established = FALSE;
 
 #ifdef USE_ODBC
-/* 
+/*
  * global variables for ODBC
  */
 SQLHENV henv;
@@ -571,3 +589,27 @@ char *dbms_name = NULL;
 char *dbms_ver = NULL;
 int tableindex = -1;
 #endif
+
+OpsecSession 	*pSession 	= NULL;
+OpsecEnv		*pEnv 		= NULL;
+
+/*
+ * The following events are user defined:
+ */
+long initent, resumeent, shutdownent;
+
+//A mutex for multithread thread synchronization
+#ifdef WIN32
+	HANDLE mutex;
+#else
+	pthread_mutex_t mutex;
+#endif
+
+//LEA record worker thread id
+ThreadIDType threadid;
+
+//A flag to indicate whether LEA record worker thread should quit.
+Bool alive = TRUE;
+
+//A flag to indicate whether the established Opsec Session has been suspended.
+Bool suspended = FALSE;

@@ -464,12 +464,26 @@ main (int argc, char *argv[])
     }
 #endif
 
+	/* A mutex object to provide safe manipulation of Check Point FW-1 event queue across multiple threads.  */
+	#ifdef WIN32
+		mutex = CreateMutex(NULL,FALSE,NULL);
+
+		if (mutex == NULL) {
+			fprintf (stderr, "ERROR: Error: Windows internal error while creating a mutex.\n");
+			exit_loggrabber (1);
+		}
+	#else
+		pthread_mutex_init(&mutex, NULL);
+	#endif
+
   /*
    * set logging envionment
    */
   logging_init_env (cfgvalues.log_mode);
 
   open_log ();
+
+	createThread(&threadid, leaRecordProcessor, NULL);
 
   /*
    * set opsec debug level
@@ -592,8 +606,8 @@ read_fw1_logfile (char **LogfileName)
 {
   OpsecEntity *pClient = NULL;
   OpsecEntity *pServer = NULL;
-  OpsecSession *pSession = NULL;
-  OpsecEnv *pEnv = NULL;
+  //OpsecSession *pSession = NULL;
+  //OpsecEnv *pEnv = NULL;
   LeaFilterRulebase *rb;
   int rbid = 1;
   int i;
@@ -710,6 +724,18 @@ read_fw1_logfile (char **LogfileName)
 		   opsec_errno_str (opsec_errno));
 	  exit_loggrabber (1);
 	}
+
+	/* create user defined events */
+	initent		= opsec_new_event_id();
+	resumeent	= opsec_new_event_id();
+	shutdownent	= opsec_new_event_id();
+
+	/* trigger persistent INIT event */
+	opsec_raise_event (pEnv, initent, (void *) 0);
+
+	opsec_set_event_handler ( pEnv, initent, fc_handler, (void *) 0);
+	opsec_set_event_handler ( pEnv, resumeent, fc_handler, (void *) 0);
+	opsec_set_event_handler ( pEnv, shutdownent, fc_handler, (void *) 0);
 
       if (cfgvalues.debug_mode)
 	{
@@ -914,7 +940,7 @@ read_fw1_logfile (char **LogfileName)
 
 	  /*
 	   * If filters were defined, create the rulebase and register it.
-	   * the session will be resumed, as soon as the server sends the 
+	   * the session will be resumed, as soon as the server sends the
 	   * filter_ack-event.
 	   * In the case when no filters are used, the suspended session
 	   * will be continued immediately.
@@ -1874,10 +1900,34 @@ read_fw1_logfile_n_record_stdout (OpsecSession * pSession, lea_record * pRec,
     }
 #endif
 
-  submit_log (message);
 
-  //clean used memory
-  free (message);
+	#ifdef WIN32
+		if (WaitForSingleObject(mutex,INFINITE) == WAIT_FAILED){
+			fprintf (stderr, "Error: OPSEC LEA thread.\n");
+			ReleaseMutex (mutex);
+			exit_loggrabber (1);
+		}
+		//enter critical section
+		add(message);
+		ReleaseMutex(mutex); // end critical section
+		if (!(cfgvalues.fw1_2000)) {
+			if(isFull())	{
+				lea_session_suspend(pSession);
+				suspended = TRUE;
+			}
+		}
+	#else
+		pthread_mutex_lock(&mutex);
+		//enter critical section
+		add(message);
+		pthread_mutex_unlock(&mutex);// end critical section
+		if (!(cfgvalues.fw1_2000)) {
+			if(isFull())	{
+				lea_session_suspend(pSession);
+				suspended = TRUE;
+			}
+		}
+	#endif
 
   return OPSEC_SESSION_OK;
 }
@@ -2718,6 +2768,50 @@ get_fw1_logfiles_end (OpsecSession * psession)
 }
 
 /*
+ * function fc_handler
+ */
+int fc_handler (OpsecEnv *pEnv, long eventid, void *raise_data, void *set_data) {
+
+	if (eventid == initent) {
+		/* init event */
+		if (cfgvalues.debug_mode) {
+			fprintf (stderr, "Info: User defined event has been initilized.\n");
+		}
+		return 0;
+	}
+
+	if (eventid == resumeent) {
+		/* resume event*/
+		if (cfgvalues.debug_mode) {
+			fprintf (stderr, "Info: Resume event has been received.\n");
+		}
+
+		if(pSession!=NULL) {
+			lea_session_resume(pSession);
+		}
+		return 0;
+	}
+
+	if (eventid == shutdownent) {
+		/* shut down event */
+		if (cfgvalues.debug_mode) {
+			fprintf (stderr, "Info: Shutdown event has been received.\n");
+		}
+		opsec_del_event_handler (pEnv, initent, fc_handler, 0);
+		opsec_del_event_handler (pEnv, resumeent, fc_handler, 0);
+		opsec_del_event_handler (pEnv, shutdownent, fc_handler, 0);
+
+		if(pSession!=NULL) {
+			opsec_end_session(pSession);
+		}
+
+		return 0;
+	}
+
+	return 0;
+}
+
+/*
  * function read_fw1_logfile_end
  */
 int
@@ -2925,8 +3019,8 @@ get_fw1_logfiles ()
 {
   OpsecEntity *pClient = NULL;
   OpsecEntity *pServer = NULL;
-  OpsecSession *pSession = NULL;
-  OpsecEnv *pEnv = NULL;
+  //OpsecSession *pSession = NULL;
+  //OpsecEnv *pEnv = NULL;
   int opsecAlive;
 
   char *auth_type;
@@ -7733,4 +7827,68 @@ getschar ()
   ch = getchar ();
   while ((c = getchar ()) != '\n' && c != EOF);
   return ch;
+}
+
+/* Function prototypes for thread routines */
+ThreadFuncReturnType leaRecordProcessor( void *data ){
+
+	LinkedList * records;
+	char* message;
+
+	alive = TRUE;
+
+    while(alive)
+	{
+
+		#ifdef WIN32
+			if (WaitForSingleObject(mutex,INFINITE) == WAIT_FAILED){
+				fprintf(stderr,"Error: OPSEC LEA Record Worker Thread.");
+				ReleaseMutex (mutex);
+				exit_loggrabber(1);
+			}
+		#else
+			pthread_mutex_lock(&mutex);
+		#endif
+
+		//Enter critical section
+		if(isEmpty()) {
+			// end critical section
+			#ifdef WIN32
+				ReleaseMutex(hMutex);
+			#else
+				pthread_mutex_unlock(&mutex);
+			#endif
+			if (!(cfgvalues.fw1_2000)) {
+				if(suspended) {
+					/* trig resume event */
+					if (pEnv != NULL) {
+						opsec_raise_event (pEnv, resumeent, (void *) 0);
+					}
+					suspended=FALSE;
+				}
+			}
+			SLEEPMIL(8);
+		} else {
+			records = getFirst();
+			// end critical section
+			#ifdef WIN32
+				ReleaseMutex(hMutex);
+			#else
+				pthread_mutex_unlock(&mutex);
+			#endif
+			if(records != NULL) {
+				message = records->listElement;
+
+				//submit received lea record
+				submit_log (message);
+
+  				//clean used memory
+				free(message);
+				free(records);
+			}
+
+		}//end of if
+	}//end while
+
+	return 0;
 }

@@ -30,7 +30,7 @@ PKG_DIR = /usr/local/fw1sdk
 # you should not need to touch anything below
 #
 EXE_NAME = fw1-loggrabber
-OBJ_FILES = fw1-loggrabber.o
+OBJ_FILES = thread.o queue.o fw1-loggrabber.o
 
 LIB_DIR = $(PKG_DIR)/lib/release.static
 CPC_DIR = $(PKG_DIR)/lib/lib/static

@@ -41,58 +41,26 @@
 /* it should link with -lpthread.                                             */
 /*                                                                            */
 /******************************************************************************/
+#ifndef THREAD_H
+#define THREAD_H
 
-#include "thread.h"
+#include <stdio.h>
+#ifdef WIN32
+	#include <winbase.h>
+	#define ThreadFuncType LPTHREAD_START_ROUTINE
+	#define ThreadFuncReturnType DWORD WINAPI
+	#define SLEEPMIL(millisec) Sleep(millisec)
+	#define ThreadIDType DWORD
+#else
+	#include <sys/types.h>   /* system types */
+	#include <unistd.h>      /* standard UNIX stuff */
+	#include <pthread.h>
+	#define ThreadFuncReturnType void *
+	typedef void * (*ThreadFuncType) (void *);
+	#define SLEEPMIL(millisec) usleep(millisec*1000)
+	#define ThreadIDType pthread_t
+#endif
 
-/* The following method is used solely for purpose of the unit test */
-/* Function prototypes for thread routines */
-ThreadFuncReturnType printMessageFunction( void *data ){
-	char *message;
-	message = (char *) data;
-	while(1) {
-		printf("%s\n", message);
-		SLEEPMIL(1);
-	}
-	printf("The thread that prints \"%s\" exited ...\n", message);
-	return 0;
-}
+void createThread(ThreadIDType * threadID, ThreadFuncType thread_func, void * data);
 
-/*
-int main() {
-	testThread();
-}
-*/
-
-int testThread() {
-
-	ThreadIDType thread_id;
-	char *message1 = "Thread 1.";
-	char *message2 = "Thread 2.";
-	int count=0;
-
-	createThread(&thread_id, printMessageFunction, (void *)message1);
-	SLEEPMIL(1);
-	createThread(&thread_id, printMessageFunction, (void *)message2);
-	SLEEPMIL(1);
-	while(count<=100) {
-		printf("The main thread.\n");
-		SLEEPMIL(1);
-		count++;
-	}
-	printf("The main thread exits...\n");
-	return 0;
-}
-
-/*
-* A cover for thread creation function
-*/
-void createThread (ThreadIDType *threadID, ThreadFuncType thread_func, void * data) {
-	#ifdef WIN32
-		CreateThread(NULL, 0, thread_func, data, 0, threadID);
-	#else
-		if (pthread_create(threadID, NULL, thread_func, data) != 0) {
-			fprintf(stderr, "failed to create thread ...\n");
-			exit(2);
-		}
-	#endif
-}
+#endif

@@ -45,39 +45,13 @@
 /*                                                                            */
 /******************************************************************************/
 
-#include <stdio.h>
-
-typedef int Bool;
-
-#define FALSE 0
-#define TRUE 1
+#include "queue.h"
 
 // The queue length limitation
-int THRESHOLD = 1000;
+int threadhold = 1000;
 
-typedef struct LinkedListElement {
-	char *listElement; 				// content of any specified element in this list
-	struct LinkedListElement *next; //The point to the next elementin this list
-} LinkedList;
-
-// The first node in the list, called the head
-LinkedList * head;
-// The last node in the list, called the tail, which is not necessary for a singly linked list
-LinkedList * tail;
 // The count of elements in the list
 int countOfList=0;
-
-void initialize();				//Initialization of a linked list
-void setThreshold(int thresh);	//Set the queue length limitation
-int getThreshold();				//Return the queue length limitation
-Bool addFirst(char* data);		//Insert the given element at the beginning of this list.
-Bool add(char* data);			//Append the given element to the end of this list.
-void clearList();				//Remove all of the elements from this list.
-void printList();				//Dsiplay all of the elements from this list.
-int sizeofList();				//Return count of elements in queue
-Bool isEmpty();					//Are there any elements on this list? true if nobody's home
-Bool isFull();					//Does this list reach its limitation? true if so
-LinkedList *getFirst();			//Return the first element in this list.
 
 /*
 int main() {
@@ -223,12 +197,12 @@ void initialize(){
 
 //Set the queue length limitation
 void setThreshold(int thresh) {
-	THRESHOLD = thresh;
+	threadhold = thresh;
 }
 
 //Return the queue length limitation
 int getThreshold(){
-	return THRESHOLD;
+	return threadhold;
 }
 
 //Append the specified element to the end of this list.
@@ -322,7 +296,7 @@ Bool isEmpty(){
 
 //Does this list reach its limitation? true if so
 Bool isFull() {
-	if(countOfList >= THRESHOLD) {
+	if(countOfList >= threadhold) {
 		return TRUE;
 	} else {
 		return FALSE;
