@@ -1,7 +1,7 @@
 /******************************************************************************/
 /* fw1-loggrabber - (C)2004 Torsten Fellhauer                                 */
 /******************************************************************************/
-/* Version: 1.9.2                                                             */
+/* Version: 1.10                                                              */
 /******************************************************************************/
 /*                                                                            */
 /* Copyright (c) 2004 Torsten Fellhauer <torsten@fellhauer-web.de>            */
@@ -68,7 +68,7 @@
 /*
  * Constant definitions
  */
-#define VERSION			"1.9.2"
+#define VERSION			"1.10"
 
 #define TRUE			1
 #define FALSE			0
@@ -77,7 +77,7 @@
 #define DATETIME_UNIX		1
 #define DATETIME_STD		2
 
-#define NUMBER_LIDX_FIELDS	93
+#define NUMBER_LIDX_FIELDS	103
 
 #define LIDX_NUM		0
 #define LIDX_TIME		1
@@ -116,62 +116,72 @@
 #define LIDX_INTERNAL_CA	34
 #define LIDX_SERIAL_NUM		35
 #define LIDX_DN			36
-#define LIDX_ICMP_TYPE		37
-#define LIDX_ICMP_CODE		38
-#define LIDX_MSGID		39
-#define LIDX_MESSAGE_INFO	40
-#define LIDX_LOG_SYS_MESSAGE	41
-#define LIDX_SESSION_ID		42
-#define LIDX_DNS_QUERY		43
-#define LIDX_DNS_TYPE		44
-#define LIDX_SCHEME		45
-#define LIDX_SRCKEYID		46
-#define LIDX_DSTKEYID		47
-#define LIDX_METHODS		48
-#define LIDX_PEER_GATEWAY	49
-#define LIDX_IKE		50
-#define LIDX_IKE_IDS		51
-#define LIDX_ENCRYPTION_FAILURE	52
-#define LIDX_ENCRYPTION_FAIL_R  53
-#define LIDX_COOKIEI		54
-#define LIDX_COOKIER		55
-#define LIDX_START_TIME		56
-#define LIDX_SEGMENT_TIME	57
-#define LIDX_CLIENT_IN_PACKETS	58
-#define LIDX_CLIENT_OUT_PACKETS	59
-#define LIDX_CLIENT_IN_BYTES	60
-#define LIDX_CLIENT_OUT_BYTES	61
-#define LIDX_CLIENT_IN_IF	62
-#define LIDX_CLIENT_OUT_IF	63
-#define LIDX_SERVER_IN_PACKETS	64
-#define LIDX_SERVER_OUT_PACKETS	65
-#define LIDX_SERVER_IN_BYTES	66
-#define LIDX_SERVER_OUT_BYTES	67
-#define LIDX_SERVER_IN_IF	68
-#define LIDX_SERVER_OUT_IF	69
-#define LIDX_MESSAGE		70
-#define LIDX_NAT_ADDRULENUM	71
-#define LIDX_USER		72
-#define LIDX_SRCNAME		73
-#define LIDX_VPN_USER		74
-#define LIDX_OM			75
-#define LIDX_OM_METHOD		76
-#define LIDX_ASSIGNED_IP	77
-#define LIDX_MAC		78
-#define LIDX_ATTACK		79
-#define LIDX_ATTACK_INFO	80
-#define LIDX_CLUSTER_INFO	81
-#define LIDX_DCE_RPC_UUID	82
-#define LIDX_DCE_RPC_UUID_1	83
-#define LIDX_DCE_RPC_UUID_2	84
-#define LIDX_DCE_RPC_UUID_3	85
-#define LIDX_DURING_SEC		86
-#define LIDX_FRAGMENTS_DROPPED	87
-#define LIDX_IP_ID		88
-#define LIDX_IP_LEN		89
-#define LIDX_IP_OFFSET		90
-#define LIDX_TCP_FLAGS2		91
-#define LIDX_SYNC_INFO		92
+#define LIDX_ICMP		37
+#define LIDX_ICMP_TYPE		38
+#define LIDX_ICMP_TYPE2		39
+#define LIDX_ICMP_CODE		40
+#define LIDX_ICMP_CODE2		41
+#define LIDX_MSGID		42
+#define LIDX_MESSAGE_INFO	43
+#define LIDX_LOG_SYS_MESSAGE	44
+#define LIDX_SESSION_ID		45
+#define LIDX_DNS_QUERY		46
+#define LIDX_DNS_TYPE		47
+#define LIDX_SCHEME		48
+#define LIDX_SRCKEYID		49
+#define LIDX_DSTKEYID		50
+#define LIDX_METHODS		51
+#define LIDX_PEER_GATEWAY	52
+#define LIDX_IKE		53
+#define LIDX_IKE_IDS		54
+#define LIDX_ENCRYPTION_FAILURE	55
+#define LIDX_ENCRYPTION_FAIL_R  56
+#define LIDX_COOKIEI		57
+#define LIDX_COOKIER		58
+#define LIDX_START_TIME		59
+#define LIDX_SEGMENT_TIME	60
+#define LIDX_CLIENT_IN_PACKETS	61
+#define LIDX_CLIENT_OUT_PACKETS	62
+#define LIDX_CLIENT_IN_BYTES	63
+#define LIDX_CLIENT_OUT_BYTES	64
+#define LIDX_CLIENT_IN_IF	65
+#define LIDX_CLIENT_OUT_IF	66
+#define LIDX_SERVER_IN_PACKETS	67
+#define LIDX_SERVER_OUT_PACKETS	68
+#define LIDX_SERVER_IN_BYTES	69
+#define LIDX_SERVER_OUT_BYTES	70
+#define LIDX_SERVER_IN_IF	71
+#define LIDX_SERVER_OUT_IF	72
+#define LIDX_MESSAGE		73
+#define LIDX_NAT_ADDRULENUM	74
+#define LIDX_USER		75
+#define LIDX_SRCNAME		76
+#define LIDX_VPN_USER		77
+#define LIDX_OM			78
+#define LIDX_OM_METHOD		79
+#define LIDX_ASSIGNED_IP	80
+#define LIDX_MAC		81
+#define LIDX_ATTACK		82
+#define LIDX_ATTACK_INFO	83
+#define LIDX_CLUSTER_INFO	84
+#define LIDX_DCE_RPC_UUID	85
+#define LIDX_DCE_RPC_UUID_1	86
+#define LIDX_DCE_RPC_UUID_2	87
+#define LIDX_DCE_RPC_UUID_3	88
+#define LIDX_DURING_SEC		89
+#define LIDX_FRAGMENTS_DROPPED	90
+#define LIDX_IP_ID		91
+#define LIDX_IP_LEN		92
+#define LIDX_IP_OFFSET		93
+#define LIDX_TCP_FLAGS2		94
+#define LIDX_SYNC_INFO		95
+#define LIDX_LOG		96
+#define LIDX_CPMAD		97
+#define LIDX_AUTH_METHOD	98
+#define LIDX_TCP_PACKET_OOS	99
+#define LIDX_RPC_PROG		100
+#define LIDX_TH_FLAGS		101
+#define LIDX_CP_MESSAGE		102
 
 #define NUMBER_AIDX_FIELDS	21
 
@@ -328,11 +338,12 @@ int                get_fw1_logfiles_end(OpsecSession *);
  * function to create a new rule for a filter rulebase
  */
 LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase*, char[255]);
+LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase*, char[255]);
 
 /* 
  * function to clean up the opsec environment
  */
-void               cleanup_fw1_environment(OpsecEnv *, OpsecEntity *, OpsecEntity *);
+void               cleanup_fw1_environment(OpsecEnv *, OpsecEntity *, OpsecEntity *, char**, int);
 
 /*
  * functions for database support
@@ -363,6 +374,12 @@ void		   free_afield_arrays(char***);
  * function to show help about this tool
  */
 void               usage(char *);
+void               show_supported_fields();
+
+/*
+ * cleanup functions
+ */
+void               exit_loggrabber(int);
 
 /*
  * helper functions for working with lists
@@ -370,6 +387,7 @@ void               usage(char *);
 int 		   stringlist_append (stringlist **, char *);
 void		   stringlist_print (stringlist **);
 stringlist* 	   stringlist_search(stringlist **, char *, char **);
+stringlist*        stringlist_delete(stringlist **);
 
 /*
  * helper function to work with strings
@@ -390,6 +408,9 @@ int show_files 		= -1;
 int online_mode		= -1;
 int resolve_mode        = -1;
 char *ConfigfileName 	= NULL;
+char *LogfileName       = NULL;
+char *ServerName        = NULL;
+char *ServerPort        = NULL;
 int auth_connection	= -1;
 int auth_type		= -1;
 int fw1_2000		= -1;

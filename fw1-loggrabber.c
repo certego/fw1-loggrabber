@@ -1,7 +1,7 @@
 /******************************************************************************/
 /* fw1-loggrabber - (C)2004 Torsten Fellhauer                                 */
 /******************************************************************************/
-/* Version: 1.9.2                                                             */
+/* Version: 1.10                                                              */
 /******************************************************************************/
 /*                                                                            */
 /* Copyright (c) 2004 Torsten Fellhauer <torsten@fellhauer-web.de>            */
@@ -50,9 +50,6 @@
  */
 int main(int argc, char *argv[])
 {
-	char *LogfileName    = NULL;
-	char *ServerName     = NULL;
-	char *ServerPort     = NULL;
 	int i;
 	stringlist *lstptr;
 	char *foundstring;
@@ -75,7 +72,11 @@ int main(int argc, char *argv[])
 	for (i=1 ; i<argc ; i++) {
 	  if (strcmp(argv[i], "--help") == 0) {
 	    usage(argv[0]);
-	    exit(1);
+	    exit_loggrabber(1);
+	  }
+	  else if (strcmp(argv[i], "--help-fields") == 0) {
+		show_supported_fields();
+		exit_loggrabber(1);
 	  }
 	  else if (strcmp(argv[i], "--resolve") == 0) {
 	    resolve_mode = 1;
@@ -88,12 +89,12 @@ int main(int argc, char *argv[])
 	    if (argv[i] == NULL) {	
 		fprintf(stderr, "ERROR: Invalid argument: %s\n", argv[i-1]);
 		usage(argv[0]);
-		exit(1);
+		exit_loggrabber(1);
 	    }
             if (argv[i][0] == '-') {
 		fprintf(stderr, "ERROR: Value expected for argument %s\n", argv[i-1]);
 		usage(argv[0]);
-		exit(1);
+		exit_loggrabber(1);
 	    }
 	    debug_mode = atoi(argv[i]);
 	  }
@@ -146,12 +147,12 @@ int main(int argc, char *argv[])
 	    if (argv[i] == NULL) {	
 		fprintf(stderr, "ERROR: Invalid argument: %s\n", argv[i-1]);
 		usage(argv[0]);
-		exit(1);
+		exit_loggrabber(1);
 	    }
             if (argv[i][0] == '-') {
 		fprintf(stderr, "ERROR: Value expected for argument %s\n", argv[i-1]);
 		usage(argv[0]);
-		exit(1);
+		exit_loggrabber(1);
 	    }
 	    ServerName = string_duplicate(argv[i]);
 	  } 
@@ -160,12 +161,12 @@ int main(int argc, char *argv[])
 	    if (argv[i] == NULL) {	
 		fprintf(stderr, "ERROR: Invalid argument: %s\n", argv[i-1]);
 		usage(argv[0]);
-		exit(1);
+		exit_loggrabber(1);
 	    }
             if (argv[i][0] == '-') {
 		fprintf(stderr, "ERROR: Value expected for argument %s\n", argv[i-1]);
 		usage(argv[0]);
-		exit(1);
+		exit_loggrabber(1);
 	    }
 	    ServerPort = string_duplicate(argv[i]);
 	  }
@@ -174,12 +175,12 @@ int main(int argc, char *argv[])
 	    if (argv[i] == NULL) {	
 		fprintf(stderr, "ERROR: Invalid argument: %s\n", argv[i-1]);
 		usage(argv[0]);
-		exit(1);
+		exit_loggrabber(1);
 	    }
             if (argv[i][0] == '-') {
 		fprintf(stderr, "ERROR: Value expected for argument %s\n", argv[i-1]);
 		usage(argv[0]);
-		exit(1);
+		exit_loggrabber(1);
 	    }
 	    LogfileName = string_duplicate(argv[i]);
 	  }
@@ -188,12 +189,12 @@ int main(int argc, char *argv[])
 	    if (argv[i] == NULL) {	
 		fprintf(stderr, "ERROR: Invalid argument: %s\n", argv[i-1]);
 		usage(argv[0]);
-		exit(1);
+		exit_loggrabber(1);
 	    }
             if (argv[i][0] == '-') {
 		fprintf(stderr, "ERROR: Value expected for argument %s\n", argv[i-1]);
 		usage(argv[0]);
-		exit(1);
+		exit_loggrabber(1);
 	    }
 	    ConfigfileName = string_duplicate(argv[i]);
 	  }
@@ -202,18 +203,18 @@ int main(int argc, char *argv[])
 	    if (argv[i] == NULL) {	
 		fprintf(stderr, "ERROR: Invalid argument: %s\n", argv[i-1]);
 		usage(argv[0]);
-		exit(1);
+		exit_loggrabber(1);
 	    }
             if (argv[i][0] == '-') {
 		fprintf(stderr, "ERROR: Value expected for argument %s\n", argv[i-1]);
 		usage(argv[0]);
-		exit(1);
+		exit_loggrabber(1);
 	    }
 	    filtercount++;
 	    filterarray = (char**)realloc(filterarray, filtercount * sizeof(char *));
 	    if (filterarray == NULL) {
 		fprintf(stderr, "ERROR: Out of memory\n");
-		exit(1);
+		exit_loggrabber(1);
 	    }
 	    filterarray[filtercount-1] = string_duplicate(argv[i]);
 	  }
@@ -222,12 +223,12 @@ int main(int argc, char *argv[])
 	    if (argv[i] == NULL) {	
 		fprintf(stderr, "ERROR: Invalid argument: %s\n", argv[i-1]);
 		usage(argv[0]);
-		exit(1);
+		exit_loggrabber(1);
 	    }
             if (argv[i][0] == '-') {
 		fprintf(stderr, "ERROR: Value expected for argument %s\n", argv[i-1]);
 		usage(argv[0]);
-		exit(1);
+		exit_loggrabber(1);
 	    }
 	    while (argv[i]) {
 		output_fields = 1;
@@ -249,7 +250,7 @@ int main(int argc, char *argv[])
 			lfield_output[LIDX_ORIG] = 1;
 			afield_output[AIDX_ORIG] = 1;
 		} else if (strcmp(field, *lfield_headers[LIDX_ALERT]) == 0) {
-			lfield_output[LIDX_ORIG] = 1;
+			lfield_output[LIDX_ALERT] = 1;
 		} else if (strcmp(field, *lfield_headers[LIDX_IF_DIR]) == 0) {
 			lfield_output[LIDX_IF_DIR] = 1;
 			afield_output[AIDX_IF_DIR] = 1;
@@ -321,10 +322,16 @@ int main(int argc, char *argv[])
 			lfield_output[LIDX_SERIAL_NUM] = 1;
 		} else if (strcmp(field, *lfield_headers[LIDX_DN]) == 0) {
 			lfield_output[LIDX_DN] = 1;
+		} else if (strcmp(field, *lfield_headers[LIDX_ICMP]) == 0) {
+			lfield_output[LIDX_ICMP] = 1;
 		} else if (strcmp(field, *lfield_headers[LIDX_ICMP_TYPE]) == 0) {
 			lfield_output[LIDX_ICMP_TYPE] = 1;
+		} else if (strcmp(field, *lfield_headers[LIDX_ICMP_TYPE2]) == 0) {
+			lfield_output[LIDX_ICMP_TYPE2] = 1;
 		} else if (strcmp(field, *lfield_headers[LIDX_ICMP_CODE]) == 0) {
 			lfield_output[LIDX_ICMP_CODE] = 1;
+		} else if (strcmp(field, *lfield_headers[LIDX_ICMP_CODE2]) == 0) {
+			lfield_output[LIDX_ICMP_CODE2] = 1;
 		} else if (strcmp(field, *lfield_headers[LIDX_MSGID]) == 0) {
 			lfield_output[LIDX_MSGID] = 1;
 		} else if (strcmp(field, *lfield_headers[LIDX_MESSAGE_INFO]) == 0) {
@@ -431,6 +438,20 @@ int main(int argc, char *argv[])
 			lfield_output[LIDX_TCP_FLAGS2] = 1;
 		} else if (strcmp(field, *lfield_headers[LIDX_SYNC_INFO]) == 0) {
 			lfield_output[LIDX_SYNC_INFO] = 1;
+		} else if (strcmp(field, *lfield_headers[LIDX_LOG]) == 0) {
+			lfield_output[LIDX_LOG] = 1;
+		} else if (strcmp(field, *lfield_headers[LIDX_CPMAD]) == 0) {
+			lfield_output[LIDX_CPMAD] = 1;
+		} else if (strcmp(field, *lfield_headers[LIDX_AUTH_METHOD]) == 0) {
+			lfield_output[LIDX_AUTH_METHOD] = 1;
+		} else if (strcmp(field, *lfield_headers[LIDX_TCP_PACKET_OOS]) == 0) {
+			lfield_output[LIDX_TCP_PACKET_OOS] = 1;
+		} else if (strcmp(field, *lfield_headers[LIDX_RPC_PROG]) == 0) {
+			lfield_output[LIDX_RPC_PROG] = 1;
+		} else if (strcmp(field, *lfield_headers[LIDX_TH_FLAGS]) == 0) {
+			lfield_output[LIDX_TH_FLAGS] = 1;
+		} else if (strcmp(field, *lfield_headers[LIDX_CP_MESSAGE]) == 0) {
+			lfield_output[LIDX_CP_MESSAGE] = 1;
 		} else if (strcmp(field, *afield_headers[AIDX_OBJECTNAME]) == 0) {
 			afield_output[AIDX_OBJECTNAME] = 1;
 		} else if (strcmp(field, *afield_headers[AIDX_OBJECTTYPE]) == 0) {
@@ -457,14 +478,14 @@ int main(int argc, char *argv[])
 			afield_output[AIDX_FIELDSCHANGES] = 1;
 		} else {
 			printf ("ERROR: Unsupported value for output fields: %s\n", field);
-			exit(1);
+			exit_loggrabber(1);
 		}
 	    }
 	  }
 	  else {
 	    fprintf(stderr, "ERROR: Invalid argument: %s\n", argv[i]);
 	    usage(argv[0]);
-	    exit(1);
+	    exit_loggrabber(1);
           }
 	}
 	
@@ -526,41 +547,41 @@ int main(int argc, char *argv[])
 			fprintf (stderr, "ERROR: Authenticated connections are currently only\n"
 					 "       available for connections to FW-1 NG. For connections\n"
 					 "       to FW-1 4.1 (2000), please omit the parameter --auth.\n");
-			exit(1);
+			exit_loggrabber(1);
 		}
 		if (cfgvalues.showfiles_mode) {
 			fprintf (stderr, "ERROR: --showfiles option is only available for connections\n"
 					 "       to FW-1 NG. For connections to FW-1 4.1 (2000), please\n"
 					 "       omit this parameter.\n");
-			exit(1);
+			exit_loggrabber(1);
 		}
 		if (filtercount > 0) {
 			fprintf (stderr, "ERROR: --filter options are only available for connections\n"
 					 "       to FW-1 NG. For connections to FW-1 4.1 (2000), please\n"
 					 "       omit these parameters.\n");
-			exit(1);
+			exit_loggrabber(1);
 		}
 		if (cfgvalues.audit_mode) {
 			fprintf (stderr, "ERROR: --auditlog option is only available for connections\n"
 					 "       to FW-1 NG. For connections to FW-1 4.1 (2000), please\n"
 					 "       omit this parameter.\n");
-			exit(1);
+			exit_loggrabber(1);
 		}
 	}
 
 	if (cfgvalues.online_mode && (!(cfgvalues.audit_mode)) && (strcmp(cfgvalues.fw1_logfile, "fw.log") != 0)) {
 		fprintf (stderr, "ERROR: -f <FILENAME> option is not available in online mode. For use with Audit-Logfile, use --auditlog\n");
-		exit(1);
+		exit_loggrabber(1);
 	}
 
 	if (cfgvalues.online_mode && cfgvalues.showfiles_mode) {
 		fprintf (stderr, "ERROR: --showfiles option is not available in online mode.\n");
-		exit(1);
+		exit_loggrabber(1);
 	}
 
 	if (!(cfgvalues.audit_mode) && (strcmp(cfgvalues.fw1_logfile, "fw.adtlog") == 0)) {
 		fprintf (stderr, "ERROR: use --auditlog option to get data of fw.adtlog\n");
-		exit(1);
+		exit_loggrabber(1);
 	}
 
 #ifdef USE_MYSQL
@@ -604,7 +625,7 @@ int main(int argc, char *argv[])
 		mysqlconn = connect_to_mysql(&mysql, &mysql_maxnumber, &cfgvalues);
 		if (mysqlconn == NULL) {
 			fprintf(stderr, "ERROR: Cannot connect to database\n");
-			exit(1);
+			exit_loggrabber(1);
 		}
 	}
 #endif
@@ -616,37 +637,50 @@ int main(int argc, char *argv[])
 		get_fw1_logfiles(&(cfgvalues.fw1_server), &(cfgvalues.fw1_port));
 	}
 	if (cfgvalues.showfiles_mode) {
-		exit(0);
+		exit_loggrabber(0);
 	}
 
 	/*
-	 * search for given string in available logfile-names
+	 * process all logfiles if ALL specified
 	 */
-	lstptr = stringlist_search(&sl,cfgvalues.fw1_logfile,&foundstring);
-
+	if (strcmp (cfgvalues.fw1_logfile, "ALL") == 0) {
+		lstptr = sl;
+	
+		while (lstptr) {
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "DEBUG: Processing Logfile: %s\n", lstptr->data);
+			}
+        		read_fw1_logfile(&(cfgvalues.fw1_server), &(cfgvalues.fw1_port), &(lstptr->data));
+			lstptr = lstptr->next;
+		}
+	} 
+	
 	/*
-	 * get the data from the matching logfiles
+	 * else search for given string in available logfile-names
 	 */
-        if (!lstptr) {
-		if (cfgvalues.debug_mode) {
-			fprintf(stderr, "DEBUG: Processing Logfile: %s\n", cfgvalues.fw1_logfile);
+	else {
+		lstptr = stringlist_search(&sl,cfgvalues.fw1_logfile,&foundstring);
+
+		/*
+		 * get the data from the matching logfiles
+		 */
+        	if (!lstptr) {
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "DEBUG: Processing Logfile: %s\n", cfgvalues.fw1_logfile);
+			}
+        		read_fw1_logfile(&(cfgvalues.fw1_server), &(cfgvalues.fw1_port), &(cfgvalues.fw1_logfile));
+	        }       
+		while (lstptr) {
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "DEBUG: Processing Logfile: %s\n", foundstring);
+			}
+        		read_fw1_logfile(&(cfgvalues.fw1_server), &(cfgvalues.fw1_port), &foundstring);
+			lstptr = stringlist_search(&(lstptr->next), cfgvalues.fw1_logfile, &foundstring);
 		}
-        	read_fw1_logfile(&(cfgvalues.fw1_server), &(cfgvalues.fw1_port), &(cfgvalues.fw1_logfile));
-        }       
-	while (lstptr) {
-		if (cfgvalues.debug_mode) {
-			fprintf(stderr, "DEBUG: Processing Logfile: %s\n", foundstring);
-		}
-        	read_fw1_logfile(&(cfgvalues.fw1_server), &(cfgvalues.fw1_port), &foundstring);
-		lstptr = stringlist_search(&(lstptr->next), cfgvalues.fw1_logfile, &foundstring);
 	}
 
-	free_lfield_arrays(lfield_headers);
-	free_afield_arrays(afield_headers);
-	free_lfield_arrays(lfields);
-	free_afield_arrays(afields);
-
-	return 0;
+	exit_loggrabber(0);
+	return(0);
 }
 
 /*
@@ -661,8 +695,9 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 	LeaFilterRulebase *rb;
 	int		  rbid = 1;
 	int		  i;
-	char* OpsecArgv[4];
+	char* OpsecArgv[3];
 	int OpsecArgc = 4;
+	int CopyOpsecArgc = 4;
 
 	OpsecArgv[0] = string_duplicate("-v");
 	OpsecArgv[1] = string_duplicate("lea_server");
@@ -676,11 +711,11 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 #ifndef WIN32
 	  if (access(ConfigfileName, F_OK) < 0) {
 		fprintf(stderr, "ERROR: Configfile %s does not exist\n",ConfigfileName);
-		exit(1);
+		exit_loggrabber(1);
 	  } else {
             if (access(ConfigfileName, R_OK) != 0) {
 		fprintf(stderr, "ERROR: Configfile %s is not readable\n",ConfigfileName);
-		exit(1);
+		exit_loggrabber(1);
 	    }
 	  }
 #endif
@@ -691,13 +726,13 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 				  OPSEC_EOL ))==NULL)
 	  {  
 		fprintf(stderr, "ERROR: unable to create environment (%s)\n", opsec_errno_str(opsec_errno));
-		exit(1);
+		exit_loggrabber(1);
 	  }
 	} else {
  	  if ((pEnv = opsec_init(OPSEC_EOL))==NULL)
 	  {
 		fprintf(stderr, "ERROR: unable to create environment (%s)\n", opsec_errno_str(opsec_errno));
-		exit(1);
+		exit_loggrabber(1);
 	  }
 	}
 
@@ -758,14 +793,12 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 	  pServer = opsec_init_entity(pEnv, LEA_SERVER,
 				OPSEC_ENTITY_NAME, "lea_server",
 				OPSEC_SERVER_IP, inet_addr(*ServerName),
-				OPSEC_SERVER_AUTH_PORT, (int)htons(atoi(*ServerPort)),
-				OPSEC_SERVER_AUTH_TYPE, OPSEC_AUTH_SSL,
+				OPSEC_SERVER_PORT, (int)htons(atoi(*ServerPort)),
 				OPSEC_SESSION_START_HANDLER, read_fw1_logfile_start,
 				OPSEC_SESSION_END_HANDLER, read_fw1_logfile_end,
 				OPSEC_SERVER_FAILED_CONN_HANDLER, read_fw1_logfile_failedconn,
 				OPSEC_EOL);
 	}
-			//	OPSEC_SERVER_PORT, (int)htons(atoi(*ServerPort)),
 
 	/*
 	 * continue only if opsec initializations were successful
@@ -773,8 +806,8 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 	if ((!pClient) || (!pServer))
 	{
 		fprintf(stderr, "ERROR: failed to initialize client/server-pair (%s)\n", opsec_errno_str(opsec_errno));
-		cleanup_fw1_environment(pEnv, pClient, pServer);
-		exit(1);
+		cleanup_fw1_environment(pEnv, pClient, pServer, OpsecArgv, CopyOpsecArgc);
+		exit_loggrabber(1);
 	}
 
 	/*
@@ -788,8 +821,8 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 		}
 		if (!pSession) {
 			fprintf(stderr, "ERROR: failed to create session (%s)\n", opsec_errno_str(opsec_errno));
-			cleanup_fw1_environment(pEnv, pClient, pServer);
-			exit(1);
+			cleanup_fw1_environment(pEnv, pClient, pServer, OpsecArgv, CopyOpsecArgc);
+			exit_loggrabber(1);
 		}
 	} else {
 		/*
@@ -802,8 +835,8 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 		}
 		if (!pSession) {
 			fprintf(stderr, "ERROR: failed to create session (%s)\n", opsec_errno_str(opsec_errno));
-			cleanup_fw1_environment(pEnv, pClient, pServer);
-			exit(1);
+			cleanup_fw1_environment(pEnv, pClient, pServer, OpsecArgv, CopyOpsecArgc);
+			exit_loggrabber(1);
 		}
 
 		/*
@@ -816,13 +849,20 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 		if (filtercount > 0) {
 			if ((rb = lea_filter_rulebase_create()) == NULL) {
 				fprintf(stderr, "ERROR: failed to create rulebase\n");
-				exit(1);
+				exit_loggrabber(1);
 			}
 
 			for (i=0 ; i < filtercount ; i++) {
-				if ((rb = create_fw1_filter_rule(rb,filterarray[i])) == NULL) {
-					fprintf(stderr, "ERROR: failed to create rule\n");
-					exit(1);
+				if (cfgvalues.audit_mode) {
+					if ((rb = create_audit_filter_rule(rb,filterarray[i])) == NULL) {
+						fprintf(stderr, "ERROR: failed to create rule\n");
+						exit_loggrabber(1);
+					}
+				} else {
+					if ((rb = create_fw1_filter_rule(rb,filterarray[i])) == NULL) {
+						fprintf(stderr, "ERROR: failed to create rule\n");
+						exit_loggrabber(1);
+					}
 				}
 			}
 	
@@ -871,7 +911,7 @@ int read_fw1_logfile(char **ServerName, char **ServerPort, char **LogfileName)
 	/*
 	 * remove opsec stuff
 	 */
-	cleanup_fw1_environment(pEnv, pClient, pServer);
+	cleanup_fw1_environment(pEnv, pClient, pServer, OpsecArgv, CopyOpsecArgc);
 
 	/*
 	 * close database connection
@@ -1106,7 +1146,7 @@ int read_fw1_logfile_record_mysql(OpsecSession *pSession, lea_record *pRec, int 
 	if (state != 0) {
  		printf(mysql_error(mysqlconn));
 		disconnect_from_mysql(mysqlconn);
-		exit(1);
+		exit_loggrabber(1);
 	}
 	return OPSEC_SESSION_OK;
 }
@@ -1195,7 +1235,7 @@ int read_fw1_logfile_n_record_stdout(OpsecSession *pSession, lea_record *pRec, i
 					break;	
 				  default:
 					fprintf(stderr, "ERROR: Unsupported dateformat chosen\n");
-					exit(1);
+					exit_loggrabber(1);
 				}
 				match = TRUE;
 			}		
@@ -1350,7 +1390,7 @@ int read_fw1_logfile_a_record_stdout(OpsecSession *pSession, lea_record *pRec, i
 					break;	
 				  default:
 					fprintf(stderr, "ERROR: Unsupported dateformat chosen\n");
-					exit(1);
+					exit_loggrabber(1);
 				}
 				match = TRUE;
 			}		
@@ -1600,8 +1640,9 @@ int get_fw1_logfiles(char **ServerName, char **ServerPort)
 	OpsecEntity       *pServer    = NULL;
 	OpsecSession      *pSession   = NULL;
 	OpsecEnv          *pEnv       = NULL;
-	char* OpsecArgv[4];
+	char* OpsecArgv[3];
 	int OpsecArgc = 4;
+	int CopyOpsecArgc = 4;
 
 	OpsecArgv[0] = string_duplicate("-v");
 	OpsecArgv[1] = string_duplicate("lea_server");
@@ -1615,11 +1656,11 @@ int get_fw1_logfiles(char **ServerName, char **ServerPort)
 #ifndef WIN32
 	  if (access(ConfigfileName, F_OK) < 0) {
 		fprintf(stderr, "ERROR: Configfile %s does not exist\n",ConfigfileName);
-		exit(1);
+		exit_loggrabber(1);
 	  } else {
             if (access(ConfigfileName, R_OK) != 0) {
 		fprintf(stderr, "ERROR: Configfile %s is not readable\n",ConfigfileName);
-		exit(1);
+		exit_loggrabber(1);
 	    }
 	  }
 #endif
@@ -1630,13 +1671,13 @@ int get_fw1_logfiles(char **ServerName, char **ServerPort)
 				  OPSEC_EOL ))==NULL)
 	  {  
 		fprintf(stderr, "ERROR: unable to create environment (%s)\n", opsec_errno_str(opsec_errno));
-		exit(1);
+		exit_loggrabber(1);
 	  }
 	} else {
  	  if ((pEnv = opsec_init(OPSEC_EOL))==NULL)
 	  {
 		fprintf(stderr, "ERROR: unable to create environment (%s)\n", opsec_errno_str(opsec_errno));
-		exit(1);
+		exit_loggrabber(1);
 	  }
 	}
 
@@ -1675,8 +1716,8 @@ int get_fw1_logfiles(char **ServerName, char **ServerPort)
 	if ((!pClient) || (!pServer))
 	{
 		fprintf(stderr, "ERROR: failed to initialize client/server-pair (%s)\n", opsec_errno_str(opsec_errno));
-		cleanup_fw1_environment(pEnv, pClient, pServer);
-		exit(1);
+		cleanup_fw1_environment(pEnv, pClient, pServer, OpsecArgv, CopyOpsecArgc);
+		exit_loggrabber(1);
 	}
 
 	/*
@@ -1684,8 +1725,8 @@ int get_fw1_logfiles(char **ServerName, char **ServerPort)
 	 */
 	if (!(pSession = lea_new_session(pClient, pServer, LEA_OFFLINE, LEA_FILENAME, LEA_NORMAL, LEA_AT_START))) {
 		fprintf(stderr, "ERROR: failed to create session (%s)\n", opsec_errno_str(opsec_errno));
-		cleanup_fw1_environment(pEnv, pClient, pServer);
-		exit(1);
+		cleanup_fw1_environment(pEnv, pClient, pServer, OpsecArgv, CopyOpsecArgc);
+		exit_loggrabber(1);
 	}
 
 	/*
@@ -1696,7 +1737,7 @@ int get_fw1_logfiles(char **ServerName, char **ServerPort)
 	/*
 	 * remove opsec stuff
 	 */
-	cleanup_fw1_environment(pEnv, pClient, pServer);
+	cleanup_fw1_environment(pEnv, pClient, pServer, OpsecArgv, CopyOpsecArgc);
 
 	return 0;
 }
@@ -1745,11 +1786,36 @@ int get_fw1_logfiles_dict(OpsecSession *pSession, int nDictId, LEA_VT nValType, 
 /*
  * function cleanup_fw1_environment
  */
-void cleanup_fw1_environment(OpsecEnv *env, OpsecEntity *client, OpsecEntity *server)
+void cleanup_fw1_environment(OpsecEnv *env, OpsecEntity *client, OpsecEntity *server, char** OpsecArgv, int OpsecArgc)
 {
+	int i;
+
 	if (client) opsec_destroy_entity(client);
 	if (server) opsec_destroy_entity(server);
 	if (env)    opsec_env_destroy(env);
+	for (i=0 ; i < OpsecArgc ; i++) {
+		if (OpsecArgv[i]) {
+			free(OpsecArgv[i]);
+		}
+	}
+}
+
+/*
+ * function show_supported_fields
+ */
+void show_supported_fields()
+{
+	int i;
+
+	fprintf(stderr, "\nFW1-Loggrabber v%s, (C)2004, Torsten Fellhauer\n", VERSION);
+	fprintf(stderr, "Supported Fields for normal logs:\n");
+	for (i=0 ; i < NUMBER_LIDX_FIELDS ; i++) {
+		fprintf(stderr, "  - %s\n", *lfield_headers[i]);
+	}
+	fprintf(stderr, "Supported Fields for audit logs:\n");
+	for (i=0 ; i < NUMBER_AIDX_FIELDS ; i++) {
+		fprintf(stderr, "  - %s\n", *afield_headers[i]);
+	}
 }
 
 /*
@@ -1778,6 +1844,7 @@ void usage(char *szProgName)
 #endif
 	fprintf(stderr, "  --debug-level <level>      : Specify Debuglevel (default: 0 - no debugging\n");
 	fprintf(stderr, "  --help                     : Show usage informations\n");
+	fprintf(stderr, "  --help-fields              : Show supported log fields\n");
 }
 
 /*
@@ -1813,6 +1880,23 @@ void stringlist_print (stringlist **lst) {
 }
 
 /*
+ * function stringlist_delete
+ */
+stringlist* stringlist_delete(stringlist **lst) {
+	stringlist* first;
+	
+	if (*lst) {
+		first = (*lst)->next;
+		free((*lst)->data);
+		free(*lst);
+		return (first);
+	} else {
+		return (NULL);
+	}
+}
+	
+
+/*
  * function stringlist_search
  */
 stringlist* stringlist_search(stringlist **lst, char *searchstring, char **result) {
@@ -1821,7 +1905,8 @@ stringlist* stringlist_search(stringlist **lst, char *searchstring, char **resul
 	 */
 	while (*lst) {
 		if (strstr((*lst)->data, searchstring)) {
-			*result = string_duplicate((*lst)->data);
+			*result = (*lst)->data;
+//			*result = string_duplicate((*lst)->data);
 			return (*lst);
 		}
 		lst = &((*lst)->next);
@@ -1849,6 +1934,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 	lea_value_ex_t *lea_value;
 	char* argumentsinglevalue;
 	int argumentcount;
+	int negation;
 	char* tmpstring1;
 	char* tmpstring2;
 	struct tm timestruct;
@@ -1885,6 +1971,13 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
  	  filterargument = strtok(NULL, ";");
 	  val_arr = NULL;
 
+	  if (argumentname[strlen(argumentname)-1] == '!') {
+		negation = 1;
+		argumentname = string_trim(argumentname, '!');
+	  } else {
+		negation = 0;
+	  }
+
 	  /*
 	   * change argument name to lower case letters
 	   */
@@ -1893,9 +1986,81 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 	  }
 
 	  /*
+	   * process arguments of type "product"
+	   */
+	  if (strcmp(argumentname, "product") == 0) {
+		argumentcount = 0;
+		/*
+		 * get argument values separated by ","
+		 */
+		while (argumentvalue) {
+			argumentsinglevalue = string_trim(string_get_token(&argumentvalue, ','), ' ');
+			argumentcount++;
+			if (val_arr) {
+				val_arr = (lea_value_ex_t**)realloc(val_arr, argumentcount * sizeof(lea_value_ex_t*));
+				if (val_arr == NULL) {
+					fprintf(stderr, "ERROR: Out of memory\n");
+					exit_loggrabber(1);
+				}
+			} else {
+				val_arr = (lea_value_ex_t**)malloc(argumentcount * sizeof(lea_value_ex_t*));
+				if (val_arr == NULL) {
+					fprintf(stderr, "ERROR: Out of memory\n");
+					exit_loggrabber(1);
+				}
+			}
+	
+			/*
+			 * check validity of argument value
+			 */
+			if (!(  (strcmp(argumentsinglevalue, "VPN-1 & FireWall-1") == 0) || \
+				(strcmp(argumentsinglevalue, "SmartDefense") == 0) )) 
+			{
+				fprintf(stderr, "ERROR: invalid value for product: '%s'\n", argumentsinglevalue);
+				return NULL;
+			} 
+
+			/*
+			 * create extended opsec value
+			 */
+			val_arr[argumentcount-1] = lea_value_ex_create();
+			if (lea_value_ex_set(val_arr[argumentcount-1], LEA_VT_STRING, argumentsinglevalue) == OPSEC_SESSION_ERR) {
+				fprintf(stderr, "ERROR: failed to set rule value (%s)\n", opsec_errno_str(opsec_errno));
+				lea_value_ex_destroy(val_arr[argumentcount-1]);
+				lea_filter_rule_destroy(prule);
+				return NULL;
+			}
+		}
+		
+		/*
+		 * create filter predicate
+		 */
+		if ((ppred = lea_filter_predicate_create("product", -1, negation, LEA_FILTER_PRED_BELONGS_TO, argumentcount, val_arr)) == NULL) {
+			fprintf(stderr, "ERROR: failed to create predicate\n");
+			lea_value_ex_destroy(val_arr[argumentcount-1]);
+			lea_filter_rule_destroy(prule);
+			return NULL;
+		}
+
+		lea_value_ex_destroy(val_arr[argumentcount-1]);
+	
+		/*
+		 * add current predicate to current rule
+		 */
+		if (lea_filter_rule_add_predicate(prule, ppred) == LEA_FILTER_ERR) {
+			fprintf(stderr, "ERROR: failed to add predicate to rule\n");
+			lea_filter_rule_destroy(prule);
+			lea_filter_predicate_destroy(ppred);
+			return NULL;
+		}
+
+		lea_filter_predicate_destroy(ppred);
+	  }
+
+	  /*
 	   * process arguments of type "action"
 	   */
-	  if (strcmp(argumentname, "action") == 0) {
+	  else if (strcmp(argumentname, "action") == 0) {
 	    	argumentcount = 0;
 		/*
 		 * get argument values separated by ","
@@ -1907,13 +2072,13 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 				val_arr = (lea_value_ex_t**)realloc(val_arr, argumentcount * sizeof(lea_value_ex_t*));
 				if (val_arr == NULL) {
 					fprintf(stderr, "ERROR: Out of memory\n");
-					exit(1);
+					exit_loggrabber(1);
 				}
 			} else {
 				val_arr = (lea_value_ex_t**)malloc(argumentcount * sizeof(lea_value_ex_t*));
 				if (val_arr == NULL) {
 					fprintf(stderr, "ERROR: Out of memory\n");
-					exit(1);
+					exit_loggrabber(1);
 				}
 			}
 
@@ -1949,7 +2114,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 		/*
 		 * create filter predicate
 		 */
-		if ((ppred = lea_filter_predicate_create("action", -1, 0, LEA_FILTER_PRED_BELONGS_TO, argumentcount, val_arr)) == NULL) {
+		if ((ppred = lea_filter_predicate_create("action", -1, negation, LEA_FILTER_PRED_BELONGS_TO, argumentcount, val_arr)) == NULL) {
 			fprintf(stderr, "ERROR: failed to create predicate\n");
 			lea_value_ex_destroy(val_arr[argumentcount-1]);
 			lea_filter_rule_destroy(prule);
@@ -1995,7 +2160,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 						"       Required syntax: 'dst=aaa.bbb.ccc.ddd/eee.fff.ggg.hhh'\n", tmpstring1, tmpstring2);
 				return NULL;
 			}
-			if ((ppred = lea_filter_predicate_create("dst", -1, 0, LEA_FILTER_PRED_BELONGS_TO_MASK, inet_addr(tmpstring1), inet_addr(tmpstring2))) == NULL) {
+			if ((ppred = lea_filter_predicate_create("dst", -1, negation, LEA_FILTER_PRED_BELONGS_TO_MASK, inet_addr(tmpstring1), inet_addr(tmpstring2))) == NULL) {
 				fprintf(stderr, "ERROR: failed to create predicate\n");
 				lea_value_ex_destroy(val_arr[argumentcount-1]);
 				lea_filter_rule_destroy(prule);
@@ -2018,13 +2183,13 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 					val_arr = (lea_value_ex_t**)realloc(val_arr, argumentcount * sizeof(lea_value_ex_t*));
 					if (val_arr == NULL) {
 						fprintf(stderr, "ERROR: Out of memory\n");
-						exit(1);
+						exit_loggrabber(1);
 					}
 				} else {
 					val_arr = (lea_value_ex_t**)malloc(argumentcount * sizeof(lea_value_ex_t*));
 					if (val_arr == NULL) {
 						fprintf(stderr, "ERROR: Out of memory\n");
-						exit(1);
+						exit_loggrabber(1);
 					}
 				}
 
@@ -2043,7 +2208,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 			/*
 			 * create filter predicate
 			 */
-			if ((ppred = lea_filter_predicate_create("dst", -1, 0, LEA_FILTER_PRED_BELONGS_TO, argumentcount, val_arr)) == NULL) {
+			if ((ppred = lea_filter_predicate_create("dst", -1, negation, LEA_FILTER_PRED_BELONGS_TO, argumentcount, val_arr)) == NULL) {
 				fprintf(stderr, "ERROR: failed to create predicate\n");
 				lea_value_ex_destroy(val_arr[argumentcount-1]);
 				lea_filter_rule_destroy(prule);
@@ -2081,13 +2246,13 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 				val_arr = (lea_value_ex_t**)realloc(val_arr, argumentcount * sizeof(lea_value_ex_t*));
 				if (val_arr == NULL) {
 					fprintf(stderr, "ERROR: Out of memory\n");
-					exit(1);
+					exit_loggrabber(1);
 				}
 			} else {
 				val_arr = (lea_value_ex_t**)malloc(argumentcount * sizeof(lea_value_ex_t*));
 				if (val_arr == NULL) {
 					fprintf(stderr, "ERROR: Out of memory\n");
-					exit(1);
+					exit_loggrabber(1);
 				}
 			}
 
@@ -2123,7 +2288,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 		/*
 		 * create filter predicate
 		 */
-		if ((ppred = lea_filter_predicate_create("proto", -1, 0, LEA_FILTER_PRED_BELONGS_TO, argumentcount, val_arr)) == NULL) {
+		if ((ppred = lea_filter_predicate_create("proto", -1, negation, LEA_FILTER_PRED_BELONGS_TO, argumentcount, val_arr)) == NULL) {
 			fprintf(stderr, "ERROR: failed to create predicate\n");
 			lea_value_ex_destroy(val_arr[argumentcount-1]);
 			lea_filter_rule_destroy(prule);
@@ -2210,7 +2375,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 		/*
 		 * create filter predicate
 		 */
-		if ((ppred = lea_filter_predicate_create("time", -1, 0, LEA_FILTER_PRED_GREATER_EQUAL, lea_value)) == NULL) {
+		if ((ppred = lea_filter_predicate_create("time", -1, negation, LEA_FILTER_PRED_GREATER_EQUAL, lea_value)) == NULL) {
 			fprintf(stderr, "ERROR: failed to create predicate\n");
 			lea_value_ex_destroy(val_arr[argumentcount-1]);
 			lea_filter_rule_destroy(prule);
@@ -2297,7 +2462,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 		/*
 		 * create filter predicate
 		 */
-		if ((ppred = lea_filter_predicate_create("time", -1, 0, LEA_FILTER_PRED_SMALLER_EQUAL, lea_value)) == NULL) {
+		if ((ppred = lea_filter_predicate_create("time", -1, negation, LEA_FILTER_PRED_SMALLER_EQUAL, lea_value)) == NULL) {
 			fprintf(stderr, "ERROR: failed to create predicate\n");
 			lea_value_ex_destroy(val_arr[argumentcount-1]);
 			lea_filter_rule_destroy(prule);
@@ -2350,13 +2515,13 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 					val_arr = (lea_value_ex_t**)realloc(val_arr, argumentcount * sizeof(lea_value_ex_t*));
 					if (val_arr == NULL) {
 						fprintf(stderr, "ERROR: Out of memory\n");
-						exit(1);
+						exit_loggrabber(1);
 					}
 				} else {
 					val_arr = (lea_value_ex_t**)malloc(argumentcount * sizeof(lea_value_ex_t*));
 					if (val_arr == NULL) {
 						fprintf(stderr, "ERROR: Out of memory\n");
-						exit(1);
+						exit_loggrabber(1);
 					}
 				}
 			
@@ -2376,7 +2541,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 		/*
 		 * create filter predicate
 		 */
-		if ((ppred = lea_filter_predicate_create("rule", -1, 0, LEA_FILTER_PRED_BELONGS_TO, argumentcount, val_arr)) == NULL) {
+		if ((ppred = lea_filter_predicate_create("rule", -1, negation, LEA_FILTER_PRED_BELONGS_TO, argumentcount, val_arr)) == NULL) {
 			fprintf(stderr, "ERROR: failed to create predicate\n");
 			lea_value_ex_destroy(val_arr[argumentcount-1]);
 			lea_filter_rule_destroy(prule);
@@ -2429,13 +2594,13 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 					val_arr = (lea_value_ex_t**)realloc(val_arr, argumentcount * sizeof(lea_value_ex_t*));
 					if (val_arr == NULL) {
 						fprintf(stderr, "ERROR: Out of memory\n");
-						exit(1);
+						exit_loggrabber(1);
 					}
 				} else {
 					val_arr = (lea_value_ex_t**)malloc(argumentcount * sizeof(lea_value_ex_t*));
 					if (val_arr == NULL) {
 						fprintf(stderr, "ERROR: Out of memory\n");
-						exit(1);
+						exit_loggrabber(1);
 					}
 				}
 			
@@ -2455,7 +2620,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 		/*
 		 * create filter predicate
 		 */
-		if ((ppred = lea_filter_predicate_create("service", -1, 0, LEA_FILTER_PRED_BELONGS_TO, argumentcount, val_arr)) == NULL) {
+		if ((ppred = lea_filter_predicate_create("service", -1, negation, LEA_FILTER_PRED_BELONGS_TO, argumentcount, val_arr)) == NULL) {
 			fprintf(stderr, "ERROR: failed to create predicate\n");
 			lea_value_ex_destroy(val_arr[argumentcount-1]);
 			lea_filter_rule_destroy(prule);
@@ -2501,7 +2666,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 						"       Required syntax: 'src=aaa.bbb.ccc.ddd/eee.fff.ggg.hhh'\n", tmpstring1, tmpstring2);
 				return NULL;
 			}
-			if ((ppred = lea_filter_predicate_create("src", -1, 0, LEA_FILTER_PRED_BELONGS_TO_MASK, inet_addr(tmpstring1), inet_addr(tmpstring2))) == NULL) {
+			if ((ppred = lea_filter_predicate_create("src", -1, negation, LEA_FILTER_PRED_BELONGS_TO_MASK, inet_addr(tmpstring1), inet_addr(tmpstring2))) == NULL) {
 				fprintf(stderr, "ERROR: failed to create predicate\n");
 				lea_value_ex_destroy(val_arr[argumentcount-1]);
 				lea_filter_rule_destroy(prule);
@@ -2524,13 +2689,13 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 					val_arr = (lea_value_ex_t**)realloc(val_arr, argumentcount * sizeof(lea_value_ex_t*));
 					if (val_arr == NULL) {
 						fprintf(stderr, "ERROR: Out of memory\n");
-						exit(1);
+						exit_loggrabber(1);
 					}
 				} else {
 					val_arr = (lea_value_ex_t**)malloc(argumentcount * sizeof(lea_value_ex_t*));
 					if (val_arr == NULL) {
 						fprintf(stderr, "ERROR: Out of memory\n");
-						exit(1);
+						exit_loggrabber(1);
 					}
 				}
 
@@ -2549,7 +2714,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 			/*
 			 * create filter predicate
 			 */
-			if ((ppred = lea_filter_predicate_create("src", -1, 0, LEA_FILTER_PRED_BELONGS_TO, argumentcount, val_arr)) == NULL) {
+			if ((ppred = lea_filter_predicate_create("src", -1, negation, LEA_FILTER_PRED_BELONGS_TO, argumentcount, val_arr)) == NULL) {
 				fprintf(stderr, "ERROR: failed to create predicate\n");
 				lea_value_ex_destroy(val_arr[argumentcount-1]);
 				lea_filter_rule_destroy(prule);
@@ -2559,6 +2724,488 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 			lea_value_ex_destroy(val_arr[argumentcount-1]);
 		}
 		
+		/*
+		 * add current predicate to current rule
+		 */
+		if (lea_filter_rule_add_predicate(prule, ppred) == LEA_FILTER_ERR) {
+			fprintf(stderr, "ERROR: failed to add predicate to rule\n");
+			lea_filter_rule_destroy(prule);
+			lea_filter_predicate_destroy(ppred);
+			return NULL;
+		}
+
+		lea_filter_predicate_destroy(ppred);
+	  }
+
+	  /*
+	   * process unknown arguments
+	   */
+	  else {
+		fprintf(stderr, "ERROR: Unknown filterargument: '%s'\n", argumentname);
+		return NULL;
+	  }
+	}
+       
+	/*
+	 * add current rule to rulebase
+	 */
+	if (lea_filter_rulebase_add_rule(prulebase, prule) != OPSEC_SESSION_OK) {
+		fprintf(stderr, "failed to add rule to rulebase\n");
+		lea_filter_rulebase_destroy(prulebase);
+		lea_filter_rule_destroy(prule);
+		return NULL;
+	}
+
+	lea_filter_rule_destroy(prule);
+
+	return prulebase;
+}
+
+/*
+ * function create_audit_filter_rule
+ */
+LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase *prulebase, char filterstring[255]) {
+	LeaFilterRule *prule;
+	LeaFilterPredicate *ppred;
+	char* filterargument;
+        char* argumentvalue;
+	char* argumentname;
+	unsigned int tempint;
+	unsigned long templong;
+	lea_value_ex_t **val_arr;
+	lea_value_ex_t *lea_value;
+	char* argumentsinglevalue;
+	int argumentcount;
+	int negation;
+	struct tm timestruct;
+	char tempchararray[10];
+
+	/* 
+	 * create an empty rule with action "pass"
+	 */
+        if ((prule = lea_filter_rule_create(LEA_FILTER_ACTION_PASS)) == NULL) {
+ 		fprintf(stderr, "ERROR: failed to create rule\n");
+		lea_filter_rulebase_destroy(prulebase);
+		return NULL;
+	}
+
+	/*
+	 * split filter string in arguments separated by ";"
+	 */
+	filterargument = strtok(filterstring, ";");
+	while (filterargument != NULL) {
+	  /*
+	   * split argument into name and value separated by "="
+	   */
+          argumentvalue = strchr(filterargument, '=');
+	  if (argumentvalue == NULL) {
+		fprintf(stderr, "ERROR: syntax error in rule argument '%s'.\n"
+				"       Required syntax: 'argument=value'\n", filterargument);
+		return NULL;
+	  }
+	  argumentvalue++;
+          argumentname = filterargument;
+	  argumentname[argumentvalue-filterargument-1]='\0';
+	  argumentvalue = string_trim(argumentvalue, ' ');
+	  argumentname = string_trim(argumentname, ' ');
+ 	  filterargument = strtok(NULL, ";");
+	  val_arr = NULL;
+
+	  if (argumentname[strlen(argumentname)-1] == '!') {
+		negation = 1;
+		argumentname = string_trim(argumentname, '!');
+	  } else {
+		negation = 0;
+	  }
+
+	  /*
+	   * change argument name to lower case letters
+	   */
+	  for (tempint = 0 ; tempint < strlen(argumentname) ; tempint++) {
+	    argumentname[tempint] = tolower(argumentname[tempint]);
+	  }
+
+	  /*
+	   * process arguments of type "product"
+	   */
+	  if (strcmp(argumentname, "product") == 0) {
+		argumentcount = 0;
+		/*
+		 * get argument values separated by ","
+		 */
+		while (argumentvalue) {
+			argumentsinglevalue = string_trim(string_get_token(&argumentvalue, ','), ' ');
+			argumentcount++;
+			if (val_arr) {
+				val_arr = (lea_value_ex_t**)realloc(val_arr, argumentcount * sizeof(lea_value_ex_t*));
+				if (val_arr == NULL) {
+					fprintf(stderr, "ERROR: Out of memory\n");
+					exit_loggrabber(1);
+				}
+			} else {
+				val_arr = (lea_value_ex_t**)malloc(argumentcount * sizeof(lea_value_ex_t*));
+				if (val_arr == NULL) {
+					fprintf(stderr, "ERROR: Out of memory\n");
+					exit_loggrabber(1);
+				}
+			}
+	
+			/*
+			 * check validity of argument value
+			 */
+			if (!(  (strcmp(argumentsinglevalue, "SmartDashboard") == 0) || \
+				(strcmp(argumentsinglevalue, "Policy Editor") == 0) || \
+				(strcmp(argumentsinglevalue, "SmartView Tracker") == 0) || \
+				(strcmp(argumentsinglevalue, "SmartView Status") == 0) || \
+				(strcmp(argumentsinglevalue, "SmartView Monitor") == 0) || \
+				(strcmp(argumentsinglevalue, "System Monitor") == 0) || \
+				(strcmp(argumentsinglevalue, "cpstat_monitor") == 0) || \
+				(strcmp(argumentsinglevalue, "SmartUpdate") == 0) || \
+				(strcmp(argumentsinglevalue, "CPMI Client") == 0) )) 
+			{
+				fprintf(stderr, "ERROR: invalid value for product: '%s'\n", argumentsinglevalue);
+				return NULL;
+			} 
+
+			/*
+			 * create extended opsec value
+			 */
+			val_arr[argumentcount-1] = lea_value_ex_create();
+			if (lea_value_ex_set(val_arr[argumentcount-1], LEA_VT_STRING, argumentsinglevalue) == OPSEC_SESSION_ERR) {
+				fprintf(stderr, "ERROR: failed to set rule value (%s)\n", opsec_errno_str(opsec_errno));
+				lea_value_ex_destroy(val_arr[argumentcount-1]);
+				lea_filter_rule_destroy(prule);
+				return NULL;
+			}
+		}
+		
+		/*
+		 * create filter predicate
+		 */
+		if ((ppred = lea_filter_predicate_create("product", -1, negation, LEA_FILTER_PRED_BELONGS_TO, argumentcount, val_arr)) == NULL) {
+			fprintf(stderr, "ERROR: failed to create predicate\n");
+			lea_value_ex_destroy(val_arr[argumentcount-1]);
+			lea_filter_rule_destroy(prule);
+			return NULL;
+		}
+
+		lea_value_ex_destroy(val_arr[argumentcount-1]);
+	
+		/*
+		 * add current predicate to current rule
+		 */
+		if (lea_filter_rule_add_predicate(prule, ppred) == LEA_FILTER_ERR) {
+			fprintf(stderr, "ERROR: failed to add predicate to rule\n");
+			lea_filter_rule_destroy(prule);
+			lea_filter_predicate_destroy(ppred);
+			return NULL;
+		}
+
+		lea_filter_predicate_destroy(ppred);
+	  }
+
+	  /*
+	   * process arguments of type "Administrator"
+	   */
+	  else if (strcmp(argumentname, "administrator") == 0) {
+		argumentcount = 0;
+		/*
+		 * get argument values separated by ","
+		 */
+		while (argumentvalue) {
+			argumentsinglevalue = string_trim(string_get_token(&argumentvalue, ','), ' ');
+			argumentcount++;
+			if (val_arr) {
+				val_arr = (lea_value_ex_t**)realloc(val_arr, argumentcount * sizeof(lea_value_ex_t*));
+				if (val_arr == NULL) {
+					fprintf(stderr, "ERROR: Out of memory\n");
+					exit_loggrabber(1);
+				}
+			} else {
+				val_arr = (lea_value_ex_t**)malloc(argumentcount * sizeof(lea_value_ex_t*));
+				if (val_arr == NULL) {
+					fprintf(stderr, "ERROR: Out of memory\n");
+					exit_loggrabber(1);
+				}
+			}
+	
+			/*
+			 * create extended opsec value
+			 */
+			val_arr[argumentcount-1] = lea_value_ex_create();
+			if (lea_value_ex_set(val_arr[argumentcount-1], LEA_VT_STRING, argumentsinglevalue) == OPSEC_SESSION_ERR) {
+				fprintf(stderr, "ERROR: failed to set rule value (%s)\n", opsec_errno_str(opsec_errno));
+				lea_value_ex_destroy(val_arr[argumentcount-1]);
+				lea_filter_rule_destroy(prule);
+				return NULL;
+			}
+		}
+		
+		/*
+		 * create filter predicate
+		 */
+		if ((ppred = lea_filter_predicate_create("Administrator", -1, negation, LEA_FILTER_PRED_BELONGS_TO, argumentcount, val_arr)) == NULL) {
+			fprintf(stderr, "ERROR: failed to create predicate\n");
+			lea_value_ex_destroy(val_arr[argumentcount-1]);
+			lea_filter_rule_destroy(prule);
+			return NULL;
+		}
+
+		lea_value_ex_destroy(val_arr[argumentcount-1]);
+	
+		/*
+		 * add current predicate to current rule
+		 */
+		if (lea_filter_rule_add_predicate(prule, ppred) == LEA_FILTER_ERR) {
+			fprintf(stderr, "ERROR: failed to add predicate to rule\n");
+			lea_filter_rule_destroy(prule);
+			lea_filter_predicate_destroy(ppred);
+			return NULL;
+		}
+
+		lea_filter_predicate_destroy(ppred);
+	  }
+
+	  /*
+	   * process arguments of type "action"
+	   */
+	  else if (strcmp(argumentname, "action") == 0) {
+	    	argumentcount = 0;
+		/*
+		 * get argument values separated by ","
+		 */
+	    	while (argumentvalue) {
+			argumentsinglevalue = string_trim(string_get_token(&argumentvalue, ','), ' ');
+			argumentcount++;
+			if (val_arr) {
+				val_arr = (lea_value_ex_t**)realloc(val_arr, argumentcount * sizeof(lea_value_ex_t*));
+				if (val_arr == NULL) {
+					fprintf(stderr, "ERROR: Out of memory\n");
+					exit_loggrabber(1);
+				}
+			} else {
+				val_arr = (lea_value_ex_t**)malloc(argumentcount * sizeof(lea_value_ex_t*));
+				if (val_arr == NULL) {
+					fprintf(stderr, "ERROR: Out of memory\n");
+					exit_loggrabber(1);
+				}
+			}
+
+			/*
+			 * transform values (accept, drop, reject) into corresponding values
+			 */
+			if (strcmp(argumentsinglevalue,"accept") == 0) {
+				tempint = 4;
+			}
+			else if (strcmp(argumentsinglevalue,"drop") == 0) {
+				tempint = 2;
+			}
+			else if (strcmp(argumentsinglevalue,"reject") == 0) {
+				tempint = 3;
+			}
+			else {
+				fprintf(stderr, "ERROR: invalid value for action: '%s'\n", argumentsinglevalue);
+				return NULL;
+			}
+
+			/*
+			 * create extended opsec value
+			 */
+			val_arr[argumentcount-1] = lea_value_ex_create();
+			if (lea_value_ex_set(val_arr[argumentcount-1], LEA_VT_ACTION, tempint) == OPSEC_SESSION_ERR) {
+				fprintf(stderr, "ERROR: failed to set rule value (%s)\n", opsec_errno_str(opsec_errno));
+				lea_value_ex_destroy(val_arr[argumentcount-1]);
+				lea_filter_rule_destroy(prule);
+				return NULL;
+			}
+		}
+		
+		/*
+		 * create filter predicate
+		 */
+		if ((ppred = lea_filter_predicate_create("action", -1, negation, LEA_FILTER_PRED_BELONGS_TO, argumentcount, val_arr)) == NULL) {
+			fprintf(stderr, "ERROR: failed to create predicate\n");
+			lea_value_ex_destroy(val_arr[argumentcount-1]);
+			lea_filter_rule_destroy(prule);
+			return NULL;
+		}
+
+		lea_value_ex_destroy(val_arr[argumentcount-1]);
+	
+		/*
+		 * add current predicate to current rule
+		 */
+		if (lea_filter_rule_add_predicate(prule, ppred) == LEA_FILTER_ERR) {
+			fprintf(stderr, "ERROR: failed to add predicate to rule\n");
+			lea_filter_rule_destroy(prule);
+			lea_filter_predicate_destroy(ppred);
+			return NULL;
+		}
+
+		lea_filter_predicate_destroy(ppred);
+	  } 
+
+	  /*
+	   * process arguments of type "starttime"
+	   */
+	  else if (strcmp(argumentname, "starttime") == 0) {
+		argumentsinglevalue = string_trim(argumentvalue, ' ');
+		if (strlen(argumentsinglevalue) != 14) {
+			fprintf(stderr, "ERROR: syntax error in rule value of argument rule: '%s'.\n"
+					"       Required syntax: 'starttime=YYYYMMDDhhmmss'\n", argumentsinglevalue);
+			return NULL;
+		}
+
+		/*
+		 * convert starttime parameter to proper form (unixtime)
+		 */
+		strncpy(tempchararray, argumentsinglevalue, 4);
+		tempchararray[4] = '\0';
+		timestruct.tm_year = strtol(tempchararray, (char**)NULL, 10) - 1900;
+		argumentsinglevalue += 4 * sizeof(char);
+		strncpy(tempchararray, argumentsinglevalue, 2);
+		tempchararray[2] = '\0';
+		timestruct.tm_mon = strtol(tempchararray, (char**)NULL, 10) - 1;
+		argumentsinglevalue += 2 * sizeof(char);
+		strncpy(tempchararray, argumentsinglevalue, 2);
+		tempchararray[2] = '\0';
+		timestruct.tm_mday = strtol(tempchararray, (char**)NULL, 10);
+		argumentsinglevalue += 2 * sizeof(char);
+		strncpy(tempchararray, argumentsinglevalue, 2);
+		tempchararray[2] = '\0';
+		timestruct.tm_hour = strtol(tempchararray, (char**)NULL, 10);
+		argumentsinglevalue += 2 * sizeof(char);
+		strncpy(tempchararray, argumentsinglevalue, 2);
+		tempchararray[2] = '\0';
+		timestruct.tm_min = strtol(tempchararray, (char**)NULL, 10);
+		argumentsinglevalue += 2 * sizeof(char);
+		strncpy(tempchararray, argumentsinglevalue, 2);
+		tempchararray[2] = '\0';
+		timestruct.tm_sec = strtol(tempchararray, (char**)NULL, 10);
+
+		/*
+		 * convert starttime parameter to long int
+		 */
+		if ((timestruct.tm_mon > 11) || (timestruct.tm_mday > 31) || (timestruct.tm_hour > 23) || (timestruct.tm_min > 59) || (timestruct.tm_sec > 59)) {
+			fprintf(stderr, "ERROR: illegal date format in argumentvalue\n");
+			return NULL;
+		}
+		templong = (unsigned long)mktime(&timestruct);
+		if (templong == -1) {
+			fprintf(stderr, "ERROR: illegal date format in argumentvalue\n");
+			return NULL;
+		}
+
+		/*
+		 * create extended opsec value
+		 */
+		lea_value = lea_value_ex_create();
+		if (lea_value_ex_set(lea_value, LEA_VT_TIME, templong) == OPSEC_SESSION_ERR) {
+			fprintf(stderr, "ERROR: failed to set starttime value (%s)\n", opsec_errno_str(opsec_errno));
+			lea_value_ex_destroy(lea_value);
+			lea_filter_rule_destroy(prule);
+			return NULL;
+		}
+	
+		/*
+		 * create filter predicate
+		 */
+		if ((ppred = lea_filter_predicate_create("time", -1, negation, LEA_FILTER_PRED_GREATER_EQUAL, lea_value)) == NULL) {
+			fprintf(stderr, "ERROR: failed to create predicate\n");
+			lea_value_ex_destroy(val_arr[argumentcount-1]);
+			lea_filter_rule_destroy(prule);
+			return NULL;
+		}
+
+		lea_value_ex_destroy(lea_value);
+	
+		/*
+		 * add current predicate to current rule
+		 */
+		if (lea_filter_rule_add_predicate(prule, ppred) == LEA_FILTER_ERR) {
+			fprintf(stderr, "ERROR: failed to add predicate to rule\n");
+			lea_filter_rule_destroy(prule);
+			lea_filter_predicate_destroy(ppred);
+			return NULL;
+		}
+
+		lea_filter_predicate_destroy(ppred);
+	  }
+
+	  /*
+	   * process arguments of type "endtime"
+	   */
+	  else if (strcmp(argumentname, "endtime") == 0) {
+		argumentsinglevalue = string_trim(argumentvalue, ' ');
+		if (strlen(argumentsinglevalue) != 14) {
+			fprintf(stderr, "ERROR: syntax error in rule value of argument rule: '%s'.\n"
+					"       Required syntax: 'endtime=YYYYMMDDhhmmss'\n", argumentsinglevalue);
+			return NULL;
+		}
+
+		/*
+		 * convert starttime parameter to proper form (unixtime)
+		 */
+		strncpy(tempchararray, argumentsinglevalue, 4);
+		tempchararray[4] = '\0';
+		timestruct.tm_year = strtol(tempchararray, (char**)NULL, 10) - 1900;
+		argumentsinglevalue += 4 * sizeof(char);
+		strncpy(tempchararray, argumentsinglevalue, 2);
+		tempchararray[2] = '\0';
+		timestruct.tm_mon = strtol(tempchararray, (char**)NULL, 10) - 1;
+		argumentsinglevalue += 2 * sizeof(char);
+		strncpy(tempchararray, argumentsinglevalue, 2);
+		tempchararray[2] = '\0';
+		timestruct.tm_mday = strtol(tempchararray, (char**)NULL, 10);
+		argumentsinglevalue += 2 * sizeof(char);
+		strncpy(tempchararray, argumentsinglevalue, 2);
+		tempchararray[2] = '\0';
+		timestruct.tm_hour = strtol(tempchararray, (char**)NULL, 10);
+		argumentsinglevalue += 2 * sizeof(char);
+		strncpy(tempchararray, argumentsinglevalue, 2);
+		tempchararray[2] = '\0';
+		timestruct.tm_min = strtol(tempchararray, (char**)NULL, 10);
+		argumentsinglevalue += 2 * sizeof(char);
+		strncpy(tempchararray, argumentsinglevalue, 2);
+		tempchararray[2] = '\0';
+		timestruct.tm_sec = strtol(tempchararray, (char**)NULL, 10);
+
+		/*
+		 * convert starttime parameter to long int
+		 */
+		if ((timestruct.tm_mon > 11) || (timestruct.tm_mday > 31) || (timestruct.tm_hour > 23) || (timestruct.tm_min > 59) || (timestruct.tm_sec > 59)) {
+			fprintf(stderr, "ERROR: illegal date format in argumentvalue\n");
+			return NULL;
+		}
+		templong = (unsigned long)mktime(&timestruct);
+		if (templong == -1) {
+			fprintf(stderr, "ERROR: illegal date format in argumentvalue\n");
+			return NULL;
+		}
+
+		/*
+		 * create extended opsec value
+		 */
+		lea_value = lea_value_ex_create();
+		if (lea_value_ex_set(lea_value, LEA_VT_TIME, templong) == OPSEC_SESSION_ERR) {
+			fprintf(stderr, "ERROR: failed to set endtime value (%s)\n", opsec_errno_str(opsec_errno));
+			lea_value_ex_destroy(lea_value);
+			lea_filter_rule_destroy(prule);
+			return NULL;
+		}
+	
+		/*
+		 * create filter predicate
+		 */
+		if ((ppred = lea_filter_predicate_create("time", -1, negation, LEA_FILTER_PRED_SMALLER_EQUAL, lea_value)) == NULL) {
+			fprintf(stderr, "ERROR: failed to create predicate\n");
+			lea_value_ex_destroy(val_arr[argumentcount-1]);
+			lea_filter_rule_destroy(prule);
+			return NULL;
+		}
+
+		lea_value_ex_destroy(lea_value);
+	
 		/*
 		 * add current predicate to current rule
 		 */
@@ -2622,7 +3269,7 @@ char* string_get_token(char **tokstring, char separator) {
 	returnstring = (char*)malloc(strlength + 1);
 	if (returnstring == NULL) {
 		fprintf(stderr, "ERROR: Out of memory\n");
-		exit(1);
+		exit_loggrabber(1);
 	}
 	strncpy(returnstring, *tokstring, strlength);
         returnstring[strlength - 1] = '\0';
@@ -2643,7 +3290,7 @@ char* string_duplicate(const char *src)
 	dst = malloc(length);
 	if (!dst) {
 		fprintf(stderr, "ERROR: out of memory\n");
-		exit(1);
+		exit_loggrabber(1);
 	}
 	return memcpy(dst, src, length);
 } 
@@ -2697,7 +3344,7 @@ char* string_escape(char* string, char character) {
 
 	if (!s) {
 		fprintf(stderr, "ERROR: out of memory\n");
-		exit(1);
+		exit_loggrabber(1);
 	}
 
 	for (z1=0,z2=0 ; z1 < i ; z1++) {
@@ -2729,7 +3376,7 @@ MYSQL* connect_to_mysql(MYSQL* mysql, long int* maxno, configvalues* cfgvalues)
 	connection = mysql_real_connect(mysql,cfgvalues->mysql_host,cfgvalues->mysql_user,cfgvalues->mysql_password,cfgvalues->mysql_database,0,NULL,0);
 	if (connection == NULL) {
 		fprintf(stderr, "ERROR: Cannot connect to MySQL database (%s)\n", mysql_error(mysql));
-		exit(1);
+		exit_loggrabber(1);
 	}
 
 	if (cfgvalues->audit_mode) {
@@ -2740,7 +3387,7 @@ MYSQL* connect_to_mysql(MYSQL* mysql, long int* maxno, configvalues* cfgvalues)
 
 	if (state != 0) {
 		fprintf(stderr, "ERROR: Cannot access MySQL database (%s)\n", mysql_error(connection));
-		exit(1);
+		exit_loggrabber(1);
 	}
 
 	result = mysql_store_result(connection);
@@ -2777,7 +3424,7 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 	
 	if ((configfile = fopen(filename,"r")) == NULL) {
 		fprintf(stderr, "ERROR: Cannot open configfile (%s)\n", filename);
-		exit(1);
+		exit_loggrabber(1);
 	}
 
 	while (fgets(line, sizeof line, configfile)) {
@@ -2826,8 +3473,9 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 					cfgvalues->mysql_mode = 1;
 				} else {
 					fprintf(stderr, "WARNING: Illegal entry in configuration file: %s=%s\n", configparameter, configvalue);
-					exit(1);
+					exit_loggrabber(1);
 				}
+				free(configvalue);
 #endif
 			} else if (strcmp(configparameter, "DEBUG_LEVEL") == 0) {
 				cfgvalues->debug_mode = atoi(string_trim(configvalue, '"'));
@@ -2839,8 +3487,9 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 					cfgvalues->fieldnames_mode = 1;
 				} else {
 					fprintf(stderr, "WARNING: Illegal entry in configuration file: %s=%s\n", configparameter, configvalue);
-					exit(1);
+					exit_loggrabber(1);
 				}
+				free(configvalue);
 			} else if (strcmp(configparameter, "ONLINE_MODE") == 0) {
 				configvalue = string_duplicate(string_trim(configvalue, '"'));
 				if ((strcmp(configvalue, "NO") == 0) || (strcmp(configvalue, "no") == 0)) {
@@ -2850,6 +3499,7 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 				} else {
 					fprintf(stderr, "WARNING: Illegal entry in configuration file: %s=%s\n", configparameter, configvalue);
 				}
+				free(configvalue);
 			} else if (strcmp(configparameter, "RESOLVE_MODE") == 0) {
 				configvalue = string_duplicate(string_trim(configvalue, '"'));
 				if ((strcmp(configvalue, "NO") == 0) || (strcmp(configvalue, "no") == 0)) {
@@ -2859,6 +3509,7 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 				} else {
 					fprintf(stderr, "WARNING: Illegal entry in configuration file: %s=%s\n", configparameter, configvalue);
 				}
+				free(configvalue);
 			} else if (strcmp(configparameter, "FW1_TYPE") == 0) {
 				configvalue = string_duplicate(string_trim(configvalue, '"'));
 				if ((strcmp(configvalue, "ng") == 0) || (strcmp(configvalue, "NG") == 0)) {
@@ -2868,6 +3519,7 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 				} else {
 					fprintf(stderr, "WARNING: Illegal entry in configuration file: %s=%s\n", configparameter, configvalue);
 				}
+				free(configvalue);
 			} else if (strcmp(configparameter, "FW1_MODE") == 0) {
 				configvalue = string_duplicate(string_trim(configvalue, '"'));
 				if ((strcmp(configvalue, "NORMAL") == 0) || (strcmp(configvalue, "normal") == 0)) {
@@ -2877,6 +3529,7 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 				} else {
 					fprintf(stderr, "WARNING: Illegal entry in configuration file: %s=%s\n", configparameter, configvalue);
 				}
+				free(configvalue);
 			} else if (strcmp(configparameter, "DATEFORMAT") == 0) {
 				configvalue = string_duplicate(string_trim(configvalue, '"'));
 				if (strcmp(configvalue, "CP") == 0) {
@@ -2888,6 +3541,7 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 				} else {
 					fprintf(stderr, "WARNING: Illegal entry in configuration file: %s=%s\n", configparameter, configvalue);
 				}
+				free(configvalue);
 			} else if (strcmp(configparameter, "AUTHENTICATED") == 0) {
 				configvalue = string_duplicate(string_trim(configvalue, '"'));
 				if ((strcmp(configvalue, "YES") == 0) || (strcmp(configvalue, "yes") == 0)) {
@@ -2897,6 +3551,7 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 				} else {
 					fprintf(stderr, "WARNING: Illegal entry in configuration file: %s=%s\n", configparameter, configvalue);
 				}
+				free(configvalue);
 			} else if (strcmp(configparameter, "AUTHENTICATION_TYPE") == 0) {
 				configvalue = string_duplicate(string_trim(configvalue, '"'));
 				if (strcmp(configvalue, "SSLCA") == 0) {
@@ -2920,6 +3575,7 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 				} else {
 					fprintf(stderr, "WARNING: Illegal entry in configuration file: %s=%s\n", configparameter, configvalue);
 				}
+				free(configvalue);
 			} else if (strcmp(configparameter, "FW1_OUTPUT") == 0) {
 				configvalue = string_duplicate(string_trim(configvalue, '"'));
 				if ((strcmp(configvalue, "FILES") == 0) || (strcmp(configvalue, "files") == 0)) {
@@ -2929,6 +3585,7 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 				} else {
 					fprintf(stderr, "WARNING: Illegal entry in configuration file: %s=%s\n", configparameter, configvalue);
 				}
+				free(configvalue);
 			} else if (strcmp(configparameter, "FW1_LOGFILE") == 0) {
 				cfgvalues->fw1_logfile = string_duplicate(string_trim(configvalue, '"'));
 			} else if (strcmp(configparameter, "OPSEC_CERTIFICATE") == 0) {
@@ -2995,8 +3652,11 @@ void initialize_lfield_headers (char** headers[NUMBER_LIDX_FIELDS]) {
 	*headers[LIDX_INTERNAL_CA] = string_duplicate("Internal_CA:");
 	*headers[LIDX_SERIAL_NUM] = string_duplicate("serial_num:");
 	*headers[LIDX_DN] = string_duplicate("dn:");
+	*headers[LIDX_ICMP] = string_duplicate("ICMP");
 	*headers[LIDX_ICMP_TYPE] = string_duplicate("icmp-type");
+	*headers[LIDX_ICMP_TYPE2] = string_duplicate("ICMP Type");
 	*headers[LIDX_ICMP_CODE] = string_duplicate("icmp-code");
+	*headers[LIDX_ICMP_CODE2] = string_duplicate("ICMP Code");
 	*headers[LIDX_MSGID] = string_duplicate("msgid");
 	*headers[LIDX_MESSAGE_INFO] = string_duplicate("message_info");
 	*headers[LIDX_LOG_SYS_MESSAGE] = string_duplicate("log_sys_message");
@@ -3050,6 +3710,13 @@ void initialize_lfield_headers (char** headers[NUMBER_LIDX_FIELDS]) {
 	*headers[LIDX_IP_OFFSET] = string_duplicate("ip_offset");
 	*headers[LIDX_TCP_FLAGS2] = string_duplicate("TCP flags");
 	*headers[LIDX_SYNC_INFO] = string_duplicate("sync_info:");
+	*headers[LIDX_LOG] = string_duplicate("log");
+	*headers[LIDX_CPMAD] = string_duplicate("cpmad");
+	*headers[LIDX_AUTH_METHOD] = string_duplicate("auth_method");
+	*headers[LIDX_TCP_PACKET_OOS] = string_duplicate("TCP packet out of state");
+	*headers[LIDX_RPC_PROG] = string_duplicate("rpc_prog");
+	*headers[LIDX_TH_FLAGS] = string_duplicate("th_flags");
+	*headers[LIDX_CP_MESSAGE] = string_duplicate("cp_message:");
 }
 
 /*
@@ -3162,3 +3829,71 @@ void initialize_afield_output (int* output) {
 	}
 }
 
+/*
+ * BEGIN: function to cleanup environment and exit fw1-loggrabber
+ */
+void exit_loggrabber (int errorcode) {
+	int i;
+
+	free_lfield_arrays(lfield_headers);
+	free_afield_arrays(afield_headers);
+	free_lfield_arrays(lfields);
+	free_afield_arrays(afields);
+
+	if (ConfigfileName) {
+		free(ConfigfileName);
+	}
+	if (LogfileName) {
+		free(LogfileName);
+	}
+	if (ServerName) {
+		free(ServerName);
+	}
+	if (ServerPort) {
+		free(ServerPort);
+	}
+#ifdef USE_MYSQL
+	if (cfgvalues.mysql_host) {
+		free(cfgvalues.mysql_host);
+	}
+	if (cfgvalues.mysql_database) {
+		free(cfgvalues.mysql_database);
+	}
+	if (cfgvalues.mysql_user) {
+		free(cfgvalues.mysql_user);
+	}
+	if (cfgvalues.mysql_password) {
+		free(cfgvalues.mysql_password);
+	}
+#endif
+	if (cfgvalues.fw1_server) {
+		free(cfgvalues.fw1_server);
+	}
+	if (cfgvalues.fw1_port) {
+		free(cfgvalues.fw1_port);
+	}
+	if (cfgvalues.fw1_logfile) {
+		free(cfgvalues.fw1_logfile);
+	}
+	if (cfgvalues.opsec_certificate) {
+		free(cfgvalues.opsec_certificate);
+	}
+	if (cfgvalues.opsec_client_dn) {
+		free(cfgvalues.opsec_client_dn);
+	}
+	if (cfgvalues.opsec_server_dn) {
+		free(cfgvalues.opsec_server_dn);
+	}
+	
+	for (i=0 ; i < filtercount ; i++) {
+		if (filterarray[i]) {
+			free(filterarray[i]);
+		}
+	}
+	
+	while (sl) {
+		sl = stringlist_delete(&sl);
+	}
+
+	exit (errorcode);
+}
