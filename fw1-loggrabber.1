@@ -1,0 +1,727 @@
+.\" Process this file with
+.\" groff -man -Tascii fw1-loggrabber.1
+.\"
+.TH FW1-LOGGRABBER "June 2004" Linux "User Manuals"
+.SH NAME
+fw1-loggrabber \- a command line LEA-client for Checkpoint FW-1
+.SH SYNOPSIS
+.B fw1-loggrabber [--options]
+.SH DESCRIPTION
+.B fw1-loggrabber
+is a commandline LEA client is a command-line LEA-client for Checkpoint FW-1. 
+Using this tool, it's possible to get FW-1 logging data from remote using
+Checkpoints proprietary LEA protocol, which is a part of their OPSEC API. 
+The idea for \fBfw1-loggrabber\fR was born due to the need of analysing 
+Checkpoint FW-1 log data using LIRE (http://www.logreport.org). Meanwhile
+their are a lot of additional features, which hopefully ease daily work
+of many firewall administrators.
+.SH PREREQUISITES
+\fBfw1-loggrabber\fR is statically linked and runs on the following platforms. If you run \fBfw1-loggrabber\fR on another distribution, version or kernel version, please send me a mail describing your environment.
+.RS
+
+- Linux - tested distributions are Red Hat, SuSE and Debian with Kernel 2.2.x and 2.4.x (for experimental MySQL-support, the MySQL-Client and Zlib rpm must
+be installed).
+.RE
+.RS
+
+- Solaris SPARC - tested versions are Solaris 2.7, 8 and 9.
+.RE
+.RS
+
+- Windows NT/2000/XP - tested versions are currently only Windows 2000
+.RE
+.SH OPTIONS
+In the following lines, all available command line options are described in detail. Most
+of the options can also be configured using the configuration file \fBfw1-loggrabber.conf\fR
+(see \fB--configfile\fR option to use a different configuration file). The precedence of given
+options is as follows: commandline, configuration file, default value. E.g. if you set the 
+portnumber to be used to 50000 in the configuration file, this can be overwritten by 
+commandline option \fB--port\fR. Only if an option isn't set neither on commandline nor in
+the configuration file, the default value will be used.
+.TP 
+.B -p <portnumber>, --port <portnumber>
+The \fB-p\fR respectively the \fB--port\fR option can be used to specify a non-default
+port to connect to the FW-1 management station. If this option is used, the configuration
+file parameter \fBFW1_PORT\fR will not be used.
+.TP
+.B -s <servername>, --server <servername>
+Using one of these options, the name or ip address of the FW1 management station,
+to which \fBfw1-loggrabber\fR should connect to, can be specified on command line.
+If this option is used, the configuration file parameter \fBFW1_SERVER\fR will not be used.
+.TP 
+.B -f <logfilename|pattern|ALL>, --logfile <logfilename|pattern>
+With these parameters, the name of the FW-1 logfile to be read, can be specified. This
+can be either done exactly or using only a part of the filename. If no exact match can
+be found in the list of logfiles returned by the FW-1 management station, all logfiles
+which contain the specified string are processed. A special case is the usage of \fBALL\fR
+instead of a logfile name or pattern. In that case all logfiles that are available
+on the management station, will be processed. If this parameter is omitted, only the default
+logfile fw.log will be processed. E.g.
+.RS
+
+--logfile 2003-03-27_213652.log
+.RE
+.RS
+--logfile 2003-03
+.RE
+.RS
+
+The first example display the logfile 2003-03-27_213652.log, the second one processes
+all logfiles which contain 2003-03 in their filename.
+.RE
+.TP
+.B -c <configfilename>, --configfile <configfilename>
+These options allow to specify a non-default configuration file, in which most
+of the commandline options can be configured as well as other options, which are
+not available as commandline parameters. If this parameter is omitted, the file 
+\fBfw1-loggrabber.conf\fR in the current directory will be used. See below for a
+description of all available configuration file options.
+.TP
+.B --resolve
+Using the \fB--resolve\fR option, IP addresses will be resolved to names using 
+FW-1 name resolving behaviour. This resolving mechanism will not cause the machine
+running \fBfw1-loggrabber\fR to initiate DNS requests, but the name resolution will
+be done directly on the FW-1 machine. Enabled name resolution is also the default 
+behaviour of \fBfw1-loggrabber\fR.
+.TP
+.B --noresolve
+In contrast to \fB--resolve\fR, the option \fB--no-resolve\fR will cause IP addresses
+to be displayed in log output instead of names.
+.TP
+.B --showfiles
+The option \fB--showfiles\fR can be used to simply show the available logfiles on
+the FW-1 management station. After the names of the logfiles have been displayed,
+\fBfw1-loggrabber\fR quits.
+.TP
+.B --showlogs
+The default behaviour of \fBfw1-loggrabber\fR is to 
+display the content of the logfiles and not just their names. This can be explicitely
+specified using the \fB--showlogs\fR option.
+.TP
+.B --auth    
+If you want to use authenticated connections for reading the logfiles, you have to 
+use the \fB--auth\fR parameter. In that case you have also configure the FW-1 
+management station as well as the FW-1 policy and your local configuration file in order 
+to successfully connect to the FW-1 server. Within the configuration file you
+can also specify the authentication/encryption algorithm to be used for connecting. 
+.TP
+.B --no-auth
+For unauthenticated connections use the 
+\fB--no-auth\fR option, here you only have to configure your FW-1 management station
+in order to allow unauthenticated connections. But for security reasons you should 
+always use authenticated connections.
+.TP
+.B --2000
+The option \fB--2000\fR has to be used if you want to connect to CP FW-1 4.1 (2000) 
+firewalls. You have to consider, that some options are not available for non-NG 
+firewalls. These include \fB--auth\fR, \fB--showfiles\fR, \fB--auditlog\fR and 
+some other options.
+.TP
+.B --ng
+The default FW-1 version, for which this tool is being developed, is CP FW-1 5.0 (NG), 
+which is the default version, is no version is explicitely specified.
+.TP
+.B --online
+Using online mode, \fBfw1-loggrabber\fR starts output of logging data at the end of 
+the specified logfile (or fw.log if no logfilename has been specified). All future 
+log entries will be displayed. If you use \fB--logfile\fR to specify another logfile
+to be processed, you have to consider that no data will be shown, if the file isn't
+active anymore. This mode is mainly used for continuously processing FW-1 log data 
+and continues to display log entries also after scheduled and manual log switches.
+.TP
+.B --no-online
+In contrast to online mode, \fBfw1-loggrabber\fR quits after having displayed the last
+log entry, when running in offline mode. This is the default behaviour and is mainly
+used for analysis of historic log data.
+.TP
+.B --auditlog
+Using the audit mode, content of the audit logfile (fw.adtlog) can be displayed. This 
+includes administrator actions and uses different fields than normal log data.
+.TP
+.B --normallog
+The default mode of \fBfw1-loggrabber\fR processes normal FW-1 logfiles. In contrast 
+to the \fB--auditlog\fR option, no admistration actions are displayed in this mode, but
+all regular log data.
+.TP
+.B --filter \*(lq<filterexpression1>[;<filterexpression2>]\*(rq
+Using one or multiple \fB--filter\fR options, you are able to filter log entries in 
+order to see only entries which match your filter rules. You can specify multiple 
+filter rules using multiple \fB--filter\fR options. All filter rules are related by
+OR, i.e. if you specify multiple rules, a log entry will be displayed if one of the
+rules matches. Within one filter rule, you can specify multiple arguments. All of these
+arguments are related by AND, i.e. a single filter rule only matches a given log entry
+if the log entry is matched by all arguments. A more detailed description of filter rules
+you can find below in a separate chapter about filtering which also provides various examples.
+.TP
+.B --fields \*(lq<field1>[;<field2>]\*(rq
+The \fB--fields\fR option can be used to display only a given set of fields
+instead of displaying all available fields. The order of the fields is 
+always the same despite the order of the fields specified with the \fB--fields\fR
+option. E.g.
+.RS
+
+--fields "loc;src;dst"
+.RE
+.RS
+
+You can display the currently supported fields with the \fB--help-fields\fR option.
+If you are missing some fields, please run \fBfw1-loggrabber\fR with \fB--debug-level 1\fR 
+and check for debug output containing \fI"Unsupported field found: fieldname=fieldvalue"\fR.
+If you send me these lines I will implement the missing fields in the next release.
+.RE
+.TP
+.B --fieldnames
+Using the \fB--fieldnames\fR option the name of each field will be prepended to
+each value in each line of \fBfw1-loggrabber\fR output. E.g.  
+.RS
+ 
+loc=42|src=1.2.3.4|dst=4.3.2.1 
+.RE
+.TP
+.B --nofieldnames
+In contrast to the \fB--fieldnames\fR option, the usage of this option will cause
+fieldnames to be displayed in the first line of output only. All the following output
+lines contain only the fieldvalues separated by '|' or by a user defined separator. E.g.
+.RS
+
+loc|src|dst
+.RE
+.RS
+42|1.2.3.4|4.3.2.1
+.RE
+.TP
+.B --mysql 
+EXPERIMENTAL! This option enables mysql-mode for storing log data in a MySQL database.
+In order to support more databases and my unwillingness to deal with MS-SQL or Oracle
+APIs, this feature will be replaced in on of the following versions by a Perl wrapper 
+script, which supports multiple database systems.
+.TP
+.B --no-mysql
+This option just disables the mysql-mode and forces \fBfw1-loggrabber\fR to use the 
+default output method for log data.
+.TP
+.B --debuglevel <0-3>
+Sets the debuglevel to the specified value. A debuglevel of 0 means no output of
+debug informations. Further debuglevels will cause output of program specific as well
+as OPSEC specific debug informations.
+.TP
+.B --help
+Use \fB--help\fR to display basic help and usage information. For further help, please
+refer to the man page.
+.TP
+.B --help-fields
+This option just displays all fieldnames which are currently supported by 
+\fBfw1-loggrabber\fR for both normal logfiles and audit logfiles.
+.SH CONFIGURATION FILE
+This paragraph deals with the options that can be set within the configuration file.
+The default configuration file is \fBfw1-loggrabber.conf\fR which should be in the 
+current directory. (see \fB--configfile\fR option to use a different configuration file). 
+The precedence of given
+options is as follows: commandline, configuration file, default value. E.g. if you set the 
+portnumber to be used to 50000 in the configuration file, this can be overwritten by 
+commandline option \fB--port\fR. Only if an option isn't set neither on commandline nor in
+the configuration file, the default value will be used.
+.TP
+.B DEBUG_LEVEL=<0-3>
+Sets the debuglevel to the specified value. A debuglevel of 0 means no output of
+debug informations. Further debuglevels will cause output of program specific as well
+as OPSEC specific debug informations. This parameter can be overwritten by 
+\fB--debug-level\fR command-line option.
+.TP
+.B MYSQL_MODE={yes|YES|no|NO}
+EXPERIMENTAL! This option enables or disables mysql-mode for storing log data in a MySQL database.
+In order to support more databases and my unwillingness to deal with MS-SQL or Oracle
+APIs, this feature will be replaced in on of the following versions by a Perl wrapper 
+script, which supports multiple database systems. The correspondent command-line parameters
+are \fB--mysql\fR and \fB--no-mysql\fR.
+.TP
+.B MYSQL_HOST=<Hostname of MySQL-Server>
+EXPERIMENTAL! If mysql-mode is used, the name or the ip address of the MySQL-server
+has to be specified using this option.
+.TP
+.B MYSQL_USER=<Username for MySQL-Database>
+EXPERIMENTAL! If mysql-mode is used, the username for the MySQL-database
+has to be specified using this option.
+.TP
+.B MYSQL_PASSWORD=<Password for MySQL-Database>
+EXPERIMENTAL! If mysql-mode is used, the password for the MySQL-database
+has to be specified using this option.
+.TP
+.B MYSQL_DATABASE=<Database-Name of MySQL-Database>
+EXPERIMENTAL! If mysql-mode is used, the name of the MySQL-database
+has to be specified using this option.
+.TP
+.B FW1_SERVER=<IP address of FW1-Management Station>
+With this option, the name or ip address of the FW1 management station,
+to which \fBfw1-loggrabber\fR should connect to, can be specified.
+The correspondent command-line parameter is \fB--server\fR.
+.TP
+.B FW1_PORT=<Port number for LEA connections>
+This option can be used to specify a non-default
+port to connect to the FW-1 management station.
+The correspondent command-line parameter is \fB--port\fR.
+.TP
+.B FW1_LOGFILE=<Name of FW1-Logfilename>
+With this parameter, the name of the FW-1 logfile to be read, can be specified. This
+can be either done exactly or using only a part of the filename. If no exact match can
+be found in the list of logfiles returned by the FW-1 management station, all logfiles
+which contain the specified string are processed. If this parameter is omitted, the default
+logfile fw.log will be processed.
+The correspondent command-line parameter is \fB--logfile\fR.
+.TP
+.B FW1_OUTPUT=<files|logs>
+This parameter simply specifies whether \fBfw1-loggrabber\fR should only display the 
+available logfiles (files) on the FW-1 server or display the content of the logfiles (logs).
+The correspondent command-line parameters are \fB--showfiles\fR and \fB--showlogs\fR.
+.TP
+.B FW1_TYPE=<NG|ng|2000>
+Using this parameter you can choose to which version of FW-1 to connect to. For Checkpoint
+FW-1 5.0 (NG) you have to specify NG and for Checkpoint FW-1 4.1 (2000) you have to specify 2000.
+The correspondent command-line parameters are \fB--2000\fR and \fB--ng\fR.
+.TP
+.B FW1_MODE=<audit|AUDIT|normal|NORMAL>
+This parameter enables you to specify whether to display audit logs which contain 
+administrative actions of normal security logs, which contain data about dropped and 
+accepted connections.
+The correspondent command-line parameters are \fB--auditlog\fR and \fB--normallog\fR.
+.TP
+.B ONLINE_MODE=<yes|YES|no|NO>
+Using online mode, \fBfw1-loggrabber\fR starts output of logging data at the end of 
+the specified logfile (or fw.log if no logfilename has been specified). All future 
+log entries will be displayed. If you use \fB--logfile\fR to specify another logfile
+to be processed, you have to consider that no data will be shown, if the file isn't
+active anymore. This mode is mainly used for continuously processing FW-1 log data.
+If you disable online mode, \fBfw1-loggrabber\fR quits after having displayed the last
+log entry. This is the default behaviour and is mainly
+used for analysis of historic log data.
+The correspondent command-line parameters are \fB--online\fR and \fB--no-online\fR.
+.TP
+.B RESOLVE_MODE=<yes|YES|no|NO>
+With this option, IP addresses will be resolved to names using 
+FW-1 name resolving behaviour. This resolving mechanism will not cause the machine
+running \fBfw1-loggrabber\fR to initiate DNS requests, but the name resolution will
+be done directly on the FW-1 machine. Enabled name resolution is also the default 
+behaviour of \fBfw1-loggrabber\fR.
+If you disable resolving mode this will cause IP addresses
+to be displayed in log output instead of names.
+The correspondent command-line parameters are \fB--resolve\fR and \fB--no-resolve\fR.
+.TP
+.B SHOW_FIELDNAMES=<yes|YES|no|NO>
+Using this option can be chosen, whether the name of each field should be displayed i
+in each line of log output (YES) of just in the first line of output.
+The correspondent command-line parameters are \fB--fieldnames\fR and \fB--nofieldnames\fR.
+.TP
+.B RECORD_SEPARATOR=<char>
+This parameter can be used to change the default record separator (|) into another character.
+If you choose a character which is contained in some log data, the occurrence within the 
+logdata will be escaped by a backslash.
+.TP
+.B DATEFORMAT=<CP|UNIX|STD>
+Using the \fBDATEFORMAT\fR option, you can choose between three different date formats 
+for output of date fields. The value \fBCP\fR provides the standard Checkpoing date
+format ( 3Feb2004 14:15:16). Using the values \fBUNIX\fR or \fBSTD\fR you can change 
+this into standard Unix time format (1051655431) or into a standardized human-readable
+format (2004-02-03 14:15:16).
+.TP
+.B LOGGING_CONFIGURATION=<screen|file|syslog>
+The \fBLOGGING_CONFIGURATION\fR parameter can be used for redirection of logging output to
+other destinations than the default destination STDOUT, i.e. screen. Currently it's possible
+to redirect output to a file or to syslog daemon (Unix only). Using the parametes 
+\fBOUTPUT_FILE_PREFIX\fR and \fBOUTPUT_FILE_ROTATESIZE\fR, you can specify more details,
+if you choose to redirect the output to a file.
+.TP
+.B OUTPUT_FILE_PREFIX=<prefix of output file>
+This parameter can be used to define a prefix for the output filename. Eventually the output 
+file will get the suffix \fB.log\fR respectively a datestamp when it gets rotated. The
+default value for this prefix is simply \fBfw1-loggrabber\fR. This parameter will only be 
+used if \fBLOGGING_CONFIGURATION\fR is set to \fBfile\fR.
+.TP
+.B OUTPUT_FILE_ROTATESIZE=<rotatesize in bytes>
+Using this parameter you can specify the maximum size of the output files, before they will
+be rotated. If the size of the output file exceeds the given value, the logfile will be rotated
+to <OUTPUT_FILE_PREFIX>-YYYY-MM-DD-hhmmss[-x].log. The default value is 1048576 bytes, 
+which equals 1 megabyte. It should be obvious
+that this parameter will only be used if \fBLOGGING_CONFIGURATION\fR is set to \fBfile\fR.
+.TP
+.B AUTHENTICATED={yes|YES|no|NO}
+If you want to use authenticated connections for reading the logfiles, you have to 
+use set parameter to YES. In that case you have also configure the FW-1 
+management station as well as the FW-1 policy and your local configuration file in order 
+to successfully connect to the FW-1 server. Within the configuration file you
+can also specify the authentication/encryption algorithm to be used for connecting.
+For security reasons it's generally recommended to use authenticated connections to
+connect \fBfw1-loggrabber\fR to FW-1 servers.
+The correspondent command-line parameters are \fB--auth\fR and \fB--no-auth\fR.
+.TP
+.B AUTHENTICATION_TYPE=<authtype value>
+For authenticated connections to FW-1 servers one of the following authentication 
+method can be used: SSLCA, SSLCA_COMP, SSLCA_RC4, SSLCA_RC4_COMP, ASYM_SSLCA, ASYM_SSLCA_COMP, 
+ASYM_SSLCA_RC4, ASYM_SSLCA_RC4_COMP or SSLCA_CLEAR. You have to consider that your FW-1 server
+must also be configured in order to be able to use the chosen authentication method.
+.TP
+.B OPSEC_CERTIFICATE=<Path and Name of Opsec Certificate>
+Use this option to specify path and name of the PKCS#12 certificate which you pull
+from your FW-1 management server when initializing Secure Internal Communication (SIC).
+.TP
+.B OPSEC_CLIENT_DN=<DN of Opsec-Client>
+This option has to be used to specify the distinguished name of the client object for 
+\fBfw1-loggrabber\fR, which has to be defined in your FW-1 policy prior to be able
+to use authenticated connections.
+.TP
+.B OPSEC_SERVER_DN=<DN of Opsec-Server>
+Here you can specify the distinguished name of your FW-1 server, to which \fBfw1-loggrabber\fR
+connects to. You can find this distinguished name in the properties of the server object
+in your FW-1 policy.
+.SH CONFIGURE FW-1
+For both authenticated and unauthenticated connections of \fBfw1-loggrabber\fR to  
+FW-1 servers there is the need for additional configuration on both the FW-1 side and
+the \fBfw1-loggrabber\fR side. This section describes the necessary steps to successfully
+establish a connection.
+.TP
+.B Configuration of unauthenticated connections
+.RS
+\fIConfiguration of FW-1 server:\fR
+.RE
+.RS
+
+- modify $FWDIR/conf/fwopsec.conf and define the port to be used for unauthenticated
+lea connections:
+.RE
+.RS
+.RS
+lea_server    port    50001
+.RE
+.RE
+.RS
+
+- bounce FW-1 in order to activate changes
+.RE
+.RS
+.RS
+cpstop ; cpstart
+.RE
+.RE
+.RS
+
+\fIConfiguration of FW-1 policy:\fR
+.RE
+.RS
+
+- add a rule to the policy to allow the port defined above from the \fBfw1-loggrabber\fR
+machine to the FW-1 management server.
+.RE
+.RS
+
+- install the policy
+.RE
+.RS
+
+\fIConfiguration of fw1-loggrabber:\fR
+.RE
+.RS
+
+- use the \fB--port\fR command-line option or the FW1_PORT configuration file
+parameter to specify the port you defined on your FW-1 server.
+.RE
+.TP
+.B Configuration of authenticated connections
+.RS
+\fIConfiguration of FW-1 server:\fR
+.RE
+.RS
+
+- modify $FWDIR/conf/fwopsec.conf and define the port to be used for authenticated
+lea connections as well as the authentication algorithm. The default algorithm for 
+authenticated connections is SSLCA:
+.RE
+.RS
+.RS
+lea_server    auth_port    18184
+.RE
+.RS
+lea_server    auth_type    sslca
+.RE
+.RE
+.RS
+
+- bounce FW-1 in order to activate changes
+.RE
+.RS
+.RS
+cpstop ; cpstart
+.RE
+.RE
+.RS
+
+\fIConfiguration of FW-1 policy:\fR
+.RE
+.RS
+
+- create a new Opsec Application Object with the following details:
+.RE
+.RS
+.RS
+- Name:            e.g. Loggrabber
+.RE
+.RS
+- Vendor:          User Defined
+.RE
+.RS
+- Server Entities: None
+.RE
+.RS
+- Client Entities: LEA
+.RE
+.RE
+.RS
+
+- initialize Secure Internal Communication (SIC) for recently created 
+Opsec Application Object and enter (and remember) the initial password.
+.RE
+.RS
+
+- write down the DN of the recently created Opsec Application Object. This is your
+Client Distinguished Name, which you need later on.
+.RE
+.RS
+
+- open the object of your FW-1 management server and write down the DN of that object.
+This is the Server Distinguished Name, which you will need later on.
+.RE
+.RS
+
+- add a rule to the policy to allow the port defined above as well as port 18210/tcp 
+(FW1_ica_pull) in order to allow pulling of PKCS#12 certificate from the \fBfw1-loggrabber\fR
+machine to the FW-1 management server. The port 18210/tcp can be shut down after the 
+communication between \fBfw1-loggrabber\fR and the FW-1 management server has been established
+successfully.
+.RE
+.RS
+
+- install the policy
+.RE
+.RS
+
+\fIConfiguration of fw1-loggrabber:\fR
+.RE
+.RS
+
+- get the tool opsec_pull_cert either from opsec-tools.tar.gz from the project
+home page or directly from the OPSEC SDK. This tool is needed to establish the
+Secure Internal Communication (SIC) between \fBfw1-loggrabber\fR and the FW-1
+management server.
+.RE
+.RS
+
+- execute the command opsec_pull_cert as follows and copy the resulting PKCS#12
+file (default: opsec.p12) to your \fBfw1-loggrabber\fR directory.
+.RE
+.RS
+.RS
+opsec_pull_cert \e
+.RE
+.RS
+  -h <IP of FW-1 Management Server> \e
+.RE
+.RS
+  -n <Name of Opsec Application Object> \e
+.RE
+.RS
+  -p <Password you entered before in policy>
+.RE
+.RE
+.RS
+
+- use the \fB--port\fR command-line option or the FW1_PORT configuration file
+parameter to specify the port you defined on your FW-1 server.
+.RE
+.RS
+
+- edit the \fBAUTHENTICATION_TYPE\fR configuration file parameter according to 
+the authentication type, that you have configured previously on your FW-1 
+management server.
+.RE
+.RS
+
+- edit the \fBOPSEC_CERTIFICATE\fR configuration file parameter according to 
+the name of the PKCS#12 file which you created before using the opsec_pull_cert
+command.
+.RE
+.RS
+
+- edit the \fBOPSEC_CLIENT_DN\fR configuration file parameter according to 
+the Client DN, that you have written down before.
+.RE
+.RS
+
+- edit the \fBOPSEC_SERVER_DN\fR configuration file parameter according to 
+the Server DN, that you have written down before.
+.RE
+.SH FILTERING
+Filter rules provide the possibility to display only log entries that
+match a given set of rules. There can be specified one or more filter 
+rules using one or multiple \fB--filter\fR arguments on the command 
+line. All individual filter rules are related by OR. That means a log
+entry will be displayed if at least one of the filter rules matches.
+Within one filter rule, there can be specified multiple arguments. All 
+these arguments are related by AND. That means a filter rule matches a
+given log entry only, if all of the filter arguments match.
+.TP
+.B Supported filter arguments in normal mode
+.RS
+- action=<accept|drop|reject>
+.RE
+.RS
+- dst=<IP address>
+.RE
+.RS
+- endtime=<YYYYMMDDhhmmss>
+.RE
+.RS
+- product=<VPN-1 & FireWall-1|SmartDefense>
+.RE
+.RS
+- proto=<icmp|tcp|udp>
+.RE
+.RS
+- rule=<rulenumber|startrule-endrule>
+.RE
+.RS
+- service=<portnumber|startport-endport>
+.RE
+.RS
+- src=<IP address>
+.RE
+.RS
+- starttime=<YYYYMMDDhhmmss>
+.RE
+.TP
+.B Supported filter arguments in audit mode
+.RS
+- action=<accept|drop|reject>
+.RE
+.RS
+- administrator=<string>
+.RE
+.RS
+- endtime=<YYYYMMDDhhmmss>
+.RE
+.RS
+- product=<SmartDashboard|Policy Editor|SmartView Tracker|SmartView Status|SmartView Monitor|System Monitor|cpstat_monitor|SmartUpdate|CPMI Client>
+.RE
+.RS
+- starttime=<YYYYMMDDhhmmss>
+.RE
+.TP
+.B Negation of arguments
+If you specify '!=' instead of '=' between name and value
+of the filter argument, you can negate the name/value pair.
+.TP
+.B Specifying multiple argument values
+You can specify multiple argument values by separating the
+values by ','.
+.TP
+.B Specifying IP addresses as argument values
+For arguments that expect IP addresses, you can specify either
+a single IP address, multiple IP addresses separated by ',' or
+a network address with netmask (e.g. 10.0.0.0/255.0.0.0). Currently
+it's not possible to specify a network address and a single IP
+address within the same filter argument.
+.TP
+.B Specifying multiple filter arguments
+Each filter rule can exist of multiple filter arguments which have
+to be separated by ';'.
+.TP
+.B Examples
+.RS
+1) display all dropped connections
+.RE
+.RS
+    --filter "action=drop"
+.RE
+.RS
+
+2) display all dropped and rejected connections
+.RE
+.RS
+    --filter "action=drop,reject"
+    --filter "action!=accept"
+.RE
+.RS
+
+3) display all log entries generated by rules 20 to 23
+.RE
+.RS
+    --filter "rule=20,21,22,23"
+    --filter "rule=20-23"
+.RE
+.RS 
+
+4) display all log entries generated by rules 20 to 23, 30 or 40 to 42
+.RE
+.RS
+    --filter "rule=20-23,30,40-42"
+.RE
+.RS
+
+5) display all log entries to 10.1.1.1 and 10.1.1.2
+.RE
+.RS
+    --filter "dst=10.1.1.1,10.1.1.2"
+.RE
+.RS
+
+6) display all log entries from 192.168.1.0/255.255.255.0
+.RE
+.RS
+    --filter "src=192.168.1.0/255.255.255.0"
+.RE
+.RS
+
+7) display all log entries starting from 2004/03/02 14:00:00
+.RE
+.RS
+    --filter "starttime=20040302140000"
+.RE
+.SH FILES
+.I fw1-loggrabber.conf
+.SH AUTHOR
+Torsten Fellhauer <torsten at fellhauer dash web dot net>
+.SH BUGS
+Please report bugs using the bug report functionality on the projects 
+website: 
+.RS
+\fIhttp://sourceforge.net/projects/fw1-loggrabber\fR
+.RE
+.SH COPYRIGHT
+Copyright (c) 2003-2004 Torsten Fellhauer, Xiaodong Lin
+.PP
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+.PP
+1. Redistributions of source code must retain the 
+   above copyright notice, this list of conditions 
+   and the following disclaimer.
+.PP
+2. Redistributions in binary form must reproduce
+   the above copyright notice, this list of con-
+   ditions and the following disclaimer in the
+   documentation and/or other materials provided 
+   with the distribution.
+.PP
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+.SH CREDITS
+Stefan Siebert for making the start of this project possible. Xiaodong Lin
+with his excellent Opsec skills for helping me in further development of 
+\fBfw1-loggrabber\fR.
