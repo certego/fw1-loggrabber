@@ -1,14 +1,7 @@
-/*
- * Copyright 2004 by Xiaodong Lin, All rights reserved.
- *
- * queue.c
- * A dynamic data structure, which is used to store incoming Check Point LEA
- * records.
- */
 /******************************************************************************/
 /* fw1-loggrabber - (C)2004 Torsten Fellhauer, Xiaodong Lin                   */
 /******************************************************************************/
-/* Version: 1.10                                                              */
+/* Version: 1.11                                                              */
 /******************************************************************************/
 /*                                                                            */
 /* Copyright (c) 2004 Torsten Fellhauer, Xiaodong Lin                         */
@@ -86,9 +79,11 @@ Bool isEmpty();					//Are there any elements on this list? true if nobody's home
 Bool isFull();					//Does this list reach its limitation? true if so
 LinkedList *getFirst();			//Return the first element in this list.
 
+/*
 int main() {
 	testLinkedList();
 }
+*/
 
 /* The following method is used solely for purpose of the unit test */
 int testLinkedList() {
