@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* fw1-loggrabber - (C)2004 Torsten Fellhauer, Xiaodong Lon                   */
+/* fw1-loggrabber - (C)2004 Torsten Fellhauer, Xiaodong Lin                   */
 /******************************************************************************/
 /* Version: 1.10                                                              */
 /******************************************************************************/
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
 	  }
 	  else if (strcmp(argv[i], "--debug-level") == 0) {
 	    i++;
-	    if (argv[i] == NULL) {	
+	    if (argv[i] == NULL) {
 		fprintf(stderr, "ERROR: Invalid argument: %s\n", argv[i-1]);
 		usage(argv[0]);
 		exit_loggrabber(1);
@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
 #endif
 	  else if ((strcmp(argv[i], "-f") == 0) || (strcmp(argv[i], "--logfile") == 0)) {
 	    i++;
-	    if (argv[i] == NULL) {	
+	    if (argv[i] == NULL) {
 		fprintf(stderr, "ERROR: Invalid argument: %s\n", argv[i-1]);
 		usage(argv[0]);
 		exit_loggrabber(1);
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
 	  }
 	  else if ((strcmp(argv[i], "-c") == 0) || (strcmp(argv[i], "--configfile") == 0)) {
 	    i++;
-	    if (argv[i] == NULL) {	
+	    if (argv[i] == NULL) {
 		fprintf(stderr, "ERROR: Invalid argument: %s\n", argv[i-1]);
 		usage(argv[0]);
 		exit_loggrabber(1);
@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
 	  }
 	  else if ((strcmp(argv[i], "-l") == 0) || (strcmp(argv[i], "--leaconfigfile") == 0)) {
 	    i++;
-	    if (argv[i] == NULL) {	
+	    if (argv[i] == NULL) {
 		fprintf(stderr, "ERROR: Invalid argument: %s\n", argv[i-1]);
 		usage(argv[0]);
 		exit_loggrabber(1);
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
 	  }
 	  else if (strcmp(argv[i], "--filter") == 0) {
 	    i++;
-	    if (argv[i] == NULL) {	
+	    if (argv[i] == NULL) {
 		fprintf(stderr, "ERROR: Invalid argument: %s\n", argv[i-1]);
 		usage(argv[0]);
 		exit_loggrabber(1);
@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
 	  }
 	  else if (strcmp(argv[i], "--fields") == 0) {
 	    i++;
-	    if (argv[i] == NULL) {	
+	    if (argv[i] == NULL) {
 		fprintf(stderr, "ERROR: Invalid argument: %s\n", argv[i-1]);
 		usage(argv[0]);
 		exit_loggrabber(1);
@@ -471,7 +471,7 @@ int main(int argc, char *argv[])
 	    exit_loggrabber(1);
           }
 	}
-	
+
 	/*
 	 * load configuration file
 	 */
@@ -480,10 +480,8 @@ int main(int argc, char *argv[])
 	/*
 	 * check whether command line options override configfile options
  	 */
-#ifdef USE_MYSQL
 	cfgvalues.mysql_mode = (mysql_mode != -1) ? mysql_mode : cfgvalues.mysql_mode;
-#endif
-	cfgvalues.debug_mode = (debug_mode != -1) ? debug_mode : cfgvalues.debug_mode;
+	cfgvalues.debug_mode = (debug_mode != 0) ? debug_mode : cfgvalues.debug_mode;
 	cfgvalues.online_mode = (online_mode != -1) ? online_mode : cfgvalues.online_mode;
 	cfgvalues.resolve_mode = (resolve_mode != -1) ? resolve_mode : cfgvalues.resolve_mode;
 	cfgvalues.fw1_2000 = (fw1_2000 != -1) ? fw1_2000 : cfgvalues.fw1_2000;
@@ -491,7 +489,7 @@ int main(int argc, char *argv[])
 	cfgvalues.audit_mode = (audit_log != -1) ? audit_log : cfgvalues.audit_mode;
 	cfgvalues.fieldnames_mode = (fieldnames_mode != -1) ? fieldnames_mode : cfgvalues.fieldnames_mode;
 	cfgvalues.fw1_logfile = (LogfileName != NULL) ? string_duplicate(LogfileName) : cfgvalues.fw1_logfile;
-	
+
 	/*
 	 * free no more used char*
 	 */
@@ -598,18 +596,24 @@ int main(int argc, char *argv[])
 		mysqlconn = connect_to_mysql(&mysql, &mysql_maxnumber, &cfgvalues);
 		if (mysqlconn == NULL) {
 			fprintf(stderr, "ERROR: Cannot connect to database\n");
+			close_log();
 			exit_loggrabber(1);
 		}
 	}
 #endif
-	
+
 	/*
 	 * function call to get available Logfile-Names (not available in FW1-4.1)
 	 */
-	if (!(cfgvalues.fw1_2000) && !(cfgvalues.online_mode)) {
-		get_fw1_logfiles();
-	}
 	if (cfgvalues.showfiles_mode) {
+		if (!(cfgvalues.fw1_2000) && !(cfgvalues.online_mode)) {
+			get_fw1_logfiles();
+		} else {
+			fprintf(stderr, "WARNING: This working mode, which lists all log files, are supported. \n");
+			close_log();
+			exit_loggrabber(1);
+		}
+		close_log();
 		exit_loggrabber(0);
 	}
 
@@ -617,17 +621,25 @@ int main(int argc, char *argv[])
 	 * process all logfiles if ALL specified
 	 */
 	if (strcmp (cfgvalues.fw1_logfile, "ALL") == 0) {
+		if (!(cfgvalues.fw1_2000) && !(cfgvalues.online_mode)) {
+			get_fw1_logfiles();
+		} else {
+			fprintf(stderr, "WARNING: This working mode, which fetches all log files, are supported.\n");
+			close_log();
+			exit_loggrabber(1);
+		}
+
 		lstptr = sl;
-	
+
 		while (lstptr) {
 			if (cfgvalues.debug_mode) {
 				fprintf(stderr, "DEBUG: Processing Logfile: %s\n", lstptr->data);
 			}
-        		read_fw1_logfile(&(lstptr->data));
+        	read_fw1_logfile(&(lstptr->data));
 			lstptr = lstptr->next;
 		}
-	} 
-	
+	}
+
 	/*
 	 * else search for given string in available logfile-names
 	 */
@@ -642,16 +654,16 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "DEBUG: Processing Logfile: %s\n", cfgvalues.fw1_logfile);
 			}
         		read_fw1_logfile(&(cfgvalues.fw1_logfile));
-	        }       
+	        }
 		while (lstptr) {
 			if (cfgvalues.debug_mode) {
 				fprintf(stderr, "DEBUG: Processing Logfile: %s\n", foundstring);
 			}
-        		read_fw1_logfile(&foundstring);
+        	read_fw1_logfile(&foundstring);
 			lstptr = stringlist_search(&(lstptr->next), cfgvalues.fw1_logfile, &foundstring);
 		}
 	}
-	
+
 	close_log();
 
 	exit_loggrabber(0);
@@ -712,7 +724,7 @@ int read_fw1_logfile(char **LogfileName)
 		strcpy(leaconf, buff);
 		strcat(leaconf, "\\lea.conf");
 	} else {
-		if ((cfgvalues.leaconfig_filename[0] == '\\') || 
+		if ((cfgvalues.leaconfig_filename[0] == '\\') ||
 		   ((cfgvalues.leaconfig_filename[1] == ':') && (cfgvalues.leaconfig_filename[2] == '\\'))) {
 			strcpy(leaconf, cfgvalues.leaconfig_filename);
 		} else {
@@ -727,12 +739,12 @@ int read_fw1_logfile(char **LogfileName)
 		fprintf (stderr, "ERROR: Out of memory\n");
 		exit_loggrabber(1);
 	}
-		
+
 	if (cfgvalues.leaconfig_filename == NULL) {
 		if (getcwd(leaconf, (size_t)size) == NULL) {
 			fprintf (stderr, "ERROR: Cannot get current working directory\n");
 			exit_loggrabber(1);
-		}	
+		}
 		strcat(leaconf, "/lea.conf");
 	} else {
 		if (cfgvalues.leaconfig_filename[0] == '/') {
@@ -741,334 +753,340 @@ int read_fw1_logfile(char **LogfileName)
 			if (getcwd(leaconf, (size_t)size) == NULL) {
 				fprintf (stderr, "ERROR: Cannot get current working directory\n");
 				exit_loggrabber(1);
-			}	
+			}
 			strcat(leaconf, "/");
 			strcat(leaconf, cfgvalues.leaconfig_filename);
 		}
 	}
 #endif
 
-	/* create opsec environment for the main loop */
-	if((pEnv = opsec_init(OPSEC_CONF_FILE, leaconf, OPSEC_EOL)) == NULL) {
-		fprintf(stderr, "ERROR: unable to create environment (%s)\n", opsec_errno_str(opsec_errno));
-		exit_loggrabber(1);
-	}
+	while(keepAlive) {
 
-	if (cfgvalues.debug_mode) {
-                                                                                
-		fprintf(stderr, "DEBUG: OPSEC LEA conf file is %s\n", leaconf);
-                                                                                
-		fw1_server = opsec_get_conf(pEnv,"lea_server","ip",NULL);
-		if(fw1_server==NULL) {
-			fprintf(stderr, "ERROR: The fw1 server ip address has not been set.\n");
+		/* create opsec environment for the main loop */
+		if((pEnv = opsec_init(OPSEC_CONF_FILE, leaconf, OPSEC_EOL)) == NULL) {
+			fprintf(stderr, "ERROR: unable to create environment (%s)\n", opsec_errno_str(opsec_errno));
 			exit_loggrabber(1);
+		}
+
+		if (cfgvalues.debug_mode) {
+
+			fprintf(stderr, "DEBUG: OPSEC LEA conf file is %s\n", leaconf);
+
+			fw1_server = opsec_get_conf(pEnv,"lea_server","ip",NULL);
+			if(fw1_server==NULL) {
+				fprintf(stderr, "ERROR: The fw1 server ip address has not been set.\n");
+				exit_loggrabber(1);
+			}//end of if
+			auth_type = opsec_get_conf(pEnv,"lea_server","auth_type",NULL);
+			if (auth_type!=NULL) {
+				//Authentication mode
+				if (cfgvalues.fw1_2000) {
+					//V4.1.2
+					fw1_port = opsec_get_conf(pEnv,"lea_server","auth_port",NULL);
+					if(fw1_port==NULL) {
+						fprintf(stderr, "ERROR: The parameters about authentication mode have not been set.\n");
+						exit_loggrabber(1);
+					} else {
+						fprintf (stderr, "DEBUG: Authentication mode has been used.\n");
+						fprintf (stderr, "DEBUG: Server-IP     : %s\n", fw1_server);
+						fprintf (stderr, "DEBUG: Server-Port     : %s\n", fw1_port);
+						fprintf (stderr, "DEBUG: Authentication type: %s\n", auth_type);
+					}//end of inner if
+				} else {
+					//NG
+					fw1_port = opsec_get_conf(pEnv,"lea_server","auth_port",NULL);
+					opsec_certificate = opsec_get_conf(pEnv,"opsec_sslca_file",NULL);
+					opsec_client_dn = opsec_get_conf(pEnv,"opsec_sic_name",NULL);
+					opsec_server_dn = opsec_get_conf(pEnv,"lea_server","opsec_entity_sic_name",NULL);
+					if((fw1_port==NULL)||(opsec_certificate==NULL)||(opsec_client_dn==NULL)||(opsec_server_dn==NULL)) {
+						fprintf(stderr, "ERROR: The parameters about authentication mode have not been set.\n");
+						exit_loggrabber(1);
+					} else {
+						fprintf (stderr, "DEBUG: Authentication mode has been used.\n");
+						fprintf (stderr, "DEBUG: Server-IP     : %s\n", fw1_server);
+						fprintf (stderr, "DEBUG: Server-Port     : %s\n", fw1_port);
+						fprintf (stderr, "DEBUG: Authentication type: %s\n", auth_type);
+						fprintf (stderr, "DEBUG: OPSEC sic certificate file name : %s\n", opsec_certificate);
+						fprintf (stderr, "DEBUG: Server DN (sic name) : %s\n", opsec_server_dn);
+						fprintf (stderr, "DEBUG: OPSEC LEA client DN (sic name) : %s\n", opsec_client_dn);
+					}//end of inner if
+				}
+			} else {
+				//Clear Text mode, i.e. non-auth mode
+				fw1_port = opsec_get_conf(pEnv,"lea_server","port",NULL);
+				if(fw1_port!=NULL) {
+					fprintf (stderr, "DEBUG: Clear text mode has been used.\n");
+					fprintf (stderr, "DEBUG: Server-IP        : %s\n", fw1_server);
+					fprintf (stderr, "DEBUG: Server-Port      : %s\n", fw1_port);
+				} else {
+					fprintf(stderr, "ERROR: The fw1 server lea service port has not been set.\n");
+					exit_loggrabber(1);
+				}//end of inner if
+			}//end of middle if
 		}//end of if
-		auth_type = opsec_get_conf(pEnv,"lea_server","auth_type",NULL);
-		if (auth_type!=NULL) {
-			//Authentication mode
-			if (cfgvalues.fw1_2000) {
-				//V4.1.2
-				fw1_port = opsec_get_conf(pEnv,"lea_server","auth_port",NULL);
-				if(fw1_port==NULL) {
-					fprintf(stderr, "ERROR: The parameters about authentication mode have not been set.\n");
-					exit_loggrabber(1);
-				} else {
-					fprintf (stderr, "DEBUG: Authentication mode has been used.\n");
-					fprintf (stderr, "DEBUG: Server-IP     : %s\n", fw1_server);
-					fprintf (stderr, "DEBUG: Server-Port     : %s\n", fw1_port);
-					fprintf (stderr, "DEBUG: Authentication type: %s\n", auth_type);
-				}//end of inner if
+
+		/*
+		 * initialize opsec-client
+		 */
+	#ifdef USE_MYSQL
+		if (cfgvalues.mysql_mode) {
+			pClient = opsec_init_entity(pEnv, LEA_CLIENT,
+								LEA_RECORD_HANDLER, read_fw1_logfile_record_mysql,
+					LEA_DICT_HANDLER, read_fw1_logfile_dict,
+					LEA_EOF_HANDLER, read_fw1_logfile_eof,
+					LEA_SWITCH_HANDLER, read_fw1_logfile_switch,
+					LEA_FILTER_QUERY_ACK, ((filtercount > 0) ? read_fw1_logfile_queryack : NULL),
+					LEA_COL_LOGS_HANDLER, read_fw1_logfile_collogs,
+					LEA_SUSPEND_HANDLER, read_fw1_logfile_suspend,
+					LEA_RESUME_HANDLER, read_fw1_logfile_resume,
+					OPSEC_SESSION_START_HANDLER, read_fw1_logfile_start,
+					OPSEC_SESSION_END_HANDLER, read_fw1_logfile_end,
+					OPSEC_SESSION_ESTABLISHED_HANDLER, read_fw1_logfile_established,
+					OPSEC_EOL);
+		} else {
+	#endif
+			pClient = opsec_init_entity(pEnv, LEA_CLIENT,
+								LEA_RECORD_HANDLER, ((cfgvalues.audit_mode) ? read_fw1_logfile_a_record_stdout : read_fw1_logfile_n_record_stdout),
+					LEA_DICT_HANDLER, read_fw1_logfile_dict,
+					LEA_EOF_HANDLER, read_fw1_logfile_eof,
+					LEA_SWITCH_HANDLER, read_fw1_logfile_switch,
+					LEA_FILTER_QUERY_ACK, ((filtercount > 0) ? read_fw1_logfile_queryack : NULL),
+					LEA_COL_LOGS_HANDLER, read_fw1_logfile_collogs,
+					LEA_SUSPEND_HANDLER, read_fw1_logfile_suspend,
+					LEA_RESUME_HANDLER, read_fw1_logfile_resume,
+					OPSEC_SESSION_START_HANDLER, read_fw1_logfile_start,
+					OPSEC_SESSION_END_HANDLER, read_fw1_logfile_end,
+					OPSEC_SESSION_ESTABLISHED_HANDLER, read_fw1_logfile_established,
+					OPSEC_EOL);
+	#ifdef USE_MYSQL
+		}
+	#endif
+
+		/*
+		 * initialize opsec-server for authenticated and unauthenticated connections
+		 */
+
+		pServer = opsec_init_entity(pEnv, LEA_SERVER, OPSEC_ENTITY_NAME, "lea_server", OPSEC_EOL);
+
+		/*
+		 * continue only if opsec initializations were successful
+		 */
+		if ((!pClient) || (!pServer))
+		{
+			fprintf(stderr, "ERROR: failed to initialize client/server-pair (%s)\n", opsec_errno_str(opsec_errno));
+			cleanup_fw1_environment(pEnv, pClient, pServer);
+			exit_loggrabber(1);
+		}
+
+		/*
+		 * create LEA-session. differs for connections to FW-1 4.1 and FW-1 NG
+		 */
+		if (cfgvalues.fw1_2000) {
+			if (cfgvalues.online_mode) {
+				pSession = lea_new_session(pClient, pServer, LEA_ONLINE, LEA_FILENAME, *LogfileName, LEA_AT_END);
 			} else {
-				//NG
-				fw1_port = opsec_get_conf(pEnv,"lea_server","auth_port",NULL);
-				opsec_certificate = opsec_get_conf(pEnv,"opsec_sslca_file",NULL);
-				opsec_client_dn = opsec_get_conf(pEnv,"opsec_sic_name",NULL);
-				opsec_server_dn = opsec_get_conf(pEnv,"lea_server","opsec_entity_sic_name",NULL);
-				if((fw1_port==NULL)||(opsec_certificate==NULL)||(opsec_client_dn==NULL)||(opsec_server_dn==NULL)) {
-					fprintf(stderr, "ERROR: The parameters about authentication mode have not been set.\n");
-					exit_loggrabber(1);
-				} else {
-					fprintf (stderr, "DEBUG: Authentication mode has been used.\n");
-					fprintf (stderr, "DEBUG: Server-IP     : %s\n", fw1_server);
-					fprintf (stderr, "DEBUG: Server-Port     : %s\n", fw1_port);
-					fprintf (stderr, "DEBUG: Authentication type: %s\n", auth_type);
-					fprintf (stderr, "DEBUG: OPSEC sic certificate file name : %s\n", opsec_certificate);
-					fprintf (stderr, "DEBUG: Server DN (sic name) : %s\n", opsec_server_dn);
-					fprintf (stderr, "DEBUG: OPSEC LEA client DN (sic name) : %s\n", opsec_client_dn);
-				}//end of inner if
+				pSession = lea_new_session(pClient, pServer, LEA_OFFLINE, LEA_FILENAME, *LogfileName, LEA_AT_START);
+			}
+			if (!pSession) {
+				fprintf(stderr, "ERROR: failed to create session (%s)\n", opsec_errno_str(opsec_errno));
+				cleanup_fw1_environment(pEnv, pClient, pServer);
+				exit_loggrabber(1);
 			}
 		} else {
-			//Clear Text mode, i.e. non-auth mode
-			fw1_port = opsec_get_conf(pEnv,"lea_server","port",NULL);
-			if(fw1_port!=NULL) {
-				fprintf (stderr, "DEBUG: Clear text mode has been used.\n");
-				fprintf (stderr, "DEBUG: Server-IP        : %s\n", fw1_server);
-				fprintf (stderr, "DEBUG: Server-Port      : %s\n", fw1_port);
+			/*
+			 * create a suspended session, i.e. not log data will be sent to client
+			 */
+			if (cfgvalues.online_mode) {
+				pSession = lea_new_suspended_session(pClient, pServer, LEA_ONLINE, LEA_UNIFIED_SINGLE, *LogfileName, LEA_AT_END);
 			} else {
-				fprintf(stderr, "ERROR: The fw1 server lea service port has not been set.\n");
+				pSession = lea_new_suspended_session(pClient, pServer, LEA_OFFLINE, LEA_UNIFIED_SINGLE, *LogfileName, LEA_AT_START);
+			}
+			if (!pSession) {
+				fprintf(stderr, "ERROR: failed to create session (%s)\n", opsec_errno_str(opsec_errno));
+				cleanup_fw1_environment(pEnv, pClient, pServer);
 				exit_loggrabber(1);
-			}//end of inner if
-		}//end of middle if
-	}//end of if
+			}
 
-	/*
-	 * initialize opsec-client
-	 */
-#ifdef USE_MYSQL
-	if (cfgvalues.mysql_mode) {
-		pClient = opsec_init_entity(pEnv, LEA_CLIENT,
-	                        LEA_RECORD_HANDLER, read_fw1_logfile_record_mysql,
-				LEA_DICT_HANDLER, read_fw1_logfile_dict,
-				LEA_EOF_HANDLER, read_fw1_logfile_eof,
-				LEA_SWITCH_HANDLER, read_fw1_logfile_switch,
-				LEA_FILTER_QUERY_ACK, ((filtercount > 0) ? read_fw1_logfile_queryack : NULL),
-				LEA_COL_LOGS_HANDLER, read_fw1_logfile_collogs,
-				LEA_SUSPEND_HANDLER, read_fw1_logfile_suspend,
-				LEA_RESUME_HANDLER, read_fw1_logfile_resume,
-				OPSEC_SESSION_START_HANDLER, read_fw1_logfile_start,
-				OPSEC_SESSION_END_HANDLER, read_fw1_logfile_end,
-				OPSEC_SESSION_ESTABLISHED_HANDLER, read_fw1_logfile_established,
-				OPSEC_EOL);
-	} else {
-#endif
-		pClient = opsec_init_entity(pEnv, LEA_CLIENT,
-	                        LEA_RECORD_HANDLER, ((cfgvalues.audit_mode) ? read_fw1_logfile_a_record_stdout : read_fw1_logfile_n_record_stdout),
-				LEA_DICT_HANDLER, read_fw1_logfile_dict,
-				LEA_EOF_HANDLER, read_fw1_logfile_eof,
-				LEA_SWITCH_HANDLER, read_fw1_logfile_switch,
-				LEA_FILTER_QUERY_ACK, ((filtercount > 0) ? read_fw1_logfile_queryack : NULL),
-				LEA_COL_LOGS_HANDLER, read_fw1_logfile_collogs,
-				LEA_SUSPEND_HANDLER, read_fw1_logfile_suspend,
-				LEA_RESUME_HANDLER, read_fw1_logfile_resume,
-				OPSEC_SESSION_START_HANDLER, read_fw1_logfile_start,
-				OPSEC_SESSION_END_HANDLER, read_fw1_logfile_end,
-				OPSEC_SESSION_ESTABLISHED_HANDLER, read_fw1_logfile_established,
-				OPSEC_EOL);
-#ifdef USE_MYSQL
-	}
-#endif
+			/*
+			 * If filters were defined, create the rulebase and register it.
+			 * the session will be resumed, as soon as the server sends the
+			 * filter_ack-event.
+			 * In the case when no filters are used, the suspended session
+			 * will be continued immediately.
+			 */
+			if (filtercount > 0) {
+				if ((rb = lea_filter_rulebase_create()) == NULL) {
+					fprintf(stderr, "ERROR: failed to create rulebase\n");
+					exit_loggrabber(1);
+				}
 
-	/*
-	 * initialize opsec-server for authenticated and unauthenticated connections
-	 */
-	
-	pServer = opsec_init_entity(pEnv, LEA_SERVER, OPSEC_ENTITY_NAME, "lea_server", OPSEC_EOL);
+				for (i=0 ; i < filtercount ; i++) {
+					if (cfgvalues.audit_mode) {
+						if ((rb = create_audit_filter_rule(rb,filterarray[i])) == NULL) {
+							fprintf(stderr, "ERROR: failed to create rule\n");
+							exit_loggrabber(1);
+						}
+					} else {
+						if ((rb = create_fw1_filter_rule(rb,filterarray[i])) == NULL) {
+							fprintf(stderr, "ERROR: failed to create rule\n");
+							exit_loggrabber(1);
+						}
+					}
+				}
 
-	/*
-	 * continue only if opsec initializations were successful
-	 */
-	if ((!pClient) || (!pServer))
-	{
-		fprintf(stderr, "ERROR: failed to initialize client/server-pair (%s)\n", opsec_errno_str(opsec_errno));
+				if (lea_filter_rulebase_register(pSession, rb, &rbid) == LEA_FILTER_ERR) {
+					fprintf(stderr, "ERROR: Cannot register rulebase\n");
+				}
+			} else {
+				lea_session_resume(pSession);
+			}
+		}
+
+		/*
+		 * display header line if cfgvalues.fieldnames_mode == 0
+		 */
+		if (!(cfgvalues.fieldnames_mode)) {
+			// This last plus one is needed to hold the terminator, '\0' //
+			message = (char *) malloc(capacity+1);
+			if (message == NULL) {
+				fprintf(stderr, "ERROR: Out of memory\n");
+				exit_loggrabber(1);
+			}
+			*message='\0';
+
+			if (cfgvalues.audit_mode) {
+				if ((!output_fields) || (afield_output[AIDX_NUM])) {
+					tmpstr1 = string_escape(*afield_headers[AIDX_NUM], cfgvalues.record_separator);
+					if(capacity>=(strlen(message)+strlen(tmpstr1))) {
+						strcat(message,tmpstr1);
+					} else {
+						capacity = ((capacity+capacityIncrement) >= (strlen(message)+strlen(tmpstr1))) ? (capacity+capacityIncrement) : (strlen(message)+strlen(tmpstr1));
+						buffer = (char *) malloc(strlen(message)+1);
+						if (buffer == NULL) {
+							fprintf(stderr, "ERROR: Out of memory\n");
+							exit_loggrabber(1);
+						}
+						strcpy(buffer,message);
+						free(message);
+						// This last plus one is needed to hold the terminator, '\0' //
+						message = (char *) malloc(capacity+1);
+						if (message == NULL) {
+							fprintf(stderr, "ERROR: Out of memory\n");
+							exit_loggrabber(1);
+						}
+						strcpy(message,buffer);
+						free(buffer);
+						strcat(message,tmpstr1);
+					}
+					free(tmpstr1);
+						}
+
+					for (i=1 ; i< NUMBER_AIDX_FIELDS ; i++) {
+							if ((!output_fields) || (afield_output[i])) {
+						tmpstr1 = string_escape(*afield_headers[i], cfgvalues.record_separator);
+						sprintf(stringnumber, "%c%s", cfgvalues.record_separator, tmpstr1);
+						if(capacity>=(strlen(message)+strlen(stringnumber))) {
+							strcat(message,stringnumber);
+						} else {
+							capacity = ((capacity+capacityIncrement) >= (strlen(message)+strlen(stringnumber))) ? (capacity+capacityIncrement) : (strlen(message)+strlen(stringnumber));
+							buffer = (char *) malloc(strlen(message)+1);
+							if (buffer == NULL) {
+								fprintf(stderr, "ERROR: Out of memory\n");
+								exit_loggrabber(1);
+							}
+							strcpy(buffer,message);
+							free(message);
+							// This last plus one is needed to hold the terminator, '\0' //
+							message = (char *) malloc(capacity+1);
+							if (message == NULL) {
+								fprintf(stderr, "ERROR: Out of memory\n");
+								exit_loggrabber(1);
+							}
+							strcpy(message,buffer);
+							free(buffer);
+							strcat(message,stringnumber);
+						}
+						free(tmpstr1);
+								}
+						}
+			} else {
+				if ((!output_fields) || (lfield_output[LIDX_NUM])) {
+					tmpstr1 = string_escape(*lfield_headers[LIDX_NUM], cfgvalues.record_separator);
+					if(capacity>=(strlen(message)+strlen(tmpstr1))) {
+						strcat(message,tmpstr1);
+					} else {
+						capacity = ((capacity+capacityIncrement) >= (strlen(message)+strlen(tmpstr1))) ? (capacity+capacityIncrement) : (strlen(message)+strlen(tmpstr1));
+						buffer = (char *) malloc(strlen(message)+1);
+						if (buffer == NULL) {
+							fprintf(stderr, "ERROR: Out of memory\n");
+							exit_loggrabber(1);
+						}
+						strcpy(buffer,message);
+						free(message);
+						// This last plus one is needed to hold the terminator, '\0' //
+						message = (char *) malloc(capacity+1);
+						if (message == NULL) {
+							fprintf(stderr, "ERROR: Out of memory\n");
+							exit_loggrabber(1);
+						}
+						strcpy(message,buffer);
+						free(buffer);
+						strcat(message,tmpstr1);
+					}
+					free(tmpstr1);
+						}
+
+					for (i=1 ; i< NUMBER_LIDX_FIELDS ; i++) {
+							if ((!output_fields) || (lfield_output[i])) {
+						tmpstr1 = string_escape(*lfield_headers[i], cfgvalues.record_separator);
+						sprintf(stringnumber, "%c%s", cfgvalues.record_separator, tmpstr1);
+						if(capacity>=(strlen(message)+strlen(stringnumber))) {
+							strcat(message,stringnumber);
+						} else {
+							capacity = ((capacity+capacityIncrement) >= (strlen(message)+strlen(stringnumber))) ? (capacity+capacityIncrement) : (strlen(message)+strlen(stringnumber));
+							buffer = (char *) malloc(strlen(message)+1);
+							if (buffer == NULL) {
+								fprintf(stderr, "ERROR: Out of memory\n");
+								exit_loggrabber(1);
+							}
+							strcpy(buffer,message);
+							free(message);
+							// This last plus one is needed to hold the terminator, '\0' //
+							message = (char *) malloc(capacity+1);
+							if (message == NULL) {
+								fprintf(stderr, "ERROR: Out of memory\n");
+								exit_loggrabber(1);
+							}
+							strcpy(message,buffer);
+							free(buffer);
+							strcat(message,stringnumber);
+						}
+						free(tmpstr1);
+								}
+						}
+			}
+
+			submit_log(message);
+
+			//clean used memory
+			free(message);
+		}
+
+		opsecAlive = opsec_start_keep_alive(pSession, 0);
+
+		/*
+		 * start the opsec loop
+		 */
+		opsec_mainloop(pEnv);
+
+		/*
+		 * remove opsec stuff
+		 */
 		cleanup_fw1_environment(pEnv, pClient, pServer);
-		exit_loggrabber(1);
+
+		SLEEP(recoverInterval);
+
 	}
-
-	/*
-	 * create LEA-session. differs for connections to FW-1 4.1 and FW-1 NG
-	 */
-	if (cfgvalues.fw1_2000) {
-		if (cfgvalues.online_mode) {
-			pSession = lea_new_session(pClient, pServer, LEA_ONLINE, LEA_FILENAME, *LogfileName, LEA_AT_END);
-		} else {
-			pSession = lea_new_session(pClient, pServer, LEA_OFFLINE, LEA_FILENAME, *LogfileName, LEA_AT_START);
-		}
-		if (!pSession) {
-			fprintf(stderr, "ERROR: failed to create session (%s)\n", opsec_errno_str(opsec_errno));
-			cleanup_fw1_environment(pEnv, pClient, pServer);
-			exit_loggrabber(1);
-		}
-	} else {
-		/*
-		 * create a suspended session, i.e. not log data will be sent to client
-		 */
-		if (cfgvalues.online_mode) {
-			pSession = lea_new_suspended_session(pClient, pServer, LEA_ONLINE, LEA_UNIFIED_SINGLE, *LogfileName, LEA_AT_END);
-		} else {
-			pSession = lea_new_suspended_session(pClient, pServer, LEA_OFFLINE, LEA_UNIFIED_SINGLE, *LogfileName, LEA_AT_START);
-		}
-		if (!pSession) {
-			fprintf(stderr, "ERROR: failed to create session (%s)\n", opsec_errno_str(opsec_errno));
-			cleanup_fw1_environment(pEnv, pClient, pServer);
-			exit_loggrabber(1);
-		}
-
-		/*
-		 * If filters were defined, create the rulebase and register it.
-		 * the session will be resumed, as soon as the server sends the 
-		 * filter_ack-event.
-		 * In the case when no filters are used, the suspended session
-		 * will be continued immediately.
-		 */
-		if (filtercount > 0) {
-			if ((rb = lea_filter_rulebase_create()) == NULL) {
-				fprintf(stderr, "ERROR: failed to create rulebase\n");
-				exit_loggrabber(1);
-			}
-
-			for (i=0 ; i < filtercount ; i++) {
-				if (cfgvalues.audit_mode) {
-					if ((rb = create_audit_filter_rule(rb,filterarray[i])) == NULL) {
-						fprintf(stderr, "ERROR: failed to create rule\n");
-						exit_loggrabber(1);
-					}
-				} else {
-					if ((rb = create_fw1_filter_rule(rb,filterarray[i])) == NULL) {
-						fprintf(stderr, "ERROR: failed to create rule\n");
-						exit_loggrabber(1);
-					}
-				}
-			}
-	
-			if (lea_filter_rulebase_register(pSession, rb, &rbid) == LEA_FILTER_ERR) {
-				fprintf(stderr, "ERROR: Cannot register rulebase\n");
-			}
-		} else {
-			lea_session_resume(pSession);
-		}
-	}
-	
-	/*
-	 * display header line if cfgvalues.fieldnames_mode == 0
-	 */
-	if (!(cfgvalues.fieldnames_mode)) {
-		// This last plus one is needed to hold the terminator, '\0' //
-		message = (char *) malloc(capacity+1);
-		if (message == NULL) {
-			fprintf(stderr, "ERROR: Out of memory\n");
-			exit_loggrabber(1);
-		}
-		*message='\0';
-
-		if (cfgvalues.audit_mode) {
-			if ((!output_fields) || (afield_output[AIDX_NUM])) {
-				tmpstr1 = string_escape(*afield_headers[AIDX_NUM], cfgvalues.record_separator);
-				if(capacity>=(strlen(message)+strlen(tmpstr1))) {
-					strcat(message,tmpstr1);
-				} else {
-					capacity = ((capacity+capacityIncrement) >= (strlen(message)+strlen(tmpstr1))) ? (capacity+capacityIncrement) : (strlen(message)+strlen(tmpstr1));
-					buffer = (char *) malloc(strlen(message)+1);
-					if (buffer == NULL) {
-						fprintf(stderr, "ERROR: Out of memory\n");
-						exit_loggrabber(1);
-					}
-					strcpy(buffer,message);
-					free(message);
-					// This last plus one is needed to hold the terminator, '\0' //
-					message = (char *) malloc(capacity+1);
-					if (message == NULL) {
-						fprintf(stderr, "ERROR: Out of memory\n");
-						exit_loggrabber(1);
-					}
-					strcpy(message,buffer);
-					free(buffer);
-					strcat(message,tmpstr1);
-				}
-				free(tmpstr1);
-                	}
- 
-		        for (i=1 ; i< NUMBER_AIDX_FIELDS ; i++) {
-        		        if ((!output_fields) || (afield_output[i])) {
-					tmpstr1 = string_escape(*afield_headers[i], cfgvalues.record_separator);
-					sprintf(stringnumber, "%c%s", cfgvalues.record_separator, tmpstr1);
-					if(capacity>=(strlen(message)+strlen(stringnumber))) {
-						strcat(message,stringnumber);
-					} else {
-						capacity = ((capacity+capacityIncrement) >= (strlen(message)+strlen(stringnumber))) ? (capacity+capacityIncrement) : (strlen(message)+strlen(stringnumber));
-						buffer = (char *) malloc(strlen(message)+1);
-						if (buffer == NULL) {
-							fprintf(stderr, "ERROR: Out of memory\n");
-							exit_loggrabber(1);
-						}
-						strcpy(buffer,message);
-						free(message);
-						// This last plus one is needed to hold the terminator, '\0' //
-						message = (char *) malloc(capacity+1);
-						if (message == NULL) {
-							fprintf(stderr, "ERROR: Out of memory\n");
-							exit_loggrabber(1);
-						}
-						strcpy(message,buffer);
-						free(buffer);
-						strcat(message,stringnumber);
-					}
-					free(tmpstr1);
-                        	}
-	                }
-		} else {
-			if ((!output_fields) || (lfield_output[LIDX_NUM])) {
-				tmpstr1 = string_escape(*lfield_headers[LIDX_NUM], cfgvalues.record_separator);
-				if(capacity>=(strlen(message)+strlen(tmpstr1))) {
-					strcat(message,tmpstr1);
-				} else {
-					capacity = ((capacity+capacityIncrement) >= (strlen(message)+strlen(tmpstr1))) ? (capacity+capacityIncrement) : (strlen(message)+strlen(tmpstr1));
-					buffer = (char *) malloc(strlen(message)+1);
-					if (buffer == NULL) {
-						fprintf(stderr, "ERROR: Out of memory\n");
-						exit_loggrabber(1);
-					}
-					strcpy(buffer,message);
-					free(message);
-					// This last plus one is needed to hold the terminator, '\0' //
-					message = (char *) malloc(capacity+1);
-					if (message == NULL) {
-						fprintf(stderr, "ERROR: Out of memory\n");
-						exit_loggrabber(1);
-					}
-					strcpy(message,buffer);
-					free(buffer);
-					strcat(message,tmpstr1);
-				}
-				free(tmpstr1);
-                	}
- 
-		        for (i=1 ; i< NUMBER_LIDX_FIELDS ; i++) {
-        		        if ((!output_fields) || (lfield_output[i])) {
-					tmpstr1 = string_escape(*lfield_headers[i], cfgvalues.record_separator);
-					sprintf(stringnumber, "%c%s", cfgvalues.record_separator, tmpstr1);
-					if(capacity>=(strlen(message)+strlen(stringnumber))) {
-						strcat(message,stringnumber);
-					} else {
-						capacity = ((capacity+capacityIncrement) >= (strlen(message)+strlen(stringnumber))) ? (capacity+capacityIncrement) : (strlen(message)+strlen(stringnumber));
-						buffer = (char *) malloc(strlen(message)+1);
-						if (buffer == NULL) {
-							fprintf(stderr, "ERROR: Out of memory\n");
-							exit_loggrabber(1);
-						}
-						strcpy(buffer,message);
-						free(message);
-						// This last plus one is needed to hold the terminator, '\0' //
-						message = (char *) malloc(capacity+1);
-						if (message == NULL) {
-							fprintf(stderr, "ERROR: Out of memory\n");
-							exit_loggrabber(1);
-						}
-						strcpy(message,buffer);
-						free(buffer);
-						strcat(message,stringnumber);
-					}
-					free(tmpstr1);
-                        	}
-	                }
-		}
-
-		submit_log(message);
-
-		//clean used memory
-		free(message);
-        }
-
-	opsecAlive = opsec_start_keep_alive(pSession, 0);
-
-	/*
-	 * start the opsec loop
-	 */
-	opsec_mainloop(pEnv);
-
-	/*
-	 * remove opsec stuff
-	 */
-	cleanup_fw1_environment(pEnv, pClient, pServer);
 
 #ifdef USE_MYSQL
 	/*
@@ -1104,7 +1122,7 @@ int read_fw1_logfile_record_mysql(OpsecSession *pSession, lea_record *pRec, int 
 {
 	int          	i;
 	char        	*szResValue;
-	char        	*szAttrib; 
+	char        	*szAttrib;
 	unsigned long 	ul;
 	unsigned short 	us;
 	char 		tmpdata[16];
@@ -1182,8 +1200,8 @@ int read_fw1_logfile_record_mysql(OpsecSession *pSession, lea_record *pRec, int 
 			}
 			skip = 1;
 		}
-		
-		if (!skip) {		
+
+		if (!skip) {
 			if (!(cfgvalues.resolve_mode)) {
 				switch (pRec->fields[i].lea_val_type) {
 				  /*
@@ -1211,7 +1229,7 @@ int read_fw1_logfile_record_mysql(OpsecSession *pSession, lea_record *pRec, int 
 					us = pRec->fields[i].lea_value.ush_value;
 					if (BYTE_ORDER == LITTLE_ENDIAN) {
 						us = (us >> 8) + ((us & 0xff) << 8);
-					} 
+					}
 					sprintf(tmpdata,"%d", us);
 					strcat(fields, ",");
 					strcat(fields, szAttrib);
@@ -1219,7 +1237,7 @@ int read_fw1_logfile_record_mysql(OpsecSession *pSession, lea_record *pRec, int 
 					strcat(values, tmpdata);
 					strcat(values, "\"");
 					break;
-				  /* 
+				  /*
 				   * for all other data types, use the normal behaviour
 				   */
 				  default:
@@ -1227,7 +1245,7 @@ int read_fw1_logfile_record_mysql(OpsecSession *pSession, lea_record *pRec, int 
 					strcat(fields, szAttrib);
 					szResValue = lea_resolve_field(pSession, pRec->fields[i]);
 					if (strcmp(szAttrib, "time") == 0) {
-						day[0]=(szResValue[0]==' ')?'0':szResValue[0];day[1]=szResValue[1];day[2]=0;
+						day[0]=(szResValue==' ')?'0':szResValue[0];day[1]=szResValue[1];day[2]=0;
 						month[0]=szResValue[2];month[1]=szResValue[3];month[2]=szResValue[4];month[3]=0;
 						if (strcmp(month,"Jan") == 0) { strcpy(month, "01\0"); }
 						else if (strcmp(month,"Feb") == 0) { strcpy(month, "02\0"); }
@@ -1293,7 +1311,7 @@ int read_fw1_logfile_record_mysql(OpsecSession *pSession, lea_record *pRec, int 
 			}
 		}
 	}
-	
+
 	if (cfgvalues.audit_mode) {
 		sprintf(sqlstatement, "INSERT INTO auditentries (%s) VALUES (%s)", fields, values);
 	} else {
@@ -1342,13 +1360,13 @@ int read_fw1_logfile_n_record_stdout(OpsecSession *pSession, lea_record *pRec, i
 		exit_loggrabber(1);
 	}
         *message='\0';
-                                                                                
+
 	/*
 	 * get record position
 	 */
 	sprintf(szNum, "%d", lea_get_record_pos(pSession) -1);
 	*lfields[LIDX_NUM] = string_duplicate(szNum);
-        
+
 	/*
          * process all fields of logentry
          */
@@ -1373,7 +1391,7 @@ int read_fw1_logfile_n_record_stdout(OpsecSession *pSession, lea_record *pRec, i
                                         sprintf(tmpdata,"%d.%d.%d.%d", (int)((ul & 0xff000000) >> 24), (int)((ul & 0xff0000) >> 16), (int)((ul & 0xff00) >> 8), (int)((ul & 0xff) >> 0));
                                 }
                                 break;
- 
+
                           /*
                            * print out the port number of the used service
                            */
@@ -1386,7 +1404,7 @@ int read_fw1_logfile_n_record_stdout(OpsecSession *pSession, lea_record *pRec, i
                                 sprintf(tmpdata,"%d", us);
                                 break;
                         }
-		} 
+		}
 
 		/*
 		 * transfer values to array
@@ -1406,13 +1424,13 @@ int read_fw1_logfile_n_record_stdout(OpsecSession *pSession, lea_record *pRec, i
 					datetime = localtime(&logtime);
 					strftime (timestring, 20, "%Y-%m-%d %H:%M:%S", datetime);
 					*lfields[LIDX_TIME] = string_duplicate(timestring);
-					break;	
+					break;
 				  default:
 					fprintf(stderr, "ERROR: Unsupported dateformat chosen\n");
 					exit_loggrabber(1);
 				}
 				match = TRUE;
-			}		
+			}
 			else if (strcmp(szAttrib, *lfield_headers[j]) == 0) {
 				if (tmpdata[0]) {
 					*lfields[j] = string_duplicate(tmpdata);
@@ -1423,16 +1441,16 @@ int read_fw1_logfile_n_record_stdout(OpsecSession *pSession, lea_record *pRec, i
 			}
 			j++;
 		}
-		
+
 		if (cfgvalues.debug_mode && (!match)) {
 			fprintf(stderr, "DEBUG: Unsupported field found (Position %d): %s=%s\n", i-1, szAttrib, lea_resolve_field(pSession, pRec->fields[i]));
 		}
 	}
-	
+
 	/*
 	 * print logentry to stdout
 	 */
-	if ((!output_fields) || (lfield_output[LIDX_NUM])) {	
+	if ((!output_fields) || (lfield_output[LIDX_NUM])) {
 		if (cfgvalues.fieldnames_mode) {
 			tmpstr1 = string_escape(*lfield_headers[LIDX_NUM], cfgvalues.record_separator);
 			tmpstr2 = string_escape(*lfields[LIDX_NUM], cfgvalues.record_separator);
@@ -1491,7 +1509,7 @@ int read_fw1_logfile_n_record_stdout(OpsecSession *pSession, lea_record *pRec, i
 		free(*lfields[LIDX_NUM]);
 		*lfields[LIDX_NUM] = NULL;
 	}
-	
+
 	for (i=1 ; i< NUMBER_LIDX_FIELDS ; i++) {
 		if ((!output_fields) || (lfield_output[i])) {
 			if (*lfields[i]) {
@@ -1524,7 +1542,7 @@ int read_fw1_logfile_n_record_stdout(OpsecSession *pSession, lea_record *pRec, i
 					free(tmpstr2);
 				} else {
 					tmpstr1 = string_escape(*lfields[i], cfgvalues.record_separator);
-                                        
+
 					sprintf(stringnumber, "%c%s", cfgvalues.record_separator, tmpstr1);
 					if(capacity>=(strlen(message)+strlen(stringnumber))) {
 						strcat(message,stringnumber);
@@ -1624,7 +1642,7 @@ int read_fw1_logfile_a_record_stdout(OpsecSession *pSession, lea_record *pRec, i
 	 */
 	sprintf(szNum, "%d", lea_get_record_pos(pSession) -1);
 	*afields[AIDX_NUM] = string_duplicate(szNum);
-        
+
 	/*
          * process all fields of logentry
          */
@@ -1649,7 +1667,7 @@ int read_fw1_logfile_a_record_stdout(OpsecSession *pSession, lea_record *pRec, i
                                         sprintf(tmpdata,"%d.%d.%d.%d", (int)((ul & 0xff000000) >> 24), (int)((ul & 0xff0000) >> 16), (int)((ul & 0xff00) >> 8), (int)((ul & 0xff) >> 0));
                                 }
                                 break;
- 
+
                           /*
                            * print out the port number of the used service
                            */
@@ -1662,8 +1680,8 @@ int read_fw1_logfile_a_record_stdout(OpsecSession *pSession, lea_record *pRec, i
                                 sprintf(tmpdata,"%d", us);
                                 break;
                         }
-		} 
-	
+		}
+
 		/*
 		 * transfer values to array
 		 */
@@ -1682,13 +1700,13 @@ int read_fw1_logfile_a_record_stdout(OpsecSession *pSession, lea_record *pRec, i
 					datetime = localtime(&logtime);
 					strftime (timestring, 20, "%Y-%m-%d %H:%M:%S", datetime);
 					*afields[AIDX_TIME] = string_duplicate(timestring);
-					break;	
+					break;
 				  default:
 					fprintf(stderr, "ERROR: Unsupported dateformat chosen\n");
 					exit_loggrabber(1);
 				}
 				match = TRUE;
-			}		
+			}
 			else if (strcmp(szAttrib, *afield_headers[j]) == 0) {
 				if (tmpdata[0]) {
 					*afields[j] = string_duplicate(tmpdata);
@@ -1699,7 +1717,7 @@ int read_fw1_logfile_a_record_stdout(OpsecSession *pSession, lea_record *pRec, i
 			}
 			j++;
 		}
-		
+
 		if (cfgvalues.debug_mode && (!match)) {
 			fprintf(stderr, "DEBUG: Unsupported field found (Position %d): %s=%s\n", i-1, szAttrib, lea_resolve_field(pSession, pRec->fields[i]));
 		}
@@ -1708,7 +1726,7 @@ int read_fw1_logfile_a_record_stdout(OpsecSession *pSession, lea_record *pRec, i
 	/*
 	 * print logentry to stdout
 	 */
-	if ((!output_fields) || (afield_output[AIDX_NUM])) {	
+	if ((!output_fields) || (afield_output[AIDX_NUM])) {
 		if (cfgvalues.fieldnames_mode) {
 			tmpstr1 = string_escape(*afield_headers[AIDX_NUM], cfgvalues.record_separator);
 			tmpstr2 = string_escape(*afields[AIDX_NUM], cfgvalues.record_separator);
@@ -1862,7 +1880,7 @@ int read_fw1_logfile_a_record_stdout(OpsecSession *pSession, lea_record *pRec, i
 
 	return OPSEC_SESSION_OK;
 }
-			
+
 /*
  * function read_fw1_logfile_dict
  */
@@ -1937,30 +1955,84 @@ int get_fw1_logfiles_end(OpsecSession *psession)
 	int	end_reason	 = 0;
 	int	sic_errno	 = 0;
 	char*	sic_errmsg	 = NULL;
-	char*	end_reason_str[] = { "SESSION_NOT_ENDED", "END_BY_APPLICATION", "UNABLE_TO_ATTACH_COMM",
-				     "ENTITY_TYPE_SESSION_INIT_FAIL", "ENTITY_SESSION_INIT_FAIL", 
-				     "COMM_FAILURE", "BAD_VERSION", "PEER_SEND_DROP", "PEER_ENDED",
-				     "PEER_SEND_RESET", "COMM_IS_DEAD", "SIC_FAILURE", "SESSION_TIMEOUT" };
 
 	if (cfgvalues.debug_mode) {
 		fprintf(stderr, "DEBUG: OPSEC_SESSION_END_HANDLER called\n");
 	}
 
+	// Check what is the reason of opsec session end
 	end_reason = opsec_session_end_reason(psession);
-	if (cfgvalues.debug_mode) {
-		fprintf(stderr, "DEBUG: Session end reason: %s\n", end_reason_str[end_reason]);
-	}
+	switch(end_reason) {
+		case END_BY_APPLICATION:
+		case SESSION_TIMEOUT:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "DEBUG: The session has been ended.\n");
+			}
+			break;
+		case SESSION_NOT_ENDED:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "WARNING: The session has not been terminated.\n");
+			}
+			break;
+		case UNABLE_TO_ATTACH_COMM:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: Failed to establish connection.\n");
+			}
+			break;
+		case ENTITY_TYPE_SESSION_INIT_FAIL:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: OPSEC API-specific library code on other side of connection failed when attempting to initialize the session.\n");
+			}
+			break;
+		case ENTITY_SESSION_INIT_FAIL:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: Third-party start handler on other side of connection failed.\n");
+			}
+			break;
+		case COMM_FAILURE:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: Communication failure.\n");
+			}
+			break;
+		case BAD_VERSION:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: Incorrect version at other side.\n");
+			}
+			break;
+		case PEER_SEND_DROP:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: The peer dropped the connection.\n");
+			}
+			break;
+		case PEER_ENDED:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: The peer ends.\n");
+			}
+			break;
+		case PEER_SEND_RESET:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: The peer reset the connection.\n");
+			}
+			break;
+		case COMM_IS_DEAD:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: No communication.\n");
+			}
+			break;
+		case SIC_FAILURE:
+			if (!opsec_get_sic_error(psession, &sic_errno, &sic_errmsg)) {
+				if (cfgvalues.debug_mode) {
+					fprintf(stderr, "ERROR: SIC ERROR %d - %s\n", sic_errno, sic_errmsg);
+				}
+			}
+			break;
+		default:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "Warning: Unknown reason of session end.\n");
+			}
+			break;
+	}//end of switch
 
-	if (end_reason > END_BY_APPLICATION) {
-		fprintf(stderr, "ERROR: Session exited abnormally (%s)\n", end_reason_str[end_reason]);
-	}
-
-	if (end_reason == SIC_FAILURE) {
-		if (!opsec_get_sic_error(psession, &sic_errno, &sic_errmsg)) {
-			fprintf(stderr, "ERROR: SIC ERROR %d - %s\n", sic_errno, sic_errmsg);
-		}
-	}
-	
 	return OPSEC_SESSION_OK;
 }
 
@@ -1972,31 +2044,119 @@ int read_fw1_logfile_end(OpsecSession *psession)
 	int	end_reason	 = 0;
 	int	sic_errno	 = 0;
 	char*	sic_errmsg	 = NULL;
-	char*	end_reason_str[] = { "SESSION_NOT_ENDED", "END_BY_APPLICATION", "UNABLE_TO_ATTACH_COMM",
-				     "ENTITY_TYPE_SESSION_INIT_FAIL", "ENTITY_SESSION_INIT_FAIL", 
-				     "COMM_FAILURE", "BAD_VERSION", "PEER_SEND_DROP", "PEER_ENDED",
-				     "PEER_SEND_RESET", "COMM_IS_DEAD", "SIC_FAILURE", "SESSION_TIMEOUT" };
 
 	if (cfgvalues.debug_mode) {
 		fprintf(stderr, "DEBUG: OPSEC_SESSION_END_HANDLER called\n");
 	}
 
+	// Check what is the reason of opsec session end
 	end_reason = opsec_session_end_reason(psession);
-	if (cfgvalues.debug_mode) {
-		fprintf(stderr, "DEBUG: Session end reason: %s\n", end_reason_str[end_reason]);
-	}
+	switch(end_reason) {
+		case END_BY_APPLICATION:
+		case SESSION_TIMEOUT:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "DEBUG: The session has been ended.\n");
+			}
+			keepAlive = FALSE;
+			break;
+		case SESSION_NOT_ENDED:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "WARNING: The session has not been terminated.\n");
+			}
+			keepAlive = FALSE;
+			break;
+		case UNABLE_TO_ATTACH_COMM:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: Failed to establish connection.\n");
+			}
+			if(established) {
+				keepAlive = TRUE;
+			} else {
+				keepAlive = FALSE;
+			};
+			break;
+		case ENTITY_TYPE_SESSION_INIT_FAIL:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: OPSEC API-specific library code on other side of connection failed when attempting to initialize the session.\n");
+			}
+			keepAlive = FALSE;
+			break;
+		case ENTITY_SESSION_INIT_FAIL:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: Third-party start handler on other side of connection failed.\n");
+			}
+			keepAlive = FALSE;
+			break;
+		case COMM_FAILURE:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: Communication failure.\n");
+			}
+			if(established) {
+				keepAlive = TRUE;
+			} else {
+				keepAlive = FALSE;
+			};
+			break;
+		case BAD_VERSION:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: Incorrect version at other side.\n");
+			}
+			keepAlive = FALSE;
+			break;
+		case PEER_SEND_DROP:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: The peer dropped the connection.\n");
+			}
+			if(established) {
+				keepAlive = TRUE;
+			} else {
+				keepAlive = FALSE;
+			};
+			break;
+		case PEER_ENDED:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: The peer ends.\n");
+			}
+			keepAlive = FALSE;
+			break;
+		case PEER_SEND_RESET:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: The peer reset the connection.\n");
+			}
+			if(established) {
+				keepAlive = TRUE;
+			} else {
+				keepAlive = FALSE;
+			};
+			break;
+		case COMM_IS_DEAD:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "ERROR: No communication.\n");
+			}
+			if(established) {
+				keepAlive = TRUE;
+			} else {
+				keepAlive = FALSE;
+			};
+			break;
+		case SIC_FAILURE:
+			if (!opsec_get_sic_error(psession, &sic_errno, &sic_errmsg)) {
+				if (cfgvalues.debug_mode) {
+					fprintf(stderr, "ERROR: SIC ERROR %d - %s\n", sic_errno, sic_errmsg);
+				}
+			}
+			keepAlive = FALSE;
+			break;
+		default:
+			if (cfgvalues.debug_mode) {
+				fprintf(stderr, "Warning: Unknown reason of session end.\n");
+			}
+			keepAlive = FALSE;
+			break;
+	}//end of switch
 
-	if (end_reason > END_BY_APPLICATION) {
-		fprintf(stderr, "ERROR: Session exited abnormally (%s)\n", end_reason_str[end_reason]);
-	}
-
-	if (end_reason == SIC_FAILURE) {
-		if (!opsec_get_sic_error(psession, &sic_errno, &sic_errmsg)) {
-			fprintf(stderr, "ERROR: SIC ERROR %d - %s\n", sic_errno, sic_errmsg);
-		}
-	}
-	
 	return OPSEC_SESSION_OK;
+
 }
 
 /*
@@ -2018,6 +2178,7 @@ int read_fw1_logfile_established(OpsecSession *psession)
 	if (cfgvalues.debug_mode) {
 		fprintf(stderr, "DEBUG: OPSEC session established handler was invoked\n");
 	}
+	established = TRUE;
 	return OPSEC_SESSION_OK;
 }
 
@@ -2035,7 +2196,7 @@ int read_fw1_logfile_failedconn(OpsecEntity *entity, long peer_ip, int sic_errno
 /*
  * function get_fw1_logfiles
  */
-int get_fw1_logfiles() 
+int get_fw1_logfiles()
 {
 	OpsecEntity       *pClient    = NULL;
 	OpsecEntity       *pServer    = NULL;
@@ -2078,7 +2239,7 @@ int get_fw1_logfiles()
 		strcpy(leaconf, buff);
 		strcat(leaconf, "\\lea.conf");
 	} else {
-		if ((cfgvalues.leaconfig_filename[0] == '\\') || 
+		if ((cfgvalues.leaconfig_filename[0] == '\\') ||
 		   ((cfgvalues.leaconfig_filename[1] == ':') && (cfgvalues.leaconfig_filename[2] == '\\'))) {
 			strcpy(leaconf, cfgvalues.leaconfig_filename);
 		} else {
@@ -2093,12 +2254,12 @@ int get_fw1_logfiles()
 		fprintf (stderr, "ERROR: Out of memory\n");
 		exit_loggrabber(1);
 	}
-		
+
 	if (cfgvalues.leaconfig_filename == NULL) {
 		if (getcwd(leaconf, (size_t)size) == NULL) {
 			fprintf (stderr, "ERROR: Cannot get current working directory\n");
 			exit_loggrabber(1);
-		}	
+		}
 		strcat(leaconf, "/lea.conf");
 	} else {
 		if (cfgvalues.leaconfig_filename[0] == '/') {
@@ -2107,7 +2268,7 @@ int get_fw1_logfiles()
 			if (getcwd(leaconf, (size_t)size) == NULL) {
 				fprintf (stderr, "ERROR: Cannot get current working directory\n");
 				exit_loggrabber(1);
-			}	
+			}
 			strcat(leaconf, "/");
 			strcat(leaconf, cfgvalues.leaconfig_filename);
 		}
@@ -2229,7 +2390,7 @@ int get_fw1_logfiles_dict(OpsecSession *pSession, int nDictId, LEA_VT nValType, 
 	if (cfgvalues.showfiles_mode) {
 		fprintf(stderr, "Available FW-1 Logfiles\n");
 	}
-	
+
 	/*
 	 * get names of available logfiles and create list of these names
 	 */
@@ -2244,7 +2405,7 @@ int get_fw1_logfiles_dict(OpsecSession *pSession, int nDictId, LEA_VT nValType, 
 	  stringlist_append(&sl, logfile);
           learesult = lea_get_next_file_info(pSession, &logfile, &nID, &aID);
 	}
-        
+
 	/*
 	 * end opsec-session
 	 */
@@ -2345,7 +2506,7 @@ void stringlist_print (stringlist **lst) {
  */
 stringlist* stringlist_delete(stringlist **lst) {
 	stringlist* first;
-	
+
 	if (*lst) {
 		first = (*lst)->next;
 		free((*lst)->data);
@@ -2355,7 +2516,7 @@ stringlist* stringlist_delete(stringlist **lst) {
 		return (NULL);
 	}
 }
-	
+
 
 /*
  * function stringlist_search
@@ -2401,7 +2562,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 	struct tm timestruct;
 	char tempchararray[10];
 
-	/* 
+	/*
 	 * create an empty rule with action "pass"
 	 */
         if ((prule = lea_filter_rule_create(LEA_FILTER_ACTION_PASS)) == NULL) {
@@ -2470,16 +2631,16 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 					exit_loggrabber(1);
 				}
 			}
-	
+
 			/*
 			 * check validity of argument value
 			 */
 			if (!(  (strcmp(argumentsinglevalue, "VPN-1 & FireWall-1") == 0) || \
-				(strcmp(argumentsinglevalue, "SmartDefense") == 0) )) 
+				(strcmp(argumentsinglevalue, "SmartDefense") == 0) ))
 			{
 				fprintf(stderr, "ERROR: invalid value for product: '%s'\n", argumentsinglevalue);
 				return NULL;
-			} 
+			}
 
 			/*
 			 * create extended opsec value
@@ -2492,7 +2653,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 				return NULL;
 			}
 		}
-		
+
 		/*
 		 * create filter predicate
 		 */
@@ -2504,7 +2665,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 		}
 
 		lea_value_ex_destroy(val_arr[argumentcount-1]);
-	
+
 		/*
 		 * add current predicate to current rule
 		 */
@@ -2571,7 +2732,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 				return NULL;
 			}
 		}
-		
+
 		/*
 		 * create filter predicate
 		 */
@@ -2583,7 +2744,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 		}
 
 		lea_value_ex_destroy(val_arr[argumentcount-1]);
-	
+
 		/*
 		 * add current predicate to current rule
 		 */
@@ -2595,7 +2756,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 		}
 
 		lea_filter_predicate_destroy(ppred);
-	  } 
+	  }
 
 	  /*
 	   * process arguments of type "dst"
@@ -2665,7 +2826,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 					return NULL;
 				}
 			}
-		
+
 			/*
 			 * create filter predicate
 			 */
@@ -2678,7 +2839,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 
 			lea_value_ex_destroy(val_arr[argumentcount-1]);
 		}
-	
+
 		/*
 		 * add current predicate to current rule
 		 */
@@ -2745,7 +2906,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 				return NULL;
 			}
 		}
-		
+
 		/*
 		 * create filter predicate
 		 */
@@ -2757,7 +2918,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 		}
 
 		lea_value_ex_destroy(val_arr[argumentcount-1]);
-	
+
 		/*
 		 * add current predicate to current rule
 		 */
@@ -2832,7 +2993,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 			lea_filter_rule_destroy(prule);
 			return NULL;
 		}
-	
+
 		/*
 		 * create filter predicate
 		 */
@@ -2844,7 +3005,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 		}
 
 		lea_value_ex_destroy(lea_value);
-	
+
 		/*
 		 * add current predicate to current rule
 		 */
@@ -2919,7 +3080,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 			lea_filter_rule_destroy(prule);
 			return NULL;
 		}
-	
+
 		/*
 		 * create filter predicate
 		 */
@@ -2931,7 +3092,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 		}
 
 		lea_value_ex_destroy(lea_value);
-	
+
 		/*
 		 * add current predicate to current rule
 		 */
@@ -2985,7 +3146,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 						exit_loggrabber(1);
 					}
 				}
-			
+
 				/*
 				 * create extended opsec value
 				 */
@@ -2998,7 +3159,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 				}
 			}
 		}
-	
+
 		/*
 		 * create filter predicate
 		 */
@@ -3010,7 +3171,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 		}
 
 		lea_value_ex_destroy(val_arr[argumentcount-1]);
-	
+
 		/*
 		 * add current predicate to current rule
 		 */
@@ -3039,7 +3200,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 						"       Required syntax: 'service=<Port-Number>'\n", argumentsinglevalue);
 				return NULL;
 			}
-			
+
 			/*
 			 * get ranges separated by "-", if there is no "-" start and end value of the
 			 * range is the same.
@@ -3064,7 +3225,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 						exit_loggrabber(1);
 					}
 				}
-			
+
 				/*
 				 * create extended opsec value
 				 */
@@ -3089,7 +3250,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 		}
 
 		lea_value_ex_destroy(val_arr[argumentcount-1]);
-	
+
 		/*
 		 * add current predicate to current rule
 		 */
@@ -3171,7 +3332,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 					return NULL;
 				}
 			}
-		
+
 			/*
 			 * create filter predicate
 			 */
@@ -3184,7 +3345,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 
 			lea_value_ex_destroy(val_arr[argumentcount-1]);
 		}
-		
+
 		/*
 		 * add current predicate to current rule
 		 */
@@ -3206,7 +3367,7 @@ LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase *prulebase, char fil
 		return NULL;
 	  }
 	}
-       
+
 	/*
 	 * add current rule to rulebase
 	 */
@@ -3241,7 +3402,7 @@ LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase *prulebase, char f
 	struct tm timestruct;
 	char tempchararray[10];
 
-	/* 
+	/*
 	 * create an empty rule with action "pass"
 	 */
         if ((prule = lea_filter_rule_create(LEA_FILTER_ACTION_PASS)) == NULL) {
@@ -3310,7 +3471,7 @@ LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase *prulebase, char f
 					exit_loggrabber(1);
 				}
 			}
-	
+
 			/*
 			 * check validity of argument value
 			 */
@@ -3322,11 +3483,11 @@ LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase *prulebase, char f
 				(strcmp(argumentsinglevalue, "System Monitor") == 0) || \
 				(strcmp(argumentsinglevalue, "cpstat_monitor") == 0) || \
 				(strcmp(argumentsinglevalue, "SmartUpdate") == 0) || \
-				(strcmp(argumentsinglevalue, "CPMI Client") == 0) )) 
+				(strcmp(argumentsinglevalue, "CPMI Client") == 0) ))
 			{
 				fprintf(stderr, "ERROR: invalid value for product: '%s'\n", argumentsinglevalue);
 				return NULL;
-			} 
+			}
 
 			/*
 			 * create extended opsec value
@@ -3339,7 +3500,7 @@ LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase *prulebase, char f
 				return NULL;
 			}
 		}
-		
+
 		/*
 		 * create filter predicate
 		 */
@@ -3351,7 +3512,7 @@ LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase *prulebase, char f
 		}
 
 		lea_value_ex_destroy(val_arr[argumentcount-1]);
-	
+
 		/*
 		 * add current predicate to current rule
 		 */
@@ -3389,7 +3550,7 @@ LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase *prulebase, char f
 					exit_loggrabber(1);
 				}
 			}
-	
+
 			/*
 			 * create extended opsec value
 			 */
@@ -3401,7 +3562,7 @@ LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase *prulebase, char f
 				return NULL;
 			}
 		}
-		
+
 		/*
 		 * create filter predicate
 		 */
@@ -3413,7 +3574,7 @@ LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase *prulebase, char f
 		}
 
 		lea_value_ex_destroy(val_arr[argumentcount-1]);
-	
+
 		/*
 		 * add current predicate to current rule
 		 */
@@ -3480,7 +3641,7 @@ LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase *prulebase, char f
 				return NULL;
 			}
 		}
-		
+
 		/*
 		 * create filter predicate
 		 */
@@ -3492,7 +3653,7 @@ LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase *prulebase, char f
 		}
 
 		lea_value_ex_destroy(val_arr[argumentcount-1]);
-	
+
 		/*
 		 * add current predicate to current rule
 		 */
@@ -3504,7 +3665,7 @@ LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase *prulebase, char f
 		}
 
 		lea_filter_predicate_destroy(ppred);
-	  } 
+	  }
 
 	  /*
 	   * process arguments of type "starttime"
@@ -3567,7 +3728,7 @@ LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase *prulebase, char f
 			lea_filter_rule_destroy(prule);
 			return NULL;
 		}
-	
+
 		/*
 		 * create filter predicate
 		 */
@@ -3579,7 +3740,7 @@ LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase *prulebase, char f
 		}
 
 		lea_value_ex_destroy(lea_value);
-	
+
 		/*
 		 * add current predicate to current rule
 		 */
@@ -3654,7 +3815,7 @@ LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase *prulebase, char f
 			lea_filter_rule_destroy(prule);
 			return NULL;
 		}
-	
+
 		/*
 		 * create filter predicate
 		 */
@@ -3666,7 +3827,7 @@ LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase *prulebase, char f
 		}
 
 		lea_value_ex_destroy(lea_value);
-	
+
 		/*
 		 * add current predicate to current rule
 		 */
@@ -3688,7 +3849,7 @@ LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase *prulebase, char f
 		return NULL;
 	  }
 	}
-       
+
 	/*
 	 * add current rule to rulebase
 	 */
@@ -3712,7 +3873,7 @@ char* string_get_token(char **tokstring, char separator) {
 	char* returnstring;
 	int strlength;
 
-  	/* 
+  	/*
 	 * search for first separator
 	 */
 	tempstring = strchr(*tokstring, separator);
@@ -3725,7 +3886,7 @@ char* string_get_token(char **tokstring, char separator) {
 		strlength = strlen(*tokstring) - strlen(tempstring);
 	} else {
 		strlength = strlen(*tokstring) + 1;
-	}	
+	}
 
 	returnstring = (char*)malloc(strlength + 1);
 	if (returnstring == NULL) {
@@ -3754,7 +3915,7 @@ char* string_duplicate(const char *src)
 		exit_loggrabber(1);
 	}
 	return memcpy(dst, src, length);
-} 
+}
 
 /*
  * BEGIN: function string_left_trim
@@ -3762,7 +3923,7 @@ char* string_duplicate(const char *src)
 char* string_left_trim(char *string, char character)
 {
 	char* tmp;
-	
+
 	if (! string) {
 		return NULL;
 	}
@@ -3814,9 +3975,9 @@ char* string_escape(char* string, char character) {
 		}
 		s[z2++] = string[z1];
 	}
-	
+
 	s[z2] = '\0';
-	
+
 	return(s);
 }
 
@@ -3888,7 +4049,7 @@ MYSQL* connect_to_mysql(MYSQL* mysql, long int* maxno, configvalues* cfgvalues)
 
 	return (connection);
 }
-	
+
 /*
  * BEGIN: function disconnect_from_mysql
  */
@@ -3910,7 +4071,7 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 	char* configvalue;
 	char* tmpstr;
 	char* loggrabberconf;
-	
+
 #ifdef WIN32
 	TCHAR	buff[BUFSIZE];
 	DWORD	dwRet;
@@ -3938,7 +4099,7 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 		strcpy(loggrabberconf, buff);
 		strcat(loggrabberconf, "\\fw1-loggrabber.conf");
 	} else {
-		if ((filename[0] == '\\') || 
+		if ((filename[0] == '\\') ||
 		   ((filename[1] == ':') && (filename[2] == '\\'))) {
 			strcpy(loggrabberconf, filename);
 		} else {
@@ -3953,12 +4114,12 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 		fprintf (stderr, "ERROR: Out of memory\n");
 		exit_loggrabber(1);
 	}
-		
+
 	if (filename == NULL) {
 		if (getcwd(loggrabberconf, (size_t)size) == NULL) {
 			fprintf (stderr, "ERROR: Cannot get current working directory\n");
 			exit_loggrabber(1);
-		}	
+		}
 		strcat(loggrabberconf, "/fw1-loggrabber.conf");
 	} else {
 		if (filename[0] == '/') {
@@ -3967,7 +4128,7 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 			if (getcwd(loggrabberconf, (size_t)size) == NULL) {
 				fprintf (stderr, "ERROR: Cannot get current working directory\n");
 				exit_loggrabber(1);
-			}	
+			}
 			strcat(loggrabberconf, "/");
 			strcat(loggrabberconf, filename);
 		}
@@ -3993,12 +4154,12 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 		if (position) {
 			*position = 0;
 		}
-		
+
 		configparameter = string_trim(strtok(line, "="), ' ');
 		if (configparameter) {
 			configvalue = string_trim(strtok(NULL, ""), ' ');
 		}
-		
+
 		if (configparameter && configvalue) {
 			if (debug_mode == 1) {
 				fprintf(stderr, "DEBUG: %s=%s\n", configparameter, configvalue);
@@ -4109,31 +4270,6 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 				cfgvalues->output_file_prefix = string_duplicate(string_trim(configvalue, '"'));
 			} else if (strcmp(configparameter, "OUTPUT_FILE_ROTATESIZE") == 0) {
 				cfgvalues->output_file_rotatesize = atol(string_trim(configvalue, '"'));
-#ifndef WIN32
-			} else if (strcmp(configparameter, "SYSLOG_FACILITY") == 0) {
-				configvalue = string_duplicate(string_trim(configvalue, '"'));
-				if (string_icmp(configvalue, "user") == 0) {
-					cfgvalues->syslog_facility = LOG_USER;
-				} else if (string_icmp(configvalue, "local0") == 0) {
-					cfgvalues->syslog_facility = LOG_LOCAL0;
-				} else if (string_icmp(configvalue, "local1") == 0) {
-					cfgvalues->syslog_facility = LOG_LOCAL1;
-				} else if (string_icmp(configvalue, "local2") == 0) {
-					cfgvalues->syslog_facility = LOG_LOCAL2;
-				} else if (string_icmp(configvalue, "local3") == 0) {
-					cfgvalues->syslog_facility = LOG_LOCAL3;
-				} else if (string_icmp(configvalue, "local4") == 0) {
-					cfgvalues->syslog_facility = LOG_LOCAL4;
-				} else if (string_icmp(configvalue, "local5") == 0) {
-					cfgvalues->syslog_facility = LOG_LOCAL5;
-				} else if (string_icmp(configvalue, "local6") == 0) {
-					cfgvalues->syslog_facility = LOG_LOCAL6;
-				} else if (string_icmp(configvalue, "local7") == 0) {
-					cfgvalues->syslog_facility = LOG_LOCAL7;
-				} else {
-					fprintf(stderr, "WARNING: Illegal entry in configuration file: %s=%s\n", configparameter, configvalue);
-				}
-#endif
 			} else if (strcmp(configparameter, "FW1_OUTPUT") == 0) {
 				configvalue = string_duplicate(string_trim(configvalue, '"'));
 				if (string_icmp(configvalue, "files") == 0) {
@@ -4342,7 +4478,7 @@ void free_afield_arrays (char** headers[NUMBER_AIDX_FIELDS]) {
  */
 void initialize_lfield_values (char** values[NUMBER_LIDX_FIELDS]) {
 	int i;
-	
+
 	for (i=0 ; i < NUMBER_LIDX_FIELDS ; i++) {
 		values[i] = malloc(sizeof(char*));
 		*values[i] = NULL;
@@ -4413,13 +4549,13 @@ void exit_loggrabber (int errorcode) {
 //	if (cfgvalues.fw1_logfile) {
 //		free(cfgvalues.fw1_logfile);
 //	}
-	
+
 	for (i=0 ; i < filtercount ; i++) {
 		if (filterarray[i]) {
 			free(filterarray[i]);
 		}
 	}
-	
+
 	while (sl) {
 		sl = stringlist_delete(&sl);
 	}
@@ -4468,7 +4604,7 @@ void open_syslog(){
 	if (cfgvalues.debug_mode) {
 		fprintf(stderr, "DEBUG: Open connection to Syslog.\n");
 	}
-	openlog ("fw1-loggrabber", LOG_CONS | LOG_PID | LOG_NDELAY, cfgvalues.syslog_facility);
+	openlog ("fw1-loggrabber", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 	return;
 }
 

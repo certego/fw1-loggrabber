@@ -42,26 +42,29 @@
 #endif
 
 #ifdef SOLARIS2
-#       define  BIG_ENDIAN    4321 
-#       define  LITTLE_ENDIAN 1234 
-#       define  BYTE_ORDER BIG_ENDIAN 
+#       define  BIG_ENDIAN    4321
+#       define  LITTLE_ENDIAN 1234
+#       define  BYTE_ORDER BIG_ENDIAN
+#       define  SLEEP(sec) sleep(sec)
 #       include <netinet/in.h>
 #       include <arpa/inet.h>
-#	include <syslog.h>
-#	include <unistd.h>
+#       include <syslog.h>
+#       include <unistd.h>
 #elif WIN32
-#       define  BIG_ENDIAN    4321 
-#       define  LITTLE_ENDIAN 1234 
-#       define  BYTE_ORDER LITTLE_ENDIAN 
-#	define  BUFSIZE MAX_PATH
-#	include <windows.h>
+#       define  BIG_ENDIAN    4321
+#       define  LITTLE_ENDIAN 1234
+#       define  BYTE_ORDER LITTLE_ENDIAN
+#       define  BUFSIZE MAX_PATH
+#       define  SLEEP(sec) Sleep(1000*sec)
+#       include <windows.h>
 #       include <winsock.h>
 #else
+#       define  SLEEP(sec) sleep(sec)
 #       include <netinet/in.h>
 #       include <arpa/inet.h>
-#	include <unistd.h>
+#       include <unistd.h>
 #       include <endian.h>
-#	include <syslog.h>
+#       include <syslog.h>
 #endif
 
 #include "opsec/lea.h"
@@ -230,27 +233,20 @@ typedef struct configvalues
 	int	debug_mode;
 	int	online_mode;
 	int	resolve_mode;
-#ifdef USE_MYSQL
 	int	mysql_mode;
-#endif
 	int	fw1_2000;
 	int	audit_mode;
 	int	showfiles_mode;
 	int 	fieldnames_mode;
 	int 	dateformat;
 	int 	log_mode;
-#ifndef WIN32
-	int	syslog_facility;
-#endif
 	char	record_separator;
 	char*	config_filename;
 	char*	leaconfig_filename;
-#ifdef USE_MYSQL
 	char*	mysql_host;
 	char*	mysql_database;
 	char*	mysql_user;
 	char*	mysql_password;
-#endif
 	char*	fw1_logfile;
 	char*	output_file_prefix;
 	long	output_file_rotatesize;
@@ -354,7 +350,7 @@ int                get_fw1_logfiles_end(OpsecSession *);
 LeaFilterRulebase* create_fw1_filter_rule(LeaFilterRulebase*, char[255]);
 LeaFilterRulebase* create_audit_filter_rule(LeaFilterRulebase*, char[255]);
 
-/* 
+/*
  * function to clean up the opsec environment
  */
 void               cleanup_fw1_environment(OpsecEnv *, OpsecEntity *, OpsecEntity *);
@@ -462,13 +458,13 @@ int fileExist(const char * fileName);
 
 
 /*
- * Global definitions 
+ * Global definitions
  */
-int debug_mode 		= -1;
+int debug_mode 		= 0;
 int show_files 		= -1;
 int online_mode		= -1;
-int resolve_mode        = -1;
-char *LogfileName       = NULL;
+int resolve_mode	= -1;
+char *LogfileName	= NULL;
 int fw1_2000		= -1;
 int audit_log		= -1;
 stringlist *sl 		= NULL;
@@ -476,7 +472,7 @@ char **filterarray 	= NULL;
 int filtercount 	= 0;
 int output_fields	= 0;
 int mysql_mode		= -1;
-int fieldnames_mode     = -1;
+int fieldnames_mode	= -1;
 
 char s[1024];
 
@@ -497,35 +493,7 @@ int afield_output[NUMBER_AIDX_FIELDS];
 	MYSQL *mysqlconn, mysql;
 #endif
 
-configvalues cfgvalues = {
-	0, 			// debug_mode
-	FALSE, 			// online_mode
-	TRUE, 			// resolve_mode
-#ifdef USE_MYSQL
-	FALSE, 			// mysql_mode
-#endif
-	FALSE, 			// fw1_2000
-	FALSE, 			// audit_mode
-	FALSE, 			// showfiles_mode
-	TRUE, 			// fieldnames_mode
-	DATETIME_STD,		// dateformat
-	SCREEN, 		// log_mode
-#ifndef WIN32
-	LOG_LOCAL1,		// syslog_facility
-#endif
-	'|', 			// record_separator
-	"fw1-loggrabber.conf", 	// config_filename
-	"lea.conf", 		// leaconfig_filename
-#ifdef USE_MYSQL
-	"localhost", 		// mysql_host
-	"fw1loggrabber", 	// mysql_database
-	"fw1", 			// mysql_user
-	"fw1", 			// mysql_password
-#endif
-	"fw.log", 		// fw1_logfile
-	"fw1-loggrabber", 	// output_file_prefix
-	1048576			// output_file_rotatesize
-};
+configvalues cfgvalues = {0, 0, 1, 0, 0, 0, 0, 1, 2, SCREEN, '|', "fw1-loggrabber.conf", "lea.conf", "localhost", "fw1loggrabber", "fw1", "fw1", "fw.log", "fw1-loggrabber", 1048576};
 
 int initialCapacity	= 4096;
 int capacityIncrement	= 1024;
@@ -535,3 +503,17 @@ int capacityIncrement	= 1024;
  **/
 FILE* logstream;
 
+/**
+ * The flag, which is used to control whether or not fw1-loggrabber needs to exit
+ **/
+int keepAlive = TRUE;
+
+/**
+ * The recover interval with unit of second
+ **/
+int recoverInterval = 10;
+
+/**
+ * The flag, which indicates whether or not the session has been established
+ **/
+int established = FALSE;
