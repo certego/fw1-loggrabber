@@ -3,7 +3,7 @@ Content-type: text/html
 <HTML><HEAD><TITLE>Manpage of FW1-LOGGRABBER</TITLE>
 </HEAD><BODY>
 <H1>FW1-LOGGRABBER</H1>
-Section: Misc. Reference Manual Pages (June 2004)<BR>Updated: Linux<BR><A HREF="#index">Index</A>
+Section: Misc. Reference Manual Pages (November 2004)<BR>Updated: Unix<BR><A HREF="#index">Index</A>
 <A HREF="http://localhost/cgi-bin/man/man2html">Return to Main Contents</A><HR>
 
 <A NAME="lbAB">&nbsp;</A>
@@ -33,13 +33,14 @@ of many firewall administrators.
 <B>fw1-loggrabber</B> is statically linked and runs on the following platforms. If you run <B>fw1-loggrabber</B> on another distribution, version or kernel version, please send me a mail describing your environment.
 <DL COMPACT><DT><DD>
 <P>
-- Linux - tested distributions are Red Hat, SuSE and Debian with Kernel 2.2.x and 2.4.x (for experimental MySQL-support, the MySQL-Client and Zlib rpm must
-be installed).
+- Linux - tested distributions are Red Hat, SuSE and Debian with Kernel 2.2.x and 2.4.x. For database support,
+also either iODBC or unixODBC have to be installed.
 </DL>
 
 <DL COMPACT><DT><DD>
 <P>
-- Solaris SPARC - tested versions are Solaris 2.7, 8 and 9.
+- Solaris SPARC - tested versions are Solaris 2.7, 8 and 9. For database support, also either iODBC or unixODBC
+have to be installed
 </DL>
 
 <DL COMPACT><DT><DD>
@@ -54,22 +55,22 @@ In the following lines, all available command line options are described in deta
 of the options can also be configured using the configuration file <B>fw1-loggrabber.conf</B>
 (see <B>--configfile</B> option to use a different configuration file). The precedence of given
 options is as follows: commandline, configuration file, default value. E.g. if you set the 
-portnumber to be used to 50000 in the configuration file, this can be overwritten by 
-commandline option <B>--port</B>. Only if an option isn't set neither on commandline nor in
+resolve-mode to be used in the configuration file, this can be overwritten by 
+commandline option <B>--noresolve</B>. Only if an option isn't set neither on commandline nor in
 the configuration file, the default value will be used.
 <DL COMPACT>
-<DT><B>-p &lt;portnumber&gt;, --port &lt;portnumber&gt;</B>
+<DT><B>-p &lt;portnumber&gt;, --port &lt;portnumber&gt; [OBSOLETE]</B>
 
 <DD>
-The <B>-p</B> respectively the <B>--port</B> option can be used to specify a non-default
-port to connect to the FW-1 management station. If this option is used, the configuration
-file parameter <B>FW1_PORT</B> will not be used.
-<DT><B>-s &lt;servername&gt;, --server &lt;servername&gt;</B>
+This option is obsolete starting from version 1.11. The connection configuration
+has to be done using the LEA configuration file. Please read the paragraph 
+<B>LEA CONFIGURATION FILE</B> for further description of available parameters.
+<DT><B>-s &lt;servername&gt;, --server &lt;servername&gt; [OBSOLETE]</B>
 
 <DD>
-Using one of these options, the name or ip address of the FW1 management station,
-to which <B>fw1-loggrabber</B> should connect to, can be specified on command line.
-If this option is used, the configuration file parameter <B>FW1_SERVER</B> will not be used.
+This option is obsolete starting from version 1.11. The connection configuration
+has to be done using the LEA configuration file. Please read the paragraph 
+<B>LEA CONFIGURATION FILE</B> for further description of available parameters.
 <DT><B>-f &lt;logfilename|pattern|ALL&gt;, --logfile &lt;logfilename|pattern&gt;</B>
 
 <DD>
@@ -103,6 +104,15 @@ of the commandline options can be configured as well as other options, which are
 not available as commandline parameters. If this parameter is omitted, the file 
 <B>fw1-loggrabber.conf</B> in the current directory will be used. See below for a
 description of all available configuration file options.
+<DT><B>-l &lt;leaconfigfilename&gt;, --leaconfigfile &lt;leaconfigfilename&gt;</B>
+
+<DD>
+Using one of these options, it's possible to use a non-default LEA configuration
+file. In this file, all connection parameters such as FW-1 server, port, authentication
+method as well as sic names have to be configured. That's the usual configuration 
+procedure for OPSEC applications. If this parameter is omitted, the file
+<B>lea.conf</B> in the current directory will be used. See below for a description
+of all available LEA configuration file options.
 <DT><B>--resolve</B>
 
 <DD>
@@ -128,21 +138,18 @@ the FW-1 management station. After the names of the logfiles have been displayed
 The default behaviour of <B>fw1-loggrabber</B> is to 
 display the content of the logfiles and not just their names. This can be explicitely
 specified using the <B>--showlogs</B> option.
-<DT><B>--auth    </B>
+<DT><B>--auth [OBSOLETE]   </B>
 
 <DD>
-If you want to use authenticated connections for reading the logfiles, you have to 
-use the <B>--auth</B> parameter. In that case you have also configure the FW-1 
-management station as well as the FW-1 policy and your local configuration file in order 
-to successfully connect to the FW-1 server. Within the configuration file you
-can also specify the authentication/encryption algorithm to be used for connecting. 
-<DT><B>--no-auth</B>
+This option is obsolete starting from version 1.11. The connection configuration
+has to be done using the LEA configuration file. Please read the paragraph 
+<B>LEA CONFIGURATION FILE</B> for further description of available parameters.
+<DT><B>--no-auth [OBSOLETE]</B>
 
 <DD>
-For unauthenticated connections use the 
-<B>--no-auth</B> option, here you only have to configure your FW-1 management station
-in order to allow unauthenticated connections. But for security reasons you should 
-always use authenticated connections.
+This option is obsolete starting from version 1.11. The connection configuration
+has to be done using the LEA configuration file. Please read the paragraph 
+<B>LEA CONFIGURATION FILE</B> for further description of available parameters.
 <DT><B>--2000</B>
 
 <DD>
@@ -196,9 +203,8 @@ you can find below in a separate chapter about filtering which also provides var
 
 <DD>
 The <B>--fields</B> option can be used to display only a given set of fields
-instead of displaying all available fields. The order of the fields is 
-always the same despite the order of the fields specified with the <B>--fields</B>
-option. E.g.
+instead of displaying all available fields. The order of the fields being displayed is
+the same as specified within the <B>--fields</B> option. E.g.
 <DL COMPACT><DT><DD>
 <P>
 --fields &quot;loc;src;dst&quot;
@@ -237,18 +243,18 @@ loc|src|dst
 42|1.2.3.4|4.3.2.1
 </DL>
 
-<DT><B>--mysql </B>
+<DT><B>--create-tables</B>
 
 <DD>
-EXPERIMENTAL! This option enables mysql-mode for storing log data in a MySQL database.
-In order to support more databases and my unwillingness to deal with MS-SQL or Oracle
-APIs, this feature will be replaced in on of the following versions by a Perl wrapper 
-script, which supports multiple database systems.
-<DT><B>--no-mysql</B>
-
-<DD>
-This option just disables the mysql-mode and forces <B>fw1-loggrabber</B> to use the 
-default output method for log data.
+This option just creates the <B>fw1-loggrabber</B> tables in the database referenced
+by configuration file parameter <B>ODBC_DSN</B>. If one or more of the tables already
+exist, <B>fw1-loggrabber</B> prompts for dropping and recreating the tables. 
+<B>fw1-loggrabber</B> only creates tables and no additional indexes on certain columns.
+If you need these, please create the indexes by yourself using your DBMS management
+software.
+At the moment, the following DBMS are supported and tested: MySQL (v4.0), PostgreSQL (v7.3), 
+IBM DB2 (v8.1), Oracle (v8) and MS SQL Server (v2000). If you can verify <B>fw1-loggrabber</B>
+to be working with other versions of these DBMS, please tell me about this.
 <DT><B>--debuglevel &lt;0-3&gt;</B>
 
 <DD>
@@ -267,6 +273,56 @@ This option just displays all fieldnames which are currently supported by
 <B>fw1-loggrabber</B> for both normal logfiles and audit logfiles.
 </DL>
 <A NAME="lbAG">&nbsp;</A>
+<H2>LEA CONFIGURATION FILE</H2>
+
+Starting with version 1.11, <B>fw1-loggrabber</B> uses the default connection configuration 
+procedure for OPSEC applications. This includes server, port and authentication settings.
+From now on, all this parameters can only be configured using the configuration file 
+<B>lea.conf</B> (see <B>--leaconfigfile</B> option to use a different LEA configuration
+file) and not using the command-line as before.
+<DL COMPACT>
+<DT><B>lea_server ip &lt;IP address&gt;</B>
+
+<DD>
+This parameter specifies the IP address of the FW1 management station, to which 
+<B>fw1-loggrabber</B> should connect to.
+<DT><B>lea_server port &lt;port number&gt;</B>
+
+<DD>
+The port on the FW1 management station, to which <B>fw1-loggrabber</B> should connect to,
+can be specified using this option. If you want to use authenticated connections to 
+your firewall, you have to use <B>lea_server auth_port</B> instead.
+<DT><B>lea_server auth_port &lt;port number&gt;</B>
+
+<DD>
+In contrast to the previous option, this one has to be used for specifying the port 
+to be used for authenticated connection to your FW1 management station.
+<DT><B>lea_server auth_type &lt;authentication mechanism&gt;</B>
+
+<DD>
+If you want to use authenticated connections to your FW1 management station, you
+can use this parameter to specify the authentication mechnismn to be used. If this
+parameter is omitted, <B>fw1-loggrabber</B> defaults to <B>sslca</B>. Supported values
+in this field are: sslca, sslca_clear, sslca_comp, sslca_rc4, sslca_rc4_comp,
+asym_sslca, asym_sslca_comp, asym_sslca_rc4, asym_sslca_rc4_comp, ssl, ssl_opsec,
+ssl_clear, ssl_clear_opsec, fwn1 and auth_opsec. 
+<DT><B>opsec_sslca_file &lt;p12-file&gt;</B>
+
+<DD>
+When using authenticated connections, this parameter has to be used in order to 
+specify the location of the PKCS#12 certificate.
+<DT><B>opsec_sic_name &lt;SIC name of LEA-client&gt;</B>
+
+<DD>
+This parameter is also only necessary when using authenticated connections. 
+In that case the SIC name of the LEA-client has to be specified using this parameter.
+<DT><B>lea_server opsec_entity_sic_name &lt;SIC name of LEA-server&gt;</B>
+
+<DD>
+Similar to <B>opsec_sic_name</B> you have to specify the SIC name of your FW1
+management station using this parameter when using authenticated connections..
+</DL>
+<A NAME="lbAH">&nbsp;</A>
 <H2>CONFIGURATION FILE</H2>
 
 This paragraph deals with the options that can be set within the configuration file.
@@ -274,8 +330,8 @@ The default configuration file is <B>fw1-loggrabber.conf</B> which should be in 
 current directory. (see <B>--configfile</B> option to use a different configuration file). 
 The precedence of given
 options is as follows: commandline, configuration file, default value. E.g. if you set the 
-portnumber to be used to 50000 in the configuration file, this can be overwritten by 
-commandline option <B>--port</B>. Only if an option isn't set neither on commandline nor in
+resolve-mode to be used in the configuration file, this can be overwritten by 
+commandline option <B>--noresolve</B>. Only if an option isn't set neither on commandline nor in
 the configuration file, the default value will be used.
 <DL COMPACT>
 <DT><B>DEBUG_LEVEL=&lt;0-3&gt;</B>
@@ -285,46 +341,18 @@ Sets the debuglevel to the specified value. A debuglevel of 0 means no output of
 debug informations. Further debuglevels will cause output of program specific as well
 as OPSEC specific debug informations. This parameter can be overwritten by 
 <B>--debug-level</B> command-line option.
-<DT><B>MYSQL_MODE={yes|YES|no|NO}</B>
+<DT><B>FW1_SERVER=&lt;IP address of FW1-Management Station&gt; [OBSOLETE]</B>
 
 <DD>
-EXPERIMENTAL! This option enables or disables mysql-mode for storing log data in a MySQL database.
-In order to support more databases and my unwillingness to deal with MS-SQL or Oracle
-APIs, this feature will be replaced in on of the following versions by a Perl wrapper 
-script, which supports multiple database systems. The correspondent command-line parameters
-are <B>--mysql</B> and <B>--no-mysql</B>.
-<DT><B>MYSQL_HOST=&lt;Hostname of MySQL-Server&gt;</B>
+This option is obsolete starting from version 1.11. The connection configuration
+has to be done using the LEA configuration file. Please read the paragraph 
+<B>LEA CONFIGURATION FILE</B> for further description of available parameters.
+<DT><B>FW1_PORT=&lt;Port number for LEA connections&gt; [OBSOLETE]</B>
 
 <DD>
-EXPERIMENTAL! If mysql-mode is used, the name or the ip address of the MySQL-server
-has to be specified using this option.
-<DT><B>MYSQL_USER=&lt;Username for MySQL-Database&gt;</B>
-
-<DD>
-EXPERIMENTAL! If mysql-mode is used, the username for the MySQL-database
-has to be specified using this option.
-<DT><B>MYSQL_PASSWORD=&lt;Password for MySQL-Database&gt;</B>
-
-<DD>
-EXPERIMENTAL! If mysql-mode is used, the password for the MySQL-database
-has to be specified using this option.
-<DT><B>MYSQL_DATABASE=&lt;Database-Name of MySQL-Database&gt;</B>
-
-<DD>
-EXPERIMENTAL! If mysql-mode is used, the name of the MySQL-database
-has to be specified using this option.
-<DT><B>FW1_SERVER=&lt;IP address of FW1-Management Station&gt;</B>
-
-<DD>
-With this option, the name or ip address of the FW1 management station,
-to which <B>fw1-loggrabber</B> should connect to, can be specified.
-The correspondent command-line parameter is <B>--server</B>.
-<DT><B>FW1_PORT=&lt;Port number for LEA connections&gt;</B>
-
-<DD>
-This option can be used to specify a non-default
-port to connect to the FW-1 management station.
-The correspondent command-line parameter is <B>--port</B>.
+This option is obsolete starting from version 1.11. The connection configuration
+has to be done using the LEA configuration file. Please read the paragraph 
+<B>LEA CONFIGURATION FILE</B> for further description of available parameters.
 <DT><B>FW1_LOGFILE=&lt;Name of FW1-Logfilename&gt;</B>
 
 <DD>
@@ -340,20 +368,20 @@ The correspondent command-line parameter is <B>--logfile</B>.
 This parameter simply specifies whether <B>fw1-loggrabber</B> should only display the 
 available logfiles (files) on the FW-1 server or display the content of the logfiles (logs).
 The correspondent command-line parameters are <B>--showfiles</B> and <B>--showlogs</B>.
-<DT><B>FW1_TYPE=&lt;NG|ng|2000&gt;</B>
+<DT><B>FW1_TYPE=&lt;ng|2000&gt;</B>
 
 <DD>
 Using this parameter you can choose to which version of FW-1 to connect to. For Checkpoint
 FW-1 5.0 (NG) you have to specify NG and for Checkpoint FW-1 4.1 (2000) you have to specify 2000.
 The correspondent command-line parameters are <B>--2000</B> and <B>--ng</B>.
-<DT><B>FW1_MODE=&lt;audit|AUDIT|normal|NORMAL&gt;</B>
+<DT><B>FW1_MODE=&lt;audit|normal&gt;</B>
 
 <DD>
 This parameter enables you to specify whether to display audit logs which contain 
 administrative actions of normal security logs, which contain data about dropped and 
 accepted connections.
 The correspondent command-line parameters are <B>--auditlog</B> and <B>--normallog</B>.
-<DT><B>ONLINE_MODE=&lt;yes|YES|no|NO&gt;</B>
+<DT><B>ONLINE_MODE=&lt;yes|no&gt;</B>
 
 <DD>
 Using online mode, <B>fw1-loggrabber</B> starts output of logging data at the end of 
@@ -365,7 +393,7 @@ If you disable online mode, <B>fw1-loggrabber</B> quits after having displayed t
 log entry. This is the default behaviour and is mainly
 used for analysis of historic log data.
 The correspondent command-line parameters are <B>--online</B> and <B>--no-online</B>.
-<DT><B>RESOLVE_MODE=&lt;yes|YES|no|NO&gt;</B>
+<DT><B>RESOLVE_MODE=&lt;yes|no&gt;</B>
 
 <DD>
 With this option, IP addresses will be resolved to names using 
@@ -376,7 +404,7 @@ behaviour of <B>fw1-loggrabber</B>.
 If you disable resolving mode this will cause IP addresses
 to be displayed in log output instead of names.
 The correspondent command-line parameters are <B>--resolve</B> and <B>--no-resolve</B>.
-<DT><B>SHOW_FIELDNAMES=&lt;yes|YES|no|NO&gt;</B>
+<DT><B>SHOW_FIELDNAMES=&lt;yes|no&gt;</B>
 
 <DD>
 Using this option can be chosen, whether the name of each field should be displayed i
@@ -396,14 +424,15 @@ for output of date fields. The value <B>CP</B> provides the standard Checkpoing 
 format ( 3Feb2004 14:15:16). Using the values <B>UNIX</B> or <B>STD</B> you can change 
 this into standard Unix time format (1051655431) or into a standardized human-readable
 format (2004-02-03 14:15:16).
-<DT><B>LOGGING_CONFIGURATION=&lt;screen|file|syslog&gt;</B>
+<DT><B>LOGGING_CONFIGURATION=&lt;screen|file|syslog|odbc&gt;</B>
 
 <DD>
 The <B>LOGGING_CONFIGURATION</B> parameter can be used for redirection of logging output to
 other destinations than the default destination STDOUT, i.e. screen. Currently it's possible
 to redirect output to a file or to syslog daemon (Unix only). Using the parametes 
 <B>OUTPUT_FILE_PREFIX</B> and <B>OUTPUT_FILE_ROTATESIZE</B>, you can specify more details,
-if you choose to redirect the output to a file.
+if you choose to redirect the output to a file. If you have chosen <B>ODBC</B>, you have to
+specify the DSN in the parameter <B>ODBC_DSN</B>.
 <DT><B>OUTPUT_FILE_PREFIX=&lt;prefix of output file&gt;</B>
 
 <DD>
@@ -419,43 +448,49 @@ be rotated. If the size of the output file exceeds the given value, the logfile 
 to &lt;OUTPUT_FILE_PREFIX&gt;-YYYY-MM-DD-hhmmss[-x].log. The default value is 1048576 bytes, 
 which equals 1 megabyte. It should be obvious
 that this parameter will only be used if <B>LOGGING_CONFIGURATION</B> is set to <B>file</B>.
-<DT><B>AUTHENTICATED={yes|YES|no|NO}</B>
+<DT><B>ODBC_DSN=&lt;ODBC Database DSN&gt;</B>
 
 <DD>
-If you want to use authenticated connections for reading the logfiles, you have to 
-use set parameter to YES. In that case you have also configure the FW-1 
-management station as well as the FW-1 policy and your local configuration file in order 
-to successfully connect to the FW-1 server. Within the configuration file you
-can also specify the authentication/encryption algorithm to be used for connecting.
-For security reasons it's generally recommended to use authenticated connections to
-connect <B>fw1-loggrabber</B> to FW-1 servers.
-The correspondent command-line parameters are <B>--auth</B> and <B>--no-auth</B>.
-<DT><B>AUTHENTICATION_TYPE=&lt;authtype value&gt;</B>
+This parameter has to be used to specify the ODBC-DSN of your database. The DSN will only 
+be used when <B>LOGGING_CONFIGURATION</B> is set to <B>ODBC</B>.
+<DT><B>SYSLOG_FACILITY=&lt;USER|LOCAL0|...|LOCAL7&gt;</B>
 
 <DD>
-For authenticated connections to FW-1 servers one of the following authentication 
-method can be used: SSLCA, SSLCA_COMP, SSLCA_RC4, SSLCA_RC4_COMP, ASYM_SSLCA, ASYM_SSLCA_COMP, 
-ASYM_SSLCA_RC4, ASYM_SSLCA_RC4_COMP or SSLCA_CLEAR. You have to consider that your FW-1 server
-must also be configured in order to be able to use the chosen authentication method.
-<DT><B>OPSEC_CERTIFICATE=&lt;Path and Name of Opsec Certificate&gt;</B>
+This parameter can be used to set the syslog facility to be used (Unix only). 
+Obviously this is only effective when running <B>fw1-loggrabber</B> with 
+<B>LOGGING_CONFIGURATION=SYSLOG</B>.
+<DT><B>AUTHENTICATED=&lt;yes|no&gt; [OBSOLETE]</B>
 
 <DD>
-Use this option to specify path and name of the PKCS#12 certificate which you pull
-from your FW-1 management server when initializing Secure Internal Communication (SIC).
-<DT><B>OPSEC_CLIENT_DN=&lt;DN of Opsec-Client&gt;</B>
+This option is obsolete starting from version 1.11. The connection configuration
+has to be done using the LEA configuration file. Please read the paragraph 
+<B>LEA CONFIGURATION FILE</B> for further description of available parameters.
+<DT><B>AUTHENTICATION_TYPE=&lt;authtype value&gt; [OBSOLETE]</B>
 
 <DD>
-This option has to be used to specify the distinguished name of the client object for 
-<B>fw1-loggrabber</B>, which has to be defined in your FW-1 policy prior to be able
-to use authenticated connections.
-<DT><B>OPSEC_SERVER_DN=&lt;DN of Opsec-Server&gt;</B>
+This option is obsolete starting from version 1.11. The connection configuration
+has to be done using the LEA configuration file. Please read the paragraph 
+<B>LEA CONFIGURATION FILE</B> for further description of available parameters.
+<DT><B>OPSEC_CERTIFICATE=&lt;Path and Name of Opsec Certificate&gt; [OBSOLETE]</B>
 
 <DD>
-Here you can specify the distinguished name of your FW-1 server, to which <B>fw1-loggrabber</B>
-connects to. You can find this distinguished name in the properties of the server object
-in your FW-1 policy.
+This option is obsolete starting from version 1.11. The connection configuration
+has to be done using the LEA configuration file. Please read the paragraph 
+<B>LEA CONFIGURATION FILE</B> for further description of available parameters.
+<DT><B>OPSEC_CLIENT_DN=&lt;DN of Opsec-Client&gt; [OBSOLETE]</B>
+
+<DD>
+This option is obsolete starting from version 1.11. The connection configuration
+has to be done using the LEA configuration file. Please read the paragraph 
+<B>LEA CONFIGURATION FILE</B> for further description of available parameters.
+<DT><B>OPSEC_SERVER_DN=&lt;DN of Opsec-Server&gt; [OBSOLETE]</B>
+
+<DD>
+This option is obsolete starting from version 1.11. The connection configuration
+has to be done using the LEA configuration file. Please read the paragraph 
+<B>LEA CONFIGURATION FILE</B> for further description of available parameters.
 </DL>
-<A NAME="lbAH">&nbsp;</A>
+<A NAME="lbAI">&nbsp;</A>
 <H2>CONFIGURE FW-1</H2>
 
 For both authenticated and unauthenticated connections of <B>fw1-loggrabber</B> to  
@@ -463,7 +498,7 @@ FW-1 servers there is the need for additional configuration on both the FW-1 sid
 the <B>fw1-loggrabber</B> side. This section describes the necessary steps to successfully
 establish a connection.
 <DL COMPACT>
-<DT><B>Configuration of unauthenticated connections</B>
+<DT><B>Unauthenticated connections to FW-1 4.1 or NG</B>
 
 <DD>
 <DL COMPACT><DT><DD>
@@ -473,12 +508,16 @@ establish a connection.
 <DL COMPACT><DT><DD>
 <P>
 - modify $FWDIR/conf/fwopsec.conf and define the port to be used for unauthenticated
-lea connections:
+lea connections (e.g. 50001):
 </DL>
 
 <DL COMPACT><DT><DD>
 <DL COMPACT><DT><DD>
-lea_server    port    50001
+lea_server    port      50001
+</DL>
+
+<DL COMPACT><DT><DD>
+lea server    auth_port 0
 </DL>
 
 </DL>
@@ -490,7 +529,11 @@ lea_server    port    50001
 
 <DL COMPACT><DT><DD>
 <DL COMPACT><DT><DD>
-cpstop ; cpstart
+[4.1] fwstop ; fwstart
+</DL>
+
+<DL COMPACT><DT><DD>
+[NG]  cpstop ; cpstart
 </DL>
 
 </DL>
@@ -518,11 +561,22 @@ machine to the FW-1 management server.
 
 <DL COMPACT><DT><DD>
 <P>
-- use the <B>--port</B> command-line option or the FW1_PORT configuration file
-parameter to specify the port you defined on your FW-1 server.
+- modify lea.conf and define the ip address of your FW1 management station (e.g. 10.1.1.1) and port
+(e.g. 50001) for unauthenticated lea connections:
 </DL>
 
-<DT><B>Configuration of authenticated connections</B>
+<DL COMPACT><DT><DD>
+<DL COMPACT><DT><DD>
+lea_server    ip        10.1.1.1
+</DL>
+
+<DL COMPACT><DT><DD>
+lea server    port      50001
+</DL>
+
+</DL>
+
+<DT><B>Authenticated connections to FW-1 4.1</B>
 
 <DD>
 <DL COMPACT><DT><DD>
@@ -532,17 +586,20 @@ parameter to specify the port you defined on your FW-1 server.
 <DL COMPACT><DT><DD>
 <P>
 - modify $FWDIR/conf/fwopsec.conf and define the port to be used for authenticated
-lea connections as well as the authentication algorithm. The default algorithm for 
-authenticated connections is SSLCA:
+lea connections (e.g. 18184):
 </DL>
 
 <DL COMPACT><DT><DD>
 <DL COMPACT><DT><DD>
-lea_server    auth_port    18184
+lea_server    port      0
 </DL>
 
 <DL COMPACT><DT><DD>
-lea_server    auth_type    sslca
+lea server    auth_port 18184
+</DL>
+
+<DL COMPACT><DT><DD>
+lea server    auth_type auth_opsec
 </DL>
 
 </DL>
@@ -554,7 +611,126 @@ lea_server    auth_type    sslca
 
 <DL COMPACT><DT><DD>
 <DL COMPACT><DT><DD>
-cpstop ; cpstart
+[4.1] fwstop ; fwstart
+</DL>
+
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- set a password (e.g. abc123) for the LEA client (e.g. 10.1.1.2)
+</DL>
+
+<DL COMPACT><DT><DD>
+<DL COMPACT><DT><DD>
+[4.1] fw putkey -opsec -p abc123 10.1.1.2
+</DL>
+
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+<I>Configuration of FW-1 policy:</I>
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- add a rule to the policy to allow the port defined above from the <B>fw1-loggrabber</B>
+machine to the FW-1 management server.
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- install the policy
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+<I>Configuration of fw1-loggrabber:</I>
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- modify lea.conf and define the ip address of your FW1 management station (e.g. 10.1.1.1) as well as
+port (e.g. 18184) and authentication type for authenticated lea connections:
+</DL>
+
+<DL COMPACT><DT><DD>
+<DL COMPACT><DT><DD>
+lea_server    ip        10.1.1.1
+</DL>
+
+<DL COMPACT><DT><DD>
+lea_server    auth_port 18184
+</DL>
+
+<DL COMPACT><DT><DD>
+lea_server    auth_type auth_opsec
+</DL>
+
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- set password for the connection to the LEA server. The password has to be the same
+as specified on the LEA server.
+</DL>
+
+<DL COMPACT><DT><DD>
+<DL COMPACT><DT><DD>
+opsec_putkey -p abc123 10.1.1.1
+</DL>
+
+</DL>
+
+<DT><B>Authenticated connections to FW-1 NG using ssl_opsec </B>
+
+<DD>
+<DL COMPACT><DT><DD>
+<I>Configuration of FW-1 server:</I>
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- modify $FWDIR/conf/fwopsec.conf and define the port to be used for authenticated
+lea connections (e.g. 18184):
+</DL>
+
+<DL COMPACT><DT><DD>
+<DL COMPACT><DT><DD>
+lea_server    port      0
+</DL>
+
+<DL COMPACT><DT><DD>
+lea server    auth_port 18184
+</DL>
+
+<DL COMPACT><DT><DD>
+lea server    auth_type ssl_opsec
+</DL>
+
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- bounce FW-1 in order to activate changes
+</DL>
+
+<DL COMPACT><DT><DD>
+<DL COMPACT><DT><DD>
+[NG]  cpstop ; cpstart
+</DL>
+
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- set a password (e.g. abc123) for the LEA client (e.g. 10.1.1.2)
+</DL>
+
+<DL COMPACT><DT><DD>
+<DL COMPACT><DT><DD>
+[NG]  fw putkey -ssl -p abc123 10.1.1.2
 </DL>
 
 </DL>
@@ -571,7 +747,7 @@ cpstop ; cpstart
 
 <DL COMPACT><DT><DD>
 <DL COMPACT><DT><DD>
-- Name:            e.g. Loggrabber
+- Name:            e.g. myleaclient
 </DL>
 
 <DL COMPACT><DT><DD>
@@ -591,7 +767,7 @@ cpstop ; cpstart
 <DL COMPACT><DT><DD>
 <P>
 - initialize Secure Internal Communication (SIC) for recently created 
-Opsec Application Object and enter (and remember) the initial password.
+Opsec Application Object and enter (and remember) the activation key (e.g. def456)
 </DL>
 
 <DL COMPACT><DT><DD>
@@ -627,6 +803,54 @@ successfully.
 
 <DL COMPACT><DT><DD>
 <P>
+- modify lea.conf and define the ip address of your FW1 management station (e.g. 10.1.1.1) as well as
+port (e.g. 18184), authentication type and SIC names for authenticated lea connections. The SIC names 
+you can get from the object properties of your LEA client object respectively the Management Station 
+object (see above for details about Client DN and Server DN).
+</DL>
+
+<DL COMPACT><DT><DD>
+<DL COMPACT><DT><DD>
+lea_server    ip        10.1.1.1
+</DL>
+
+<DL COMPACT><DT><DD>
+lea_server    auth_port 18184
+</DL>
+
+<DL COMPACT><DT><DD>
+lea_server    auth_type ssl_opsec
+</DL>
+
+<DL COMPACT><DT><DD>
+opsec_sslca_file opsec.p12
+</DL>
+
+<DL COMPACT><DT><DD>
+opsec_sic_name &quot;CN=myleaclient,O=cpmodule..gysidy&quot;
+</DL>
+
+<DL COMPACT><DT><DD>
+lea_server opsec_entity_sic_name &quot;cn=cp_mgmt,o=cpmodule..gysidy&quot;
+</DL>
+
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- set password for the connection to the LEA server. The password has to be the same
+as specified on the LEA server.
+</DL>
+
+<DL COMPACT><DT><DD>
+<DL COMPACT><DT><DD>
+opsec_putkey -ssl -p abc123 10.1.1.1
+</DL>
+
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
 - get the tool opsec_pull_cert either from opsec-tools.tar.gz from the project
 home page or directly from the OPSEC SDK. This tool is needed to establish the
 Secure Internal Communication (SIC) between <B>fw1-loggrabber</B> and the FW-1
@@ -635,63 +859,184 @@ management server.
 
 <DL COMPACT><DT><DD>
 <P>
-- execute the command opsec_pull_cert as follows and copy the resulting PKCS#12
-file (default: opsec.p12) to your <B>fw1-loggrabber</B> directory.
+- get the clients certificate from the management station (e.g. 10.1.1.1). The activation key has
+to be the same as specified before in the firewall policy.
 </DL>
 
 <DL COMPACT><DT><DD>
 <DL COMPACT><DT><DD>
-opsec_pull_cert \
+opsec_pull_cert -h 10.1.1.1 -n myleaclient -p def456
+</DL>
+
+</DL>
+
+<P>
+<B>Authenticated connections to FW-1 NG using sslca</B>
+
+<DL COMPACT><DT><DD>
+<I>Configuration of FW-1 server:</I>
 </DL>
 
 <DL COMPACT><DT><DD>
-<BR>&nbsp;&nbsp;-h&nbsp;&lt;IP&nbsp;of&nbsp;FW-1&nbsp;Management&nbsp;Server&gt;&nbsp;\
+<P>
+- modify $FWDIR/conf/fwopsec.conf and define the port to be used for authenticated
+lea connections (e.g. 18184):
 </DL>
 
 <DL COMPACT><DT><DD>
-<BR>&nbsp;&nbsp;-n&nbsp;&lt;Name&nbsp;of&nbsp;Opsec&nbsp;Application&nbsp;Object&gt;&nbsp;\
+<DL COMPACT><DT><DD>
+lea_server    port      0
 </DL>
 
 <DL COMPACT><DT><DD>
-<BR>&nbsp;&nbsp;-p&nbsp;&lt;Password&nbsp;you&nbsp;entered&nbsp;before&nbsp;in&nbsp;policy&gt;
+lea server    auth_port 18184
+</DL>
+
+<DL COMPACT><DT><DD>
+lea server    auth_type sslca
 </DL>
 
 </DL>
 
 <DL COMPACT><DT><DD>
 <P>
-- use the <B>--port</B> command-line option or the FW1_PORT configuration file
-parameter to specify the port you defined on your FW-1 server.
+- bounce FW-1 in order to activate changes
+</DL>
+
+<DL COMPACT><DT><DD>
+<DL COMPACT><DT><DD>
+[NG]  cpstop ; cpstart
+</DL>
+
 </DL>
 
 <DL COMPACT><DT><DD>
 <P>
-- edit the <B>AUTHENTICATION_TYPE</B> configuration file parameter according to 
-the authentication type, that you have configured previously on your FW-1 
+<I>Configuration of FW-1 policy:</I>
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- create a new Opsec Application Object with the following details:
+</DL>
+
+<DL COMPACT><DT><DD>
+<DL COMPACT><DT><DD>
+- Name:            e.g. myleaclient
+</DL>
+
+<DL COMPACT><DT><DD>
+- Vendor:          User Defined
+</DL>
+
+<DL COMPACT><DT><DD>
+- Server Entities: None
+</DL>
+
+<DL COMPACT><DT><DD>
+- Client Entities: LEA
+</DL>
+
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- initialize Secure Internal Communication (SIC) for recently created 
+Opsec Application Object and enter (and remember) the activation key (e.g. def456)
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- write down the DN of the recently created Opsec Application Object. This is your
+Client Distinguished Name, which you need later on.
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- open the object of your FW-1 management server and write down the DN of that object.
+This is the Server Distinguished Name, which you will need later on.
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- add a rule to the policy to allow the port defined above as well as port 18210/tcp 
+(FW1_ica_pull) in order to allow pulling of PKCS#12 certificate from the <B>fw1-loggrabber</B>
+machine to the FW-1 management server. The port 18210/tcp can be shut down after the 
+communication between <B>fw1-loggrabber</B> and the FW-1 management server has been established
+successfully.
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- install the policy
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+<I>Configuration of fw1-loggrabber:</I>
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- modify lea.conf and define the ip address of your FW1 management station (e.g. 10.1.1.1) as well as
+port (e.g. 18184), authentication type and SIC names for authenticated lea connections. The SIC names 
+you can get from the object properties of your LEA client object respectively the Management Station 
+object (see above for details about Client DN and Server DN).
+</DL>
+
+<DL COMPACT><DT><DD>
+<DL COMPACT><DT><DD>
+lea_server    ip        10.1.1.1
+</DL>
+
+<DL COMPACT><DT><DD>
+lea_server    auth_port 18184
+</DL>
+
+<DL COMPACT><DT><DD>
+lea_server    auth_type sslca
+</DL>
+
+<DL COMPACT><DT><DD>
+opsec_sslca_file opsec.p12
+</DL>
+
+<DL COMPACT><DT><DD>
+opsec_sic_name &quot;CN=myleaclient,O=cpmodule..gysidy&quot;
+</DL>
+
+<DL COMPACT><DT><DD>
+lea_server opsec_entity_sic_name &quot;cn=cp_mgmt,o=cpmodule..gysidy&quot;
+</DL>
+
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- get the tool opsec_pull_cert either from opsec-tools.tar.gz from the project
+home page or directly from the OPSEC SDK. This tool is needed to establish the
+Secure Internal Communication (SIC) between <B>fw1-loggrabber</B> and the FW-1
 management server.
 </DL>
 
 <DL COMPACT><DT><DD>
 <P>
-- edit the <B>OPSEC_CERTIFICATE</B> configuration file parameter according to 
-the name of the PKCS#12 file which you created before using the opsec_pull_cert
-command.
+- get the clients certificate from the management station (e.g. 10.1.1.1). The activation key has
+to be the same as specified before in the firewall policy. After that copy the resulting PKCS#12 file
+(default: opsec.p12) to your <B>fw1-loggrabber</B> directory.
 </DL>
 
 <DL COMPACT><DT><DD>
-<P>
-- edit the <B>OPSEC_CLIENT_DN</B> configuration file parameter according to 
-the Client DN, that you have written down before.
-</DL>
-
 <DL COMPACT><DT><DD>
-<P>
-- edit the <B>OPSEC_SERVER_DN</B> configuration file parameter according to 
-the Server DN, that you have written down before.
+opsec_pull_cert -h 10.1.1.1 -n myleaclient -p def456
 </DL>
 
 </DL>
-<A NAME="lbAI">&nbsp;</A>
+
+<P>
+
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
 <H2>FILTERING</H2>
 
 Filter rules provide the possibility to display only log entries that
@@ -856,16 +1201,30 @@ to be separated by ';'.
 </DL>
 
 </DL>
-<A NAME="lbAJ">&nbsp;</A>
+<A NAME="lbAK">&nbsp;</A>
 <H2>FILES</H2>
 
 <I>fw1-loggrabber.conf</I>
 
-<A NAME="lbAK">&nbsp;</A>
+<DL COMPACT><DT><DD>
+FW1-Loggrabber configuration file
+</DL>
+
+<DL COMPACT>
+<DT><I>lea.conf</I>
+
+<DD>
+<DL COMPACT><DT><DD>
+LEA configuration file
+</DL>
+
+
+</DL>
+<A NAME="lbAL">&nbsp;</A>
 <H2>AUTHOR</H2>
 
 Torsten Fellhauer &lt;torsten at fellhauer dash web dot net&gt;
-<A NAME="lbAL">&nbsp;</A>
+<A NAME="lbAM">&nbsp;</A>
 <H2>BUGS</H2>
 
 Please report bugs using the bug report functionality on the projects 
@@ -874,7 +1233,7 @@ website:
 <I><A HREF="http://sourceforge.net/projects/fw1-loggrabber">http://sourceforge.net/projects/fw1-loggrabber</A></I>
 </DL>
 
-<A NAME="lbAM">&nbsp;</A>
+<A NAME="lbAN">&nbsp;</A>
 <H2>COPYRIGHT</H2>
 
 Copyright (c) 2003-2004 Torsten Fellhauer, Xiaodong Lin
@@ -908,7 +1267,7 @@ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
 LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
-<A NAME="lbAN">&nbsp;</A>
+<A NAME="lbAO">&nbsp;</A>
 <H2>CREDITS</H2>
 
 Stefan Siebert for making the start of this project possible. Xiaodong Lin
@@ -924,19 +1283,20 @@ with his excellent Opsec skills for helping me in further development of
 <DT><A HREF="#lbAD">DESCRIPTION</A><DD>
 <DT><A HREF="#lbAE">PREREQUISITES</A><DD>
 <DT><A HREF="#lbAF">OPTIONS</A><DD>
-<DT><A HREF="#lbAG">CONFIGURATION FILE</A><DD>
-<DT><A HREF="#lbAH">CONFIGURE FW-1</A><DD>
-<DT><A HREF="#lbAI">FILTERING</A><DD>
-<DT><A HREF="#lbAJ">FILES</A><DD>
-<DT><A HREF="#lbAK">AUTHOR</A><DD>
-<DT><A HREF="#lbAL">BUGS</A><DD>
-<DT><A HREF="#lbAM">COPYRIGHT</A><DD>
-<DT><A HREF="#lbAN">CREDITS</A><DD>
+<DT><A HREF="#lbAG">LEA CONFIGURATION FILE</A><DD>
+<DT><A HREF="#lbAH">CONFIGURATION FILE</A><DD>
+<DT><A HREF="#lbAI">CONFIGURE FW-1</A><DD>
+<DT><A HREF="#lbAJ">FILTERING</A><DD>
+<DT><A HREF="#lbAK">FILES</A><DD>
+<DT><A HREF="#lbAL">AUTHOR</A><DD>
+<DT><A HREF="#lbAM">BUGS</A><DD>
+<DT><A HREF="#lbAN">COPYRIGHT</A><DD>
+<DT><A HREF="#lbAO">CREDITS</A><DD>
 </DL>
 <HR>
 This document was created by
 <A HREF="http://localhost/cgi-bin/man/man2html">man2html</A>,
 using the manual pages.<BR>
-Time: 05:39:56 GMT, September 12, 2004
+Time: 12:46:40 GMT, October 07, 2004
 </BODY>
 </HTML>

@@ -117,3 +117,10 @@ CHANGE HISTORY
 * 1.11 - some new features (xxxx/xx/xx)
   o seaprated connection configuration into lea.conf
   o looking for config files in cwd or absolute dir
+  o implemented configureable syslog facility
+  o implemented authenticated connections to FW-1 4.1
+  o implemented failover/reconnect for LEA connections
+  o implemented configureable field printorder
+  o replaced MySQL support by ODBC support
+  o implemented creation of database tables
+  o support for MySQL, PostgreSQL, Oracle, DB2 and MSSQL Server

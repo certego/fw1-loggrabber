@@ -2,7 +2,7 @@
 FW1-LOGGRABBER
 
 Author:           Torsten Fellhauer <torsten@fellhauer-web.de>
-current Version:  1.10
+current Version:  1.11
 ***********************************************************************
 
 Copyright (c) 2004 Torsten Fellhauer, Xiaodong Lin 
@@ -42,12 +42,12 @@ platform.
   - Red Hat 6.2
   - gcc 2.95.1
   - Checkpoint OPSEC SDK NG-FP3 for Linux 2.2
-  - for experimental MySQL-Support MySQL-Client-Libraries
-    and ZLib-Libraries are required
+  - for ODBC support iODBC or unixODBC is required
 * Solaris SPARC
   - Solaris 8
   - gcc 2.95.2
   - Checkpoint OPSEC SDK NG-FP3 for Solaris SPARC
+  - for ODBC support iODBC or unixODBC is required
 * Windows
   - Windows NT/2000
   - MS Visual Studio 6.0 SP5
@@ -68,10 +68,10 @@ a) Set up the Build Environment for Linux
 - Copy Makefile.linux to Makefile
 - Edit the Makefile and change the variables CC, 
   LD and PKG_DIR according to your environment
-- uncomment MySQL lines in makefile to enable
-  experimental MySQL-Support
-- Edit the Makefile and change the MYSQL_LIBS 
-  variable according to your environment
+- uncomment ODBC lines in makefile to enable
+  ODBC support.
+- modify the ODBC lines according to your 
+  environment.
 - make
 
 b) Set up the Build Environment for Solaris
@@ -86,6 +86,10 @@ b) Set up the Build Environment for Solaris
 - Copy Makefile.solaris to Makefile
 - Edit the Makefile and change the variables CC, 
   LD and PKG_DIR according to your environment
+- uncomment ODBC lines in makefile to enable
+  ODBC support.
+- modify the ODBC lines according to your 
+  environment.
 - make
 
 b) Set up the Build Environment for Windows
