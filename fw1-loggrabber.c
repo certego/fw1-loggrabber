@@ -622,8 +622,6 @@ read_fw1_logfile (char **LogfileName)
 {
   OpsecEntity *pClient = NULL;
   OpsecEntity *pServer = NULL;
-  //OpsecSession *pSession = NULL;
-  //OpsecEnv *pEnv = NULL;
   LeaFilterRulebase *rb;
   int rbid = 1;
   int i, index;
@@ -887,7 +885,7 @@ read_fw1_logfile (char **LogfileName)
 
 	  /*
 	   * If filters were defined, create the rulebase and register it.
-	   * the session will be resumed, as soon as the server sends the 
+	   * the session will be resumed, as soon as the server sends the
 	   * filter_ack-event.
 	   * In the case when no filters are used, the suspended session
 	   * will be continued immediately.
@@ -1020,28 +1018,12 @@ read_fw1_logfile (char **LogfileName)
               add(message);
               ReleaseMutex(mutex);
               //end critical section
-              if (!(cfgvalues.fw1_2000))
-                {
-                  if(isFull())
-                    {
-                      lea_session_suspend(pSession);
-                      suspended = TRUE;
-                    }
-:                }
 #else
               pthread_mutex_lock(&mutex);
               //enter critical section
               add(message);
               pthread_mutex_unlock(&mutex);
               //end critical section
-              if (!(cfgvalues.fw1_2000))
-                {
-                  if(isFull())
-                    {
-                      lea_session_suspend(pSession);
-                      suspended = TRUE;
-                    }
-                }
 #endif
 	    }
 	}
@@ -1087,7 +1069,7 @@ read_fw1_logfile_queryack (OpsecSession * psession, int filterID,
   return OPSEC_SESSION_OK;
 }
 
-/* 
+/*
  * function string_cat
  */
 unsigned int
@@ -1515,9 +1497,9 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
         }
       //enter critical section
       add(mymsg);
-      ReleaseMutex(mutex); 
+      ReleaseMutex(mutex);
       //end critical section
-      if (!(cfgvalues.fw1_2000)) 
+      if (!(cfgvalues.fw1_2000))
         {
           if(isFull())
             {
@@ -1531,9 +1513,9 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
       add(mymsg);
       pthread_mutex_unlock(&mutex);
       //end critical section
-      if (!(cfgvalues.fw1_2000)) 
+      if (!(cfgvalues.fw1_2000))
         {
-          if(isFull())    
+          if(isFull())
             {
               lea_session_suspend(pSession);
               suspended = TRUE;
@@ -1660,119 +1642,104 @@ read_fw1_logfile_resume (OpsecSession * psession)
 int
 get_fw1_logfiles_end (OpsecSession * psession)
 {
-  int end_reason = 0;
-  int sic_errno = 0;
-  char *sic_errmsg = NULL;
+	int end_reason = 0;
+	int sic_errno = 0;
+	char *sic_errmsg = NULL;
 
-  if (cfgvalues.debug_mode >= 2)
-    {
-      fprintf (stderr, "DEBUG: function get_fw1_logfiles_end\n");
-    }
+	if (cfgvalues.debug_mode >= 2) {
+		fprintf (stderr, "DEBUG: function get_fw1_logfiles_end\n");
+	}
 
-  if (cfgvalues.debug_mode)
-    {
-      fprintf (stderr, "DEBUG: OPSEC_SESSION_END_HANDLER called\n");
-    }
+	if (cfgvalues.debug_mode) {
+		fprintf (stderr, "DEBUG: OPSEC_SESSION_END_HANDLER called\n");
+	}
 
-  // Check what is the reason of opsec session end
-  end_reason = opsec_session_end_reason (psession);
-  switch (end_reason)
-    {
-    case END_BY_APPLICATION:
-    case SESSION_TIMEOUT:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "DEBUG: The session has been ended.\n");
-	}
-      break;
-    case SESSION_NOT_ENDED:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "WARNING: The session has not been terminated.\n");
-	}
-      break;
-    case UNABLE_TO_ATTACH_COMM:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "ERROR: Failed to establish connection.\n");
-	}
-      break;
-    case ENTITY_TYPE_SESSION_INIT_FAIL:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr,
-		   "ERROR: OPSEC API-specific library code on other side of connection failed when attempting to initialize the session.\n");
-	}
-      break;
-    case ENTITY_SESSION_INIT_FAIL:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr,
-		   "ERROR: Third-party start handler on other side of connection failed.\n");
-	}
-      break;
-    case COMM_FAILURE:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "ERROR: Communication failure.\n");
-	}
-      break;
-    case BAD_VERSION:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "ERROR: Incorrect version at other side.\n");
-	}
-      break;
-    case PEER_SEND_DROP:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "ERROR: The peer dropped the connection.\n");
-	}
-      break;
-    case PEER_ENDED:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "ERROR: The peer ends.\n");
-	}
-      break;
-    case PEER_SEND_RESET:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "ERROR: The peer reset the connection.\n");
-	}
-      break;
-    case COMM_IS_DEAD:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "ERROR: No communication.\n");
-	}
-      break;
-    case SIC_FAILURE:
-      if (!opsec_get_sic_error (psession, &sic_errno, &sic_errmsg))
-	{
-	  if (cfgvalues.debug_mode)
-	    {
-	      fprintf (stderr, "ERROR: SIC ERROR %d - %s\n", sic_errno,
-		       sic_errmsg);
-	    }
-	}
-      break;
-    default:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "Warning: Unknown reason of session end.\n");
-	}
-      break;
-    }				//end of switch
+	// Check what is the reason of opsec session end
+	end_reason = opsec_session_end_reason (psession);
+	switch (end_reason) {
+		case END_BY_APPLICATION:
+		case SESSION_TIMEOUT:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "DEBUG: The session has been ended.\n");
+			}
+			break;
+		case SESSION_NOT_ENDED:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "WARNING: The session has not been terminated.\n");
+			}
+			break;
+		case UNABLE_TO_ATTACH_COMM:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: Failed to establish connection.\n");
+			}
+			break;
+		case ENTITY_TYPE_SESSION_INIT_FAIL:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: OPSEC API-specific library code on other side of connection failed when attempting to initialize the session.\n");
+			}
+			break;
+		case ENTITY_SESSION_INIT_FAIL:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: Third-party start handler on other side of connection failed.\n");
+			}
+			break;
+		case COMM_FAILURE:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: Communication failure.\n");
+			}
+			break;
+		case BAD_VERSION:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: Incorrect version at other side.\n");
+			}
+			break;
+		case PEER_SEND_DROP:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: The peer dropped the connection.\n");
+			}
+			break;
+		case PEER_ENDED:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: The peer ends.\n");
+			}
+			break;
+		case PEER_SEND_RESET:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: The peer reset the connection.\n");
+			}
+			break;
+		case COMM_IS_DEAD:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: No communication.\n");
+			}
+			break;
+		case SIC_FAILURE:
+			if (!opsec_get_sic_error (psession, &sic_errno, &sic_errmsg)) {
+				if (cfgvalues.debug_mode) {
+					fprintf (stderr, "ERROR: SIC ERROR %d - %s\n", sic_errno, sic_errmsg);
+				}
+			}
+			break;
+		default:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "Warning: Unknown reason of session end.\n");
+			}
+			break;
+	}				//end of switch
 
-  return OPSEC_SESSION_OK;
+	opsec_del_event_handler (pEnv, initent, fc_handler, 0);
+	opsec_del_event_handler (pEnv, resumeent, fc_handler, 0);
+	opsec_del_event_handler (pEnv, shutdownent, fc_handler, 0);
+
+	return OPSEC_SESSION_OK;
+
 }
 
 /*
  * function fc_handler
  */
 int fc_handler (OpsecEnv *pEnv, long eventid, void *raise_data, void *set_data) {
-                                                                                                                                 
+
         if (eventid == initent) {
                 /* init event */
                 if (cfgvalues.debug_mode) {
@@ -1780,19 +1747,19 @@ int fc_handler (OpsecEnv *pEnv, long eventid, void *raise_data, void *set_data) 
                 }
                 return 0;
         }
- 
+
         if (eventid == resumeent) {
                 /* resume event*/
                 if (cfgvalues.debug_mode) {
                         fprintf (stderr, "Info: Resume event has been received.\n");
                 }
- 
+
                 if(pSession!=NULL) {
                         lea_session_resume(pSession);
                 }
                 return 0;
         }
- 
+
         if (eventid == shutdownent) {
                 /* shut down event */
                 if (cfgvalues.debug_mode) {
@@ -1801,11 +1768,11 @@ int fc_handler (OpsecEnv *pEnv, long eventid, void *raise_data, void *set_data) 
                 opsec_del_event_handler (pEnv, initent, fc_handler, 0);
                 opsec_del_event_handler (pEnv, resumeent, fc_handler, 0);
                 opsec_del_event_handler (pEnv, shutdownent, fc_handler, 0);
-                                                                                                                                 
+
                 if(pSession!=NULL) {
                         opsec_end_session(pSession);
                 }
-                                                                                                                                 
+
                 return 0;
         }
 
@@ -1818,160 +1785,130 @@ int fc_handler (OpsecEnv *pEnv, long eventid, void *raise_data, void *set_data) 
 int
 read_fw1_logfile_end (OpsecSession * psession)
 {
-  int end_reason = 0;
-  int sic_errno = 0;
-  char *sic_errmsg = NULL;
+	int end_reason = 0;
+	int sic_errno = 0;
+	char *sic_errmsg = NULL;
 
-  if (cfgvalues.debug_mode >= 2)
-    {
-      fprintf (stderr, "DEBUG: function read_fw1_logfile_end\n");
-    }
+	if (cfgvalues.debug_mode >= 2) {
+		fprintf (stderr, "DEBUG: function read_fw1_logfile_end\n");
+	}
 
-  if (cfgvalues.debug_mode)
-    {
-      fprintf (stderr, "DEBUG: OPSEC_SESSION_END_HANDLER called\n");
-    }
+	if (cfgvalues.debug_mode) {
+		fprintf (stderr, "DEBUG: OPSEC_SESSION_END_HANDLER called\n");
+	}
 
-  // Check what is the reason of opsec session end
-  end_reason = opsec_session_end_reason (psession);
-  switch (end_reason)
-    {
-    case END_BY_APPLICATION:
-    case SESSION_TIMEOUT:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "DEBUG: The session has been ended.\n");
-	}
-      keepAlive = FALSE;
-      break;
-    case SESSION_NOT_ENDED:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "WARNING: The session has not been terminated.\n");
-	}
-      keepAlive = FALSE;
-      break;
-    case UNABLE_TO_ATTACH_COMM:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "ERROR: Failed to establish connection.\n");
-	}
-      if (established)
-	{
-	  keepAlive = TRUE;
-	}
-      else
-	{
-	  keepAlive = FALSE;
-	};
-      break;
-    case ENTITY_TYPE_SESSION_INIT_FAIL:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr,
-		   "ERROR: OPSEC API-specific library code on other side of connection failed when attempting to initialize the session.\n");
-	}
-      keepAlive = FALSE;
-      break;
-    case ENTITY_SESSION_INIT_FAIL:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr,
-		   "ERROR: Third-party start handler on other side of connection failed.\n");
-	}
-      keepAlive = FALSE;
-      break;
-    case COMM_FAILURE:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "ERROR: Communication failure.\n");
-	}
-      if (established)
-	{
-	  keepAlive = TRUE;
-	}
-      else
-	{
-	  keepAlive = FALSE;
-	};
-      break;
-    case BAD_VERSION:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "ERROR: Incorrect version at other side.\n");
-	}
-      keepAlive = FALSE;
-      break;
-    case PEER_SEND_DROP:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "ERROR: The peer dropped the connection.\n");
-	}
-      if (established)
-	{
-	  keepAlive = TRUE;
-	}
-      else
-	{
-	  keepAlive = FALSE;
-	};
-      break;
-    case PEER_ENDED:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "ERROR: The peer ends.\n");
-	}
-      keepAlive = FALSE;
-      break;
-    case PEER_SEND_RESET:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "ERROR: The peer reset the connection.\n");
-	}
-      if (established)
-	{
-	  keepAlive = TRUE;
-	}
-      else
-	{
-	  keepAlive = FALSE;
-	};
-      break;
-    case COMM_IS_DEAD:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "ERROR: No communication.\n");
-	}
-      if (established)
-	{
-	  keepAlive = TRUE;
-	}
-      else
-	{
-	  keepAlive = FALSE;
-	};
-      break;
-    case SIC_FAILURE:
-      if (!opsec_get_sic_error (psession, &sic_errno, &sic_errmsg))
-	{
-	  if (cfgvalues.debug_mode)
-	    {
-	      fprintf (stderr, "ERROR: SIC ERROR %d - %s\n", sic_errno,
-		       sic_errmsg);
-	    }
-	}
-      keepAlive = FALSE;
-      break;
-    default:
-      if (cfgvalues.debug_mode)
-	{
-	  fprintf (stderr, "Warning: Unknown reason of session end.\n");
-	}
-      keepAlive = FALSE;
-      break;
-    }				//end of switch
+	// Check what is the reason of opsec session end
+	end_reason = opsec_session_end_reason (psession);
+	switch (end_reason) {
+		case END_BY_APPLICATION:
+		case SESSION_TIMEOUT:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "DEBUG: The session has been ended.\n");
+			}
+			keepAlive = FALSE;
+			break;
+		case SESSION_NOT_ENDED:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "WARNING: The session has not been terminated.\n");
+			}
+			keepAlive = FALSE;
+			break;
+		case UNABLE_TO_ATTACH_COMM:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: Failed to establish connection.\n");
+			}
+			if (established) {
+				keepAlive = TRUE;
+			} else {
+				keepAlive = FALSE;
+			};
+			break;
+		case ENTITY_TYPE_SESSION_INIT_FAIL:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: OPSEC API-specific library code on other side of connection failed when attempting to initialize the session.\n");
+			}
+			keepAlive = FALSE;
+			break;
+		case ENTITY_SESSION_INIT_FAIL:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: Third-party start handler on other side of connection failed.\n");
+			}
+			keepAlive = FALSE;
+			break;
+		case COMM_FAILURE:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: Communication failure.\n");
+			}
+			if (established) {
+				keepAlive = TRUE;
+			} else {
+				keepAlive = FALSE;
+			};
+			break;
+		case BAD_VERSION:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: Incorrect version at other side.\n");
+			}
+			keepAlive = FALSE;
+			break;
+		case PEER_SEND_DROP:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: The peer dropped the connection.\n");
+			}
+			if (established) {
+				keepAlive = TRUE;
+			} else {
+				keepAlive = FALSE;
+			};
+			break;
+		case PEER_ENDED:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: The peer ends.\n");
+			}
+			keepAlive = FALSE;
+			break;
+		case PEER_SEND_RESET:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: The peer reset the connection.\n");
+			}
+			if (established) {
+				keepAlive = TRUE;
+			} else {
+				keepAlive = FALSE;
+			};
+			break;
+		case COMM_IS_DEAD:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "ERROR: No communication.\n");
+			}
+			if (established) {
+				keepAlive = TRUE;
+			} else {
+				keepAlive = FALSE;
+			};
+			break;
+		case SIC_FAILURE:
+			if (!opsec_get_sic_error (psession, &sic_errno, &sic_errmsg)) {
+				if (cfgvalues.debug_mode) {
+					fprintf (stderr, "ERROR: SIC ERROR %d - %s\n", sic_errno, sic_errmsg);
+				}
+			}
+			keepAlive = FALSE;
+			break;
+		default:
+			if (cfgvalues.debug_mode) {
+				fprintf (stderr, "Warning: Unknown reason of session end.\n");
+			}
+			keepAlive = FALSE;
+			break;
+	} //end of switch
 
-  return OPSEC_SESSION_OK;
+	opsec_del_event_handler (pEnv, initent, fc_handler, 0);
+	opsec_del_event_handler (pEnv, resumeent, fc_handler, 0);
+	opsec_del_event_handler (pEnv, shutdownent, fc_handler, 0);
+
+	return OPSEC_SESSION_OK;
+
 }
 
 /*
@@ -4446,7 +4383,7 @@ string_get_token (char **tokstring, char separator)
       fprintf (stderr, "DEBUG: function string_get_token\n");
     }
 
-  /* 
+  /*
    * return if tokstring is NULL
    */
   if (*tokstring == NULL)
@@ -7637,15 +7574,15 @@ check_config_files (char *loggrabberconf, char *leaconf)
 
 /* Function prototypes for thread routines */
 ThreadFuncReturnType leaRecordProcessor( void *data ){
-                                                                                                                                 
+
         LinkedList * records;
         char* message;
-                                                                                                                                 
+
         alive = TRUE;
-                                                                                                                                 
+
     while(alive)
         {
-                                                                                                                                 
+
                 #ifdef WIN32
                         if (WaitForSingleObject(mutex,INFINITE) == WAIT_FAILED){
                                 fprintf(stderr,"Error: OPSEC LEA Record Worker Thread.");
@@ -7655,7 +7592,7 @@ ThreadFuncReturnType leaRecordProcessor( void *data ){
                 #else
                         pthread_mutex_lock(&mutex);
                 #endif
-                                                                                                                                 
+
                 //Enter critical section
                 if(isEmpty()) {
                         // end critical section
@@ -7684,18 +7621,18 @@ ThreadFuncReturnType leaRecordProcessor( void *data ){
                         #endif
                         if(records != NULL) {
                                 message = records->listElement;
-                                                                                                                                 
+
                                 //submit received lea record
                                 submit_log (message);
-                                                                                                                                 
+
                                 //clean used memory
                                 free(message);
                                 free(records);
                         }
-                                                                                                                                 
+
                 }//end of if
         }//end while
-                                                                                                                                 
+
         return 0;
 }
 
