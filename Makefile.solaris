@@ -7,12 +7,15 @@ CC_CMD = gcc
 LD_CMD = gcc
 CC = $(GCC_PREFIX)/bin/$(CC_CMD)
 LD = $(GCC_PREFIX)/bin/$(LD_CMD)
-PKG_DIR = /usr/local/fw1sdk
+PKG_DIR = /opt/fw1sdk
+MYSQL_LIBDIR = /usr/local/mysql/lib/mysql
+MYSQL_INCDIR = /usr/local/mysql/include
+Z_DIR = /usr/local/lib
 
 #
 # uncomment the following setting for database support
 #
-#MYSQL_CFLAGS=-DUSE_MYSQL
+#MYSQL_CFLAGS=-DUSE_MYSQL -I$(MYSQL_INCDIR)
 #MYSQL_LIBS=-lmysqlclient -lz
 
 #
@@ -22,38 +25,36 @@ EXE_NAME = fw1-loggrabber
 OBJ_FILES = fw1-loggrabber.o
 
 LIB_DIR = $(PKG_DIR)/lib/release.static
-CPC_DIR = $(PKG_DIR)/lib/lib/static
-MYSQL_DIR = /usr/lib/mysql
-Z_DIR = /usr/lib
+CPC_DIR = 
 
 STATIC_LIBS = \
-	-lopsec \
-	-lsicauth -lsic \
-	-lcp_policy \
-	-lskey \
-	-lndb \
-	-lckpssl -lcpcert \
-	-lcpcryptutil -lcpprng \
-	-lcpbcrypt -lcpca \
-	-lasn1cpp \
-	-lcpopenssl \
-	-lAppUtils -lEventUtils \
-	-lEncode -lComUtils \
-	-lResolve -lDataStruct \
-	-lOS \
-	-lcpprod50 \
+        -lopsec \
+        -lsicauth -lsic \
+        -lcp_policy \
+        -lskey \
+        -lndb \
+        -lckpssl -lcpcert \
+        -lcpcryptutil -lcpprng \
+        -lcpbcrypt -lcpca \
+        -lasn1cpp \
+        -lcpopenssl \
+        -lAppUtils -lEventUtils \
+        -lEncode -lComUtils \
+        -lResolve -lDataStruct \
+        -lOS \
+        -lcpprod50\
 	$(MYSQL_LIBS)
 
-LIBS = -lpthread -lresolv -ldl -lpam -lnsl -lelf $(CPC_DIR)/libcpc++-3-libc6.1-2-2.10.0.a
-#LIBS = -lpthread -lresolv -ldl -lnsl -lelf -lcpc++
-CFLAGS += -g -Wall -fpic -I$(PKG_DIR)/include -DLINUX -DUNIXOS=1 -DDEBUG $(MYSQL_CFLAGS)
+LIBS = -lthread -lresolv -lsocket -lnsl -ldl -lintl -lm -lc -lw -lkstat -lkvm -lelf
+LIBS += $(GCC_PREFIX)/lib/libstdc++.a.2.10.0
+CFLAGS += -Wall -DGCC_COMP -D_REENTRANT -I$(PKG_DIR)/include -DSOLARIS2 -Dsolaris2 -DUNIXOS=1 -DDEBUG $(MYSQL_CFLAGS)
 
 %.o: %.c
 	$(CC) -static $(CFLAGS) -c -o $@ $*.c
 
 $(EXE_NAME): $(OBJ_FILES)
-	$(LD) $(CFLAGS) -L$(LIB_DIR) -L$(CPC_DIR) -L$(MYSQL_DIR) -L$(Z_DIR) -o $@ $(OBJ_FILES) $(STATIC_LIBS) $(LIBS)
-#	$(LD) -static $(CFLAGS) -L$(LIB_DIR) -L$(CPC_DIR) -o $@ $(OBJ_FILES) $(STATIC_LIBS) $(LIBS)
+	$(LD) $(CFLAGS) -L$(LIB_DIR) -L$(MYSQL_LIBDIR) -R$(MYSQL_LIBDIR) -L$(Z_DIR) -L/usr/local/lib -R/usr/local/lib -o $@ $(OBJ_FILES) $(STATIC_LIBS) $(LIBS)
 
 clean:
 	rm *.o $(EXE_NAME)
+
