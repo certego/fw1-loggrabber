@@ -2,10 +2,10 @@
 FW1-LOGGRABBER
 
 Author:           Torsten Fellhauer <torsten@fellhauer-web.de>
-current Version:  1.10
+current Version:  1.11
 ***********************************************************************
 
-Copyright (c) 2004 Torsten Fellhauer, Xiaodong Lin
+Copyright (c) 2005 Torsten Fellhauer, Xiaodong Lin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -114,8 +114,8 @@ CHANGE HISTORY
   o disabled connection timeout
   o implemented additional output methods (file, syslog)
 
-* 1.11 - some new features (xxxx/xx/xx)
-  o seaprated connection configuration into lea.conf
+* 1.11 - some new features (2005/01/02)
+  o separated connection configuration into lea.conf
   o looking for config files in cwd or absolute dir
   o implemented configureable syslog facility
   o implemented authenticated connections to FW-1 4.1
@@ -124,3 +124,8 @@ CHANGE HISTORY
   o replaced MySQL support by ODBC support
   o implemented creation of database tables
   o support for MySQL, PostgreSQL, Oracle, DB2 and MSSQL Server
+  o added additional filter for "orig"
+  o added additional filter values for "action"
+  o added INSTALL script to Unix/Linux-distribution
+  o created INSTALLER for W32-distribution
+  o replace newline character in resource field by (+)

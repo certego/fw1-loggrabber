@@ -1,9 +1,9 @@
 .\" Process this file with
 .\" groff -man -Tascii fw1-loggrabber.1
 .\"
-.TH FW1-LOGGRABBER "November 2004" Unix "User Manuals"
+.TH FW1-LOGGRABBER "January 2005" Unix "User Manuals"
 .SH NAME
-fw1-loggrabber \- a command line LEA-client for Checkpoint FW-1
+fw1-loggrabber \- a command line LEA-client for Checkpoint Firewall-1
 .SH SYNOPSIS
 .B fw1-loggrabber [--options]
 .SH DESCRIPTION
@@ -15,6 +15,40 @@ The idea for \fBfw1-loggrabber\fR was born due to the need of analysing
 Checkpoint FW-1 log data using LIRE (http://www.logreport.org). Meanwhile
 their are a lot of additional features, which hopefully ease daily work
 of many firewall administrators.
+.SH AVAILABLE VERSIONS
+The following versions of \fBfw1-loggrabber\fR are available on http://sourceforge.net/projects/fw1-loggrabber:
+.RS
+
+- Sourcecode distribution
+.RE
+.RS
+
+- Linux-binary (x86) distribution without ODBC-support
+.RE
+.RS
+
+- Linux-binary (x86) distribution with ODBC-support using statically linked iODBC-libraries
+.RE
+.RS
+
+- Linux-binary (x86) distribution with ODBC-support using statically linked unixODBC-libraries
+.RE
+.RS
+
+- Solaris-binary (SPARC) distribution without ODBC-support
+.RE
+.RS
+
+- Solaris-binary (SPARC) distribution with ODBC-support using statically linked iODBC-libraries
+.RE
+.RS
+
+- Solaris-binary (SPARC) distribution with ODBC-support using statically linked unixODBC-libraries
+.RE
+.RS
+
+- Windows-binary distribution with ODBC-support using Microsoft ODBC-libraries
+.RE
 .SH PREREQUISITES
 \fBfw1-loggrabber\fR is statically linked and runs on the following platforms. If you run \fBfw1-loggrabber\fR on another distribution, version or kernel version, please send me a mail describing your environment.
 .RS
@@ -30,6 +64,29 @@ have to be installed
 .RS
 
 - Windows NT/2000/XP - tested versions are currently only Windows 2000
+.RE
+.SH INSTALLATION
+Beginning with v1.11, \fBfw1-loggrabber\fR includes a very basic installer script
+for Linux and Solaris distributions as well as a self-extracting installer for the
+Windows distribution. If you want to use the installer script \fBINSTALL.sh\fR, you 
+should first modify the PATH-settings in INSTALL.sh according to your environment.
+On default, the script installs \fBfw1-loggrabber\fR to /usr/local/fw1-loggrabber.
+The install script also prompts you for adding two environment variables to your
+shell configuration file which will be explained in the following section.
+.SH ENVIRONMENT VARIABLES
+\fBfw1-loggrabber\fR makes use of two environment variables, which should be defined
+in the shell configuration file:
+.RS
+
+- LOGGRABBER_CONFIG_PATH - this variable defines a directory where \fBfw1-loggrabber\fR 
+searches its configuration files (fw1-loggrabber.conf, lea.conf). If this variable is not
+defined, \fBfw1-loggrabber\fR looks in the current directory for these configuration files.
+.RE
+.RS
+
+- LOGGRABBER_TEMP_PATH - this variable defines a directory where \fBfw1-loggrabber\fR stores 
+temporary files. If this variable is not defined, \fBfw1-loggrabber\fR stores these files
+in the current directory.
 .RE
 .SH OPTIONS
 In the following lines, all available command line options are described in detail. Most
@@ -374,6 +431,38 @@ be used when \fBLOGGING_CONFIGURATION\fR is set to \fBODBC\fR.
 This parameter can be used to set the syslog facility to be used (Unix only). 
 Obviously this is only effective when running \fBfw1-loggrabber\fR with 
 \fBLOGGING_CONFIGURATION=SYSLOG\fR.
+.TP
+.B FW1_FILTER_RULE=\*(lq<filterexpression1>[;<filterexpression2>]\*(rq
+When using this option in the configuration file, you can define filters for normal log-mode in 
+the configuration file instead of a commandline option. You can specify multiple 
+filter rules using multiple \fBFW1_FILTER_RULE\fR lines. All filter rules are related by
+OR, i.e. if you specify multiple rules, a log entry will be displayed if one of the
+rules matches. Within one filter rule, you can specify multiple arguments. All of these
+arguments are related by AND, i.e. a single filter rule only matches a given log entry
+if the log entry is matched by all arguments. A more detailed description of filter rules
+you can find below in a separate chapter about filtering which also provides various examples.
+.TP
+.B AUDIT_FILTER_RULE=\*(lq<filterexpression1>[;<filterexpression2>]\*(rq
+In contrast to \fBFW1_FILTER_RULE\fR, \fBAUDIT_FILTER_RULE\fR allows definitions of filters
+for auditlog-mode within the configuration file.
+.TP
+.B FIELDS=\*(lq<field1>[;<field2>]\*(rq
+The FIELDS configuration file option can be used to display only a given set of fields
+instead of displaying all available fields. The order of the fields being displayed is
+the same as specified within the \fBFIELDS\fR option. E.g.
+.RS
+
+FIELDS="loc;src;dst"
+.RE
+.RS
+
+If there are more than one FIELDS-lines in the configuration file or unknown fieldnames
+are used in the FIELDS-line, \fBfw1-loggrabber\fR will abort with an error message.
+You can display the currently supported fields with the \fB--help-fields\fR option.
+If you are missing some fields, please run \fBfw1-loggrabber\fR with \fB--debug-level 1\fR 
+and check for debug output containing \fI"Unsupported field found: fieldname=fieldvalue"\fR.
+If you send me these lines I will implement the missing fields in the next release.
+.RE
 .TP
 .B AUTHENTICATED=<yes|no> [OBSOLETE]
 This option is obsolete starting from version 1.11. The connection configuration
@@ -834,13 +923,16 @@ given log entry only, if all of the filter arguments match.
 .TP
 .B Supported filter arguments in normal mode
 .RS
-- action=<accept|drop|reject>
+- action=<ctl|accept|drop|reject|encrypt|decrypt|keyinst>
 .RE
 .RS
 - dst=<IP address>
 .RE
 .RS
 - endtime=<YYYYMMDDhhmmss>
+.RE
+.RS
+- orig=<IP address>
 .RE
 .RS
 - product=<VPN-1 & FireWall-1|SmartDefense>
@@ -863,13 +955,16 @@ given log entry only, if all of the filter arguments match.
 .TP
 .B Supported filter arguments in audit mode
 .RS
-- action=<accept|drop|reject>
+- action=<ctl|accept|drop|reject|encrypt|decrypt|keyinst>
 .RE
 .RS
 - administrator=<string>
 .RE
 .RS
 - endtime=<YYYYMMDDhhmmss>
+.RE
+.RS
+- orig=<IP address>
 .RE
 .RS
 - product=<SmartDashboard|Policy Editor|SmartView Tracker|SmartView Status|SmartView Monitor|System Monitor|cpstat_monitor|SmartUpdate|CPMI Client>

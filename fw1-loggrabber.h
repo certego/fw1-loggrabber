@@ -1,10 +1,10 @@
 /******************************************************************************/
-/* fw1-loggrabber - (C)2004 Torsten Fellhauer, Xiaodong Lin                   */
+/* fw1-loggrabber - (C)2005 Torsten Fellhauer, Xiaodong Lin                   */
 /******************************************************************************/
 /* Version: 1.11                                                              */
 /******************************************************************************/
 /*                                                                            */
-/* Copyright (c) 2004 Torsten Fellhauer, Xiaodong Lin                         */
+/* Copyright (c) 2005 Torsten Fellhauer, Xiaodong Lin                         */
 /* All rights reserved.                                                       */
 /*                                                                            */
 /* Redistribution and use in source and binary forms, with or without         */
@@ -88,6 +88,20 @@
  */
 #define VERSION			"1.11"
 
+#ifdef WIN32
+#	define ODBCVERSION	"Windows-ODBC-support"
+#elif STATIC_IODBC
+#	define ODBCVERSION	"static iODBC-support"
+#elif DYNAMIC_IODBC
+#	define ODBCVERSION	"dynamic iODBC-support"
+#elif STATIC_UNIXODBC
+#	define ODBCVERSION	"static unixODBC-support"
+#elif DYNAMIC_UNIXODBC
+#	define ODBCVERSION	"dynamic unixODBC-support"
+#else
+#	define ODBCVERSION	"no ODBC-support"
+#endif
+
 #define TRUE			1
 #define FALSE			0
 
@@ -95,7 +109,7 @@
 #define DATETIME_UNIX		1
 #define DATETIME_STD		2
 
-#define NUMBER_LIDX_FIELDS	103
+#define NUMBER_LIDX_FIELDS	108
 
 #define LIDX_NUM		0
 #define LIDX_TIME		1
@@ -200,6 +214,11 @@
 #define LIDX_RPC_PROG		100
 #define LIDX_TH_FLAGS		101
 #define LIDX_CP_MESSAGE		102
+#define LIDX_REJECT_CATEGORY	103
+#define LIDX_IKE_LOG		104
+#define LIDX_NEGOTIATION_ID	105
+#define LIDX_DECRYPTION_FAILURE	106
+#define LIDX_LEN		107
 
 #define NUMBER_AIDX_FIELDS	21
 
@@ -230,6 +249,9 @@
 #define SYSLOG                  2
 #define ODBC                    3
 #define SNMP                    4	// For future use
+
+#define INITIAL_CAPACITY   1024
+#define CAPACITY_INCREMENT 4096
 
 /*
  * Type definitions
@@ -264,6 +286,11 @@ typedef struct configvalues
   char *fw1_logfile;
   char *output_file_prefix;
   long output_file_rotatesize;
+  char *fields;
+  int fw1_filter_count;
+  char **fw1_filter_array;
+  int audit_filter_count;
+  char **audit_filter_array;
 }
 configvalues;
 
@@ -289,8 +316,7 @@ int read_fw1_logfile_end (OpsecSession *);
 /*
  * event handler used by read_fw1_logfile to print returned log records
  */
-int read_fw1_logfile_n_record_stdout (OpsecSession *, lea_record *, int[]);
-int read_fw1_logfile_a_record_stdout (OpsecSession *, lea_record *, int[]);
+int read_fw1_logfile_record (OpsecSession *, lea_record *, int[]);
 
 /*
  * dummy event handler for debugging purposes
@@ -373,60 +399,8 @@ void cleanup_fw1_environment (OpsecEnv *, OpsecEntity *, OpsecEntity *);
 /*
  * function to read configfile
  */
+void check_config_files (char *, char *);
 void read_config_file (char *, struct configvalues *);
-
-/*
- * array initializations
- */
-void initialize_lfield_headers (char ***);
-void initialize_afield_headers (char ***);
-#ifdef USE_ODBC
-void initialize_lfield_dbheaders (char ***);
-void initialize_afield_dbheaders (char ***);
-#endif
-void initialize_lfield_values (char ***);
-void initialize_afield_values (char ***);
-void initialize_lfield_output (int *);
-void initialize_afield_output (int *);
-void initialize_lfield_order (int *);
-void initialize_afield_order (int *);
-void free_lfield_arrays (char ***);
-void free_afield_arrays (char ***);
-
-/*
- * function to show help about this tool
- */
-void usage (char *);
-void show_supported_fields ();
-
-/*
- * cleanup functions
- */
-void exit_loggrabber (int);
-
-/*
- * helper functions for working with lists
- */
-int stringlist_append (stringlist **, char *);
-void stringlist_print (stringlist **);
-stringlist *stringlist_search (stringlist **, char *, char **);
-stringlist *stringlist_delete (stringlist **);
-
-/*
- * helper function to work with strings
- */
-char *string_get_token (char **, char);
-char *string_duplicate (const char *);
-char *string_left_trim (char *, char);
-char *string_right_trim (char *, char);
-char *string_trim (char *, char);
-char *string_escape (char *, char);
-char *string_rmchar (char *, char);
-int string_icmp (const char *, const char *);
-int string_incmp (const char *, const char *, size_t);
-char *string_toupper (const char *);
-
-char getschar ();
 
 /*
  * initilization function to define open, submit and close handler
@@ -456,11 +430,7 @@ void open_logfile ();
 void submit_logfile (char *);
 void close_logfile ();
 
-
 #ifdef USE_ODBC
-int create_loggrabber_tables ();
-int ODBC_Errors (char *);
-
 /*
  * odbc initializations
  */
@@ -469,14 +439,69 @@ void submit_odbc (char *);
 void close_odbc ();
 #endif
 
-//pointer to function open log pipe
-void (*open_log) ();
+#ifdef USE_ODBC
+/*
+ * ODBC related functions
+ */
+int create_loggrabber_tables ();
+int ODBC_Errors (char *);
+#endif
 
-//pointer to function submit
-void (*submit_log) (char *message);
+/*
+ * array initializations
+ */
+void initialize_lfield_headers (char ***);
+void initialize_afield_headers (char ***);
+void initialize_lfield_values (char ***);
+void initialize_afield_values (char ***);
+void initialize_lfield_output (int *);
+void initialize_afield_output (int *);
+void initialize_lfield_order (int *);
+void initialize_afield_order (int *);
+void free_lfield_arrays (char ***);
+void free_afield_arrays (char ***);
+#ifdef USE_ODBC
+void initialize_lfield_dbheaders (char ***);
+void initialize_afield_dbheaders (char ***);
+void initialize_lfield_dblength (int *);
+void initialize_afield_dblength (int *);
+#endif
 
-//pointer to function close log pipe
-void (*close_log) ();
+/*
+ * function to show help about this tool
+ */
+void usage (char *);
+void show_supported_fields ();
+
+/*
+ * cleanup functions
+ */
+void exit_loggrabber (int);
+
+/*
+ * helper functions for working with lists
+ */
+int stringlist_append (stringlist **, char *);
+void stringlist_print (stringlist **);
+stringlist *stringlist_search (stringlist **, char *, char **);
+stringlist *stringlist_delete (stringlist **);
+
+/*
+ * helper function to work with strings
+ */
+char *string_get_token (char **, char);
+char *string_duplicate (const char *);
+unsigned int string_cat (char **, const char *, unsigned int);
+char *string_left_trim (char *, char);
+char *string_right_trim (char *, char);
+char *string_trim (char *, char);
+char *string_escape (char *, char);
+char *string_rmchar (char *, char);
+char *string_mask_newlines (char *);
+int string_icmp (const char *, const char *);
+int string_incmp (const char *, const char *, size_t);
+char *string_toupper (const char *);
+char getschar ();
 
 /*
  * file operation functions
@@ -487,8 +512,20 @@ void fileCopy (const char *inputfile, const char *outputfile);
 // check and see whether or not a file exists
 int fileExist (const char *fileName);
 
-//Worker thread function
+// Worker thread function
 ThreadFuncReturnType leaRecordProcessor( void *data );
+                                                                                                                         
+/*
+ * pointers to functions
+ */
+//pointer to function open log pipe
+void (*open_log) ();
+
+//pointer to function submit
+void (*submit_log) (char *message);
+
+//pointer to function close log pipe
+void (*close_log) ();
 
 /*
  * Global definitions
@@ -508,24 +545,67 @@ int mysql_mode = -1;
 int fieldnames_mode = -1;
 int create_tables = FALSE;
 
-char s[1024];
+#ifdef USE_ODBC
+/* 
+ * global variables for ODBC
+ */
+SQLHENV henv;
+SQLHDBC hdbc;
+SQLHSTMT hstmt;
+int connected = 0;
+const char *infotable = "loggrabber";
+const char *logtable = "fw1logs";
+const char *audittable = "auditlogs";
+char *dbms_name = NULL;
+char *dbms_ver = NULL;
+long int tableindex = -1;
+#endif
+
+OpsecSession* pSession = NULL;
+OpsecEnv*     pEnv     = NULL;
+
+/*
+ * The following events are user defined:
+ */
+long initent, resumeent, shutdownent;
+
+//A mutex for multithread thread synchronization
+#ifdef WIN32
+      HANDLE mutex;
+#else
+      pthread_mutex_t mutex;
+#endif
+
+//LEA record worker thread id
+ThreadIDType threadid;
+//A flag to indicate whether LEA record worker thread should quit.
+Bool alive = TRUE;
+
+//A flag to indicate whether the established Opsec Session has been suspended.
+Bool suspended = FALSE;
 
 /**
  * A character array which is used to convert several variables to char array
  **/
-char stringnumber[2048];
-char headernumber[2048];
+char stringnumber[16384];
+char headernumber[16384];
+
+char s[1024];
 
 char **lfield_headers[NUMBER_LIDX_FIELDS];
 char **afield_headers[NUMBER_AIDX_FIELDS];
-char **lfield_dbheaders[NUMBER_LIDX_FIELDS];
-char **afield_dbheaders[NUMBER_AIDX_FIELDS];
 char **lfields[NUMBER_LIDX_FIELDS];
 char **afields[NUMBER_AIDX_FIELDS];
 int lfield_output[NUMBER_LIDX_FIELDS];
 int afield_output[NUMBER_AIDX_FIELDS];
 int lfield_order[NUMBER_LIDX_FIELDS];
 int afield_order[NUMBER_AIDX_FIELDS];
+#ifdef USE_ODBC
+char **lfield_dbheaders[NUMBER_LIDX_FIELDS];
+char **afield_dbheaders[NUMBER_AIDX_FIELDS];
+int lfield_dblength[NUMBER_LIDX_FIELDS];
+int afield_dblength[NUMBER_AIDX_FIELDS];
+#endif
 
 configvalues cfgvalues = {
   0,				// debug_mode
@@ -548,11 +628,14 @@ configvalues cfgvalues = {
 #endif
   "fw.log",			// fw1_logfile
   "fw1-loggrabber",		// output_file_prefix
-  1048576			// output_file_rotatesize
+  1048576,			// output_file_rotatesize
+  NULL,				// fields
+  0,				// fw1_filter_count
+  NULL,				// fw1_filter_array
+  0,				// audit_filter_count
+  NULL				// audit_filter_array
 };
 
-int initialCapacity = 4096;
-int capacityIncrement = 1024;
 
 /**
  * The current log file descriptor
@@ -574,42 +657,5 @@ int recoverInterval = 10;
  **/
 int established = FALSE;
 
-#ifdef USE_ODBC
-/*
- * global variables for ODBC
- */
-SQLHENV henv;
-SQLHDBC hdbc;
-SQLHSTMT hstmt;
-int connected = 0;
-const char *infotable = "loggrabber";
-const char *logtable = "fw1logs";
-const char *audittable = "auditlogs";
-char *dbms_name = NULL;
-char *dbms_ver = NULL;
-int tableindex = -1;
-#endif
-
-OpsecSession 	*pSession 	= NULL;
-OpsecEnv		*pEnv 		= NULL;
-
-/*
- * The following events are user defined:
- */
-long initent, resumeent, shutdownent;
-
-//A mutex for multithread thread synchronization
-#ifdef WIN32
-	HANDLE mutex;
-#else
-	pthread_mutex_t mutex;
-#endif
-
-//LEA record worker thread id
-ThreadIDType threadid;
-
-//A flag to indicate whether LEA record worker thread should quit.
-Bool alive = TRUE;
-
-//A flag to indicate whether the established Opsec Session has been suspended.
-Bool suspended = FALSE;
+int initialCapacity = 1024;
+int capacityIncrement = 4096;

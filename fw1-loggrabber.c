@@ -1,10 +1,10 @@
 /******************************************************************************/
-/* fw1-loggrabber - (C)2004 Torsten Fellhauer, Xiaodong Lin                   */
+/* fw1-loggrabber - (C)2005 Torsten Fellhauer, Xiaodong Lin                   */
 /******************************************************************************/
 /* Version: 1.11                                                              */
 /******************************************************************************/
 /*                                                                            */
-/* Copyright (c) 2004 Torsten Fellhauer, Xiaodong Lin                         */
+/* Copyright (c) 2005 Torsten Fellhauer, Xiaodong Lin                         */
 /* All rights reserved.                                                       */
 /*                                                                            */
 /* Redistribution and use in source and binary forms, with or without         */
@@ -60,6 +60,7 @@ main (int argc, char *argv[])
   stringlist *lstptr;
   char *foundstring;
   char *field;
+  char *fieldstring = NULL;
 
   /*
    * initialize field arrays
@@ -69,6 +70,8 @@ main (int argc, char *argv[])
 #ifdef USE_ODBC
   initialize_lfield_dbheaders (lfield_dbheaders);
   initialize_afield_dbheaders (afield_dbheaders);
+  initialize_lfield_dblength (lfield_dblength);
+  initialize_afield_dblength (afield_dblength);
 #endif
   initialize_lfield_output (lfield_output);
   initialize_afield_output (afield_output);
@@ -271,55 +274,7 @@ main (int argc, char *argv[])
 	      usage (argv[0]);
 	      exit_loggrabber (1);
 	    }
-	  lfield_order_index = 0;
-	  afield_order_index = 0;
-	  while (argv[i])
-	    {
-	      output_fields = TRUE;
-	      lmatch = FALSE;
-	      amatch = FALSE;
-
-	      field = string_trim (string_get_token (&argv[i], ';'), ' ');
-
-	      field_index = 0;
-	      while (!lmatch && (field_index < NUMBER_LIDX_FIELDS))
-		{
-		  if (string_icmp (field, *lfield_headers[field_index]) == 0)
-		    {
-		      if (!lfield_output[field_index])
-			{
-			  lfield_output[field_index] = TRUE;
-			  lfield_order[lfield_order_index] = field_index;
-			  lfield_order_index++;
-			}
-		      lmatch = TRUE;
-		    }
-		  field_index++;
-		}
-
-	      field_index = 0;
-	      while (!amatch && (field_index < NUMBER_AIDX_FIELDS))
-		{
-		  if (string_icmp (field, *afield_headers[field_index]) == 0)
-		    {
-		      if (!afield_output[field_index])
-			{
-			  afield_output[field_index] = TRUE;
-			  afield_order[afield_order_index] = field_index;
-			  afield_order_index++;
-			}
-		      lmatch = TRUE;
-		    }
-		  field_index++;
-		}
-
-	      if ((!lmatch) && (!amatch))
-		{
-		  printf ("ERROR: Unsupported value for output fields: %s\n",
-			  field);
-		  exit_loggrabber (1);
-		}
-	    }
+	  fieldstring = string_duplicate (argv[i]);
 	}
       else
 	{
@@ -329,6 +284,11 @@ main (int argc, char *argv[])
 	}
     }
 
+  /*
+   * check configuration files
+   */
+  check_config_files (cfgvalues.config_filename,
+		      cfgvalues.leaconfig_filename);
   /*
    * load configuration file
    */
@@ -352,6 +312,72 @@ main (int argc, char *argv[])
   cfgvalues.fw1_logfile =
     (LogfileName !=
      NULL) ? string_duplicate (LogfileName) : cfgvalues.fw1_logfile;
+  if (filtercount > 0)
+    {
+      cfgvalues.fw1_filter_count = filtercount;
+      cfgvalues.fw1_filter_array = filterarray;
+      cfgvalues.audit_filter_count = filtercount;
+      cfgvalues.audit_filter_array = filterarray;
+    }
+  if ((!fieldstring) && (cfgvalues.fields))
+    {
+      fieldstring = string_duplicate (cfgvalues.fields);
+    }
+
+  // if fieldstring is NOT NULL, process this string
+  if (fieldstring)
+    {
+      lfield_order_index = 0;
+      afield_order_index = 0;
+
+      while (fieldstring)
+	{
+	  output_fields = TRUE;
+	  lmatch = FALSE;
+	  amatch = FALSE;
+
+	  field = string_trim (string_get_token (&fieldstring, ';'), ' ');
+
+	  field_index = 0;
+	  while (!lmatch && (field_index < NUMBER_LIDX_FIELDS))
+	    {
+	      if (string_icmp (field, *lfield_headers[field_index]) == 0)
+		{
+		  if (!lfield_output[field_index])
+		    {
+		      lfield_output[field_index] = TRUE;
+		      lfield_order[lfield_order_index] = field_index;
+		      lfield_order_index++;
+		    }
+		  lmatch = TRUE;
+		}
+	      field_index++;
+	    }
+
+	  field_index = 0;
+	  while (!amatch && (field_index < NUMBER_AIDX_FIELDS))
+	    {
+	      if (string_icmp (field, *afield_headers[field_index]) == 0)
+		{
+		  if (!afield_output[field_index])
+		    {
+		      afield_output[field_index] = TRUE;
+		      afield_order[afield_order_index] = field_index;
+		      afield_order_index++;
+		    }
+		  lmatch = TRUE;
+		}
+	      field_index++;
+	    }
+
+	  if ((!lmatch) && (!amatch))
+	    {
+	      printf ("ERROR: Unsupported value for output fields: %s\n",
+		      field);
+	      exit_loggrabber (1);
+	    }
+	}
+    }
 
 #ifdef USE_ODBC
   if (create_tables)
@@ -400,13 +426,14 @@ main (int argc, char *argv[])
 		   "       omit this parameter.\n");
 	  exit_loggrabber (1);
 	}
-      if (filtercount > 0)
+      if ((cfgvalues.fw1_filter_count > 0)
+	  || (cfgvalues.audit_filter_count > 0))
 	{
 	  fprintf (stderr,
-		   "ERROR: --filter options are only available for connections\n"
-		   "       to FW-1 NG. For connections to FW-1 4.1 (2000), please\n"
-		   "       omit these parameters.\n");
-	  exit_loggrabber (1);
+		   "WARNING: --filter options are only available for connections\n"
+		   "         to FW-1 NG. Available filterrules will be disabled!\n");
+	  cfgvalues.fw1_filter_count = 0;
+	  cfgvalues.audit_filter_count = 0;
 	}
       if (cfgvalues.audit_mode)
 	{
@@ -464,17 +491,17 @@ main (int argc, char *argv[])
     }
 #endif
 
-	/* A mutex object to provide safe manipulation of Check Point FW-1 event queue across multiple threads.  */
-	#ifdef WIN32
-		mutex = CreateMutex(NULL,FALSE,NULL);
+/* A mutex object to provide safe manipulation of Check Point FW-1 event queue across multiple threads.  */
+#ifdef WIN32
+  mutex = CreateMutex(NULL,FALSE,NULL);
 
-		if (mutex == NULL) {
-			fprintf (stderr, "ERROR: Error: Windows internal error while creating a mutex.\n");
-			exit_loggrabber (1);
-		}
-	#else
-		pthread_mutex_init(&mutex, NULL);
-	#endif
+  if (mutex == NULL) {
+    fprintf (stderr, "ERROR: Error: Windows internal error while creating a mutex.\n");
+    exit_loggrabber (1);
+  }
+#else
+  pthread_mutex_init(&mutex, NULL);
+#endif
 
   /*
    * set logging envionment
@@ -483,7 +510,7 @@ main (int argc, char *argv[])
 
   open_log ();
 
-	createThread(&threadid, leaRecordProcessor, NULL);
+  createThread(&threadid, leaRecordProcessor, NULL);
 
   /*
    * set opsec debug level
@@ -513,19 +540,20 @@ main (int argc, char *argv[])
   /*
    * function call to get available Logfile-Names (not available in FW1-4.1)
    */
+  if (!(cfgvalues.fw1_2000) && !(cfgvalues.online_mode))
+    {
+      get_fw1_logfiles ();
+    }
+
   if (cfgvalues.showfiles_mode)
     {
-      if (!(cfgvalues.fw1_2000) && !(cfgvalues.online_mode))
-	{
-	  get_fw1_logfiles ();
-	}
-      else
+      if ((cfgvalues.fw1_2000) || (cfgvalues.online_mode))
 	{
 	  fprintf (stderr,
-		   "ERROR: The option --showfiles is not supported for FW-1 2000 or in online mode.\n");
-	  close_log ();
-	  exit_loggrabber (0);
+		   "ERROR: Option --showfiles is not supported for Checkpoint FW-1 2000 or in online mode.\n");
 	}
+      close_log ();
+      exit_loggrabber (0);
     }
 
   /*
@@ -533,18 +561,6 @@ main (int argc, char *argv[])
    */
   if (strcmp (cfgvalues.fw1_logfile, "ALL") == 0)
     {
-      if (!(cfgvalues.fw1_2000) && !(cfgvalues.online_mode))
-	{
-	  get_fw1_logfiles ();
-	}
-      else
-	{
-	  fprintf (stderr,
-		   "ERROR: Processing ALL Logfiles are not supported for FW-1 2000 or in online mode.\n");
-	  close_log ();
-	  exit_loggrabber (1);
-	}
-
       lstptr = sl;
 
       while (lstptr)
@@ -610,13 +626,12 @@ read_fw1_logfile (char **LogfileName)
   //OpsecEnv *pEnv = NULL;
   LeaFilterRulebase *rb;
   int rbid = 1;
-  int i;
+  int i, index;
   int opsecAlive;
 
   char *tmpstr1;
-  int capacity = initialCapacity;
-  char *buffer = NULL;
   char *message = NULL;
+  unsigned int messagecap = 0;
 
   char *auth_type;
   char *fw1_server;
@@ -624,123 +639,48 @@ read_fw1_logfile (char **LogfileName)
   char *opsec_certificate;
   char *opsec_client_dn;
   char *opsec_server_dn;
-  char *leaconf;
   int first = TRUE;
 
-#ifdef WIN32
-  TCHAR buff[BUFSIZE];
-  DWORD dwRet;
-#else
-  long size;
-#endif
+  char *(**headers);
+  int *order;
+  int number_fields;
 
-#ifdef WIN32
-  dwRet = GetCurrentDirectory (BUFSIZE, buff);
-
-  if (dwRet == 0)
+  if (cfgvalues.debug_mode >= 2)
     {
-      fprintf (stderr,
-	       "ERROR: Cannot get current working directory (error code: %d)\n",
-	       GetLastError ());
-      exit_loggrabber (1);
-    }
-  if (dwRet > BUFSIZE)
-    {
-      fprintf (stderr,
-	       "ERROR: Getting the current working directory failed failed since buffer too small, and it needs %d chars\n",
-	       dwRet);
-      exit_loggrabber (1);
-    }
-  if ((leaconf = (char *) malloc (BUFSIZE)) == NULL)
-    {
-      fprintf (stderr, "ERROR: Out of memory\n");
-      exit_loggrabber (1);
+      fprintf (stderr, "DEBUG: function read_fw1_logfile\n");
     }
 
-  if (cfgvalues.leaconfig_filename == NULL)
-    {
-      strcpy (leaconf, buff);
-      strcat (leaconf, "\\lea.conf");
-    }
-  else
-    {
-      if ((cfgvalues.leaconfig_filename[0] == '\\') ||
-	  ((cfgvalues.leaconfig_filename[1] == ':')
-	   && (cfgvalues.leaconfig_filename[2] == '\\')))
-	{
-	  strcpy (leaconf, cfgvalues.leaconfig_filename);
-	}
-      else
-	{
-	  strcpy (leaconf, buff);
-	  strcat (leaconf, "\\");
-	  strcat (leaconf, cfgvalues.leaconfig_filename);
-	}
-    }
-#else
-  size = pathconf (".", _PC_PATH_MAX);
-  if ((leaconf = (char *) malloc ((size_t) size)) == NULL)
-    {
-      fprintf (stderr, "ERROR: Out of memory\n");
-      exit_loggrabber (1);
-    }
-
-  if (cfgvalues.leaconfig_filename == NULL)
-    {
-      if (getcwd (leaconf, (size_t) size) == NULL)
-	{
-	  fprintf (stderr, "ERROR: Cannot get current working directory\n");
-	  exit_loggrabber (1);
-	}
-      strcat (leaconf, "/lea.conf");
-    }
-  else
-    {
-      if (cfgvalues.leaconfig_filename[0] == '/')
-	{
-	  strcpy (leaconf, cfgvalues.leaconfig_filename);
-	}
-      else
-	{
-	  if (getcwd (leaconf, (size_t) size) == NULL)
-	    {
-	      fprintf (stderr,
-		       "ERROR: Cannot get current working directory\n");
-	      exit_loggrabber (1);
-	    }
-	  strcat (leaconf, "/");
-	  strcat (leaconf, cfgvalues.leaconfig_filename);
-	}
-    }
-#endif
+  keepAlive = TRUE;
 
   while (keepAlive)
     {
-
       /* create opsec environment for the main loop */
-      if ((pEnv = opsec_init (OPSEC_CONF_FILE, leaconf, OPSEC_EOL)) == NULL)
+      if ((pEnv =
+	   opsec_init (OPSEC_CONF_FILE, cfgvalues.leaconfig_filename,
+		       OPSEC_EOL)) == NULL)
 	{
 	  fprintf (stderr, "ERROR: unable to create environment (%s)\n",
 		   opsec_errno_str (opsec_errno));
 	  exit_loggrabber (1);
 	}
 
-	/* create user defined events */
-	initent		= opsec_new_event_id();
-	resumeent	= opsec_new_event_id();
-	shutdownent	= opsec_new_event_id();
+      /* create user defined events */
+      initent         = opsec_new_event_id();
+      resumeent       = opsec_new_event_id();
+      shutdownent     = opsec_new_event_id();
 
-	/* trigger persistent INIT event */
-	opsec_raise_event (pEnv, initent, (void *) 0);
+      /* trigger persistent INIT event */
+      opsec_raise_event (pEnv, initent, (void *) 0);
 
-	opsec_set_event_handler ( pEnv, initent, fc_handler, (void *) 0);
-	opsec_set_event_handler ( pEnv, resumeent, fc_handler, (void *) 0);
-	opsec_set_event_handler ( pEnv, shutdownent, fc_handler, (void *) 0);
+      opsec_set_event_handler ( pEnv, initent, fc_handler, (void *) 0);
+      opsec_set_event_handler ( pEnv, resumeent, fc_handler, (void *) 0);
+      opsec_set_event_handler ( pEnv, shutdownent, fc_handler, (void *) 0);
 
       if (cfgvalues.debug_mode)
 	{
 
-	  fprintf (stderr, "DEBUG: OPSEC LEA conf file is %s\n", leaconf);
+	  fprintf (stderr, "DEBUG: OPSEC LEA conf file is %s\n",
+		   cfgvalues.leaconfig_filename);
 
 	  fw1_server = opsec_get_conf (pEnv, "lea_server", "ip", NULL);
 	  if (fw1_server == NULL)
@@ -843,16 +783,23 @@ read_fw1_logfile (char **LogfileName)
        */
       pClient = opsec_init_entity (pEnv, LEA_CLIENT,
 				   LEA_RECORD_HANDLER,
-				   ((cfgvalues.audit_mode) ?
-				    read_fw1_logfile_a_record_stdout :
-				    read_fw1_logfile_n_record_stdout),
+				   read_fw1_logfile_record,
 				   LEA_DICT_HANDLER, read_fw1_logfile_dict,
 				   LEA_EOF_HANDLER, read_fw1_logfile_eof,
 				   LEA_SWITCH_HANDLER,
 				   read_fw1_logfile_switch,
 				   LEA_FILTER_QUERY_ACK,
-				   ((filtercount > 0) ?
-				    read_fw1_logfile_queryack : NULL),
+				   ((cfgvalues.
+				     audit_mode) ? ((cfgvalues.
+						     audit_filter_count >
+						     0) ?
+						    read_fw1_logfile_queryack
+						    : NULL) : ((cfgvalues.
+								fw1_filter_count
+								>
+								0) ?
+							       read_fw1_logfile_queryack
+							       : NULL)),
 				   LEA_COL_LOGS_HANDLER,
 				   read_fw1_logfile_collogs,
 				   LEA_SUSPEND_HANDLER,
@@ -940,283 +887,130 @@ read_fw1_logfile (char **LogfileName)
 
 	  /*
 	   * If filters were defined, create the rulebase and register it.
-	   * the session will be resumed, as soon as the server sends the
+	   * the session will be resumed, as soon as the server sends the 
 	   * filter_ack-event.
 	   * In the case when no filters are used, the suspended session
 	   * will be continued immediately.
 	   */
-	  if (filtercount > 0)
+	  if (cfgvalues.audit_mode)
 	    {
-	      if ((rb = lea_filter_rulebase_create ()) == NULL)
+	      if (cfgvalues.audit_filter_count > 0)
 		{
-		  fprintf (stderr, "ERROR: failed to create rulebase\n");
-		  exit_loggrabber (1);
-		}
-
-	      for (i = 0; i < filtercount; i++)
-		{
-		  if (cfgvalues.audit_mode)
+		  if ((rb = lea_filter_rulebase_create ()) == NULL)
 		    {
-		      if ((rb = create_audit_filter_rule (rb, filterarray[i]))
+		      fprintf (stderr, "ERROR: failed to create rulebase\n");
+		      exit_loggrabber (1);
+		    }
+
+		  for (i = 0; i < cfgvalues.audit_filter_count; i++)
+		    {
+		      if ((rb =
+			   create_audit_filter_rule (rb,
+						     cfgvalues.
+						     audit_filter_array[i]))
 			  == NULL)
 			{
 			  fprintf (stderr, "ERROR: failed to create rule\n");
 			  exit_loggrabber (1);
 			}
 		    }
-		  else
+
+		  if (lea_filter_rulebase_register (pSession, rb, &rbid) ==
+		      LEA_FILTER_ERR)
 		    {
-		      if ((rb = create_fw1_filter_rule (rb, filterarray[i]))
-			  == NULL)
-			{
-			  fprintf (stderr, "ERROR: failed to create rule\n");
-			  exit_loggrabber (1);
-			}
+		      fprintf (stderr, "ERROR: Cannot register rulebase\n");
 		    }
 		}
-
-	      if (lea_filter_rulebase_register (pSession, rb, &rbid) ==
-		  LEA_FILTER_ERR)
+	      else
 		{
-		  fprintf (stderr, "ERROR: Cannot register rulebase\n");
+		  lea_session_resume (pSession);
 		}
 	    }
 	  else
 	    {
-	      lea_session_resume (pSession);
+	      if (cfgvalues.fw1_filter_count > 0)
+		{
+		  if ((rb = lea_filter_rulebase_create ()) == NULL)
+		    {
+		      fprintf (stderr, "ERROR: failed to create rulebase\n");
+		      exit_loggrabber (1);
+		    }
+
+		  for (i = 0; i < cfgvalues.fw1_filter_count; i++)
+		    {
+		      if ((rb =
+			   create_audit_filter_rule (rb,
+						     cfgvalues.
+						     fw1_filter_array[i])) ==
+			  NULL)
+			{
+			  fprintf (stderr, "ERROR: failed to create rule\n");
+			  exit_loggrabber (1);
+			}
+		    }
+
+		  if (lea_filter_rulebase_register (pSession, rb, &rbid) ==
+		      LEA_FILTER_ERR)
+		    {
+		      fprintf (stderr, "ERROR: Cannot register rulebase\n");
+		    }
+		}
+	      else
+		{
+		  lea_session_resume (pSession);
+		}
 	    }
 	}
 
       /*
        * display header line if cfgvalues.fieldnames_mode == 0
        */
+
       if (!(cfgvalues.fieldnames_mode))
 	{
-	  // This last plus one is needed to hold the terminator, '\0' //
-	  message = (char *) malloc (capacity + 1);
-	  if (message == NULL)
-	    {
-	      fprintf (stderr, "ERROR: Out of memory\n");
-	      exit_loggrabber (1);
-	    }
-	  *message = '\0';
-
 	  if (cfgvalues.audit_mode)
 	    {
-	      for (i = 0; i < NUMBER_AIDX_FIELDS; i++)
-		{
-		  if (output_fields)
-		    {
-		      if (afield_order[i] >= 0)
-			{
-			  tmpstr1 =
-			    string_escape (*afield_headers[afield_order[i]],
-					   cfgvalues.record_separator);
-			  if (first)
-			    {
-			      sprintf (stringnumber, "%s", tmpstr1);
-			      first = FALSE;
-			    }
-			  else
-			    {
-			      sprintf (stringnumber, "%c%s",
-				       cfgvalues.record_separator, tmpstr1);
-			    }
-			  if (capacity >=
-			      (strlen (message) + strlen (stringnumber)))
-			    {
-			      strcat (message, stringnumber);
-			    }
-			  else
-			    {
-			      capacity =
-				((capacity + capacityIncrement) >=
-				 (strlen (message) +
-				  strlen (stringnumber))) ? (capacity +
-							     capacityIncrement)
-				: (strlen (message) + strlen (stringnumber));
-			      buffer = (char *) malloc (strlen (message) + 1);
-			      if (buffer == NULL)
-				{
-				  fprintf (stderr, "ERROR: Out of memory\n");
-				  exit_loggrabber (1);
-				}
-			      strcpy (buffer, message);
-			      free (message);
-			      // This last plus one is needed to hold the terminator, '\0' //
-			      message = (char *) malloc (capacity + 1);
-			      if (message == NULL)
-				{
-				  fprintf (stderr, "ERROR: Out of memory\n");
-				  exit_loggrabber (1);
-				}
-			      strcpy (message, buffer);
-			      free (buffer);
-			      strcat (message, stringnumber);
-			    }
-			  free (tmpstr1);
-			}
-		    }
-		  else
-		    {
-		      tmpstr1 =
-			string_escape (*afield_headers[i],
-				       cfgvalues.record_separator);
-		      if (first)
-			{
-			  sprintf (stringnumber, "%s", tmpstr1);
-			  first = FALSE;
-			}
-		      else
-			{
-			  sprintf (stringnumber, "%c%s",
-				   cfgvalues.record_separator, tmpstr1);
-			}
-		      if (capacity >=
-			  (strlen (message) + strlen (stringnumber)))
-			{
-			  strcat (message, stringnumber);
-			}
-		      else
-			{
-			  capacity =
-			    ((capacity + capacityIncrement) >=
-			     (strlen (message) +
-			      strlen (stringnumber))) ? (capacity +
-							 capacityIncrement)
-			    : (strlen (message) + strlen (stringnumber));
-			  buffer = (char *) malloc (strlen (message) + 1);
-			  if (buffer == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (buffer, message);
-			  free (message);
-			  // This last plus one is needed to hold the terminator, '\0' //
-			  message = (char *) malloc (capacity + 1);
-			  if (message == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (message, buffer);
-			  free (buffer);
-			  strcat (message, stringnumber);
-			}
-		      free (tmpstr1);
-		    }
-		}
+	      number_fields = NUMBER_AIDX_FIELDS;
+	      headers = afield_headers;
+	      order = afield_order;
 	    }
 	  else
 	    {
-	      for (i = 0; i < NUMBER_LIDX_FIELDS; i++)
+	      number_fields = NUMBER_LIDX_FIELDS;
+	      headers = lfield_headers;
+	      order = lfield_order;
+	    }
+
+	  for (i = 0; i < number_fields; i++)
+	    {
+	      if ((!output_fields) || (order[i] >= 0))
 		{
-		  if (output_fields)
+		  index = (output_fields) ? order[i] : i;
+		  tmpstr1 = (*headers[index] == NULL)
+		    ? string_duplicate ("")
+		    : string_escape (*headers[index],
+				     cfgvalues.record_separator);
+		  if (first)
 		    {
-		      if (lfield_order[i] >= 0)
-			{
-			  tmpstr1 =
-			    string_escape (*lfield_headers[lfield_order[i]],
-					   cfgvalues.record_separator);
-			  if (first)
-			    {
-			      sprintf (stringnumber, "%s", tmpstr1);
-			      first = FALSE;
-			    }
-			  else
-			    {
-			      sprintf (stringnumber, "%c%s",
-				       cfgvalues.record_separator, tmpstr1);
-			    }
-			  if (capacity >=
-			      (strlen (message) + strlen (stringnumber)))
-			    {
-			      strcat (message, stringnumber);
-			    }
-			  else
-			    {
-			      capacity =
-				((capacity + capacityIncrement) >=
-				 (strlen (message) +
-				  strlen (stringnumber))) ? (capacity +
-							     capacityIncrement)
-				: (strlen (message) + strlen (stringnumber));
-			      buffer = (char *) malloc (strlen (message) + 1);
-			      if (buffer == NULL)
-				{
-				  fprintf (stderr, "ERROR: Out of memory\n");
-				  exit_loggrabber (1);
-				}
-			      strcpy (buffer, message);
-			      free (message);
-			      // This last plus one is needed to hold the terminator, '\0' //
-			      message = (char *) malloc (capacity + 1);
-			      if (message == NULL)
-				{
-				  fprintf (stderr, "ERROR: Out of memory\n");
-				  exit_loggrabber (1);
-				}
-			      strcpy (message, buffer);
-			      free (buffer);
-			      strcat (message, stringnumber);
-			    }
-			  free (tmpstr1);
-			}
+		      sprintf (stringnumber, "%s", tmpstr1);
+		      first = FALSE;
 		    }
 		  else
 		    {
-		      tmpstr1 =
-			string_escape (*lfield_headers[i],
-				       cfgvalues.record_separator);
-		      if (first)
-			{
-			  sprintf (stringnumber, "%s", tmpstr1);
-			  first = FALSE;
-			}
-		      else
-			{
-			  sprintf (stringnumber, "%c%s",
-				   cfgvalues.record_separator, tmpstr1);
-			}
-		      if (capacity >=
-			  (strlen (message) + strlen (stringnumber)))
-			{
-			  strcat (message, stringnumber);
-			}
-		      else
-			{
-			  capacity =
-			    ((capacity + capacityIncrement) >=
-			     (strlen (message) +
-			      strlen (stringnumber))) ? (capacity +
-							 capacityIncrement)
-			    : (strlen (message) + strlen (stringnumber));
-			  buffer = (char *) malloc (strlen (message) + 1);
-			  if (buffer == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (buffer, message);
-			  free (message);
-			  // This last plus one is needed to hold the terminator, '\0' //
-			  message = (char *) malloc (capacity + 1);
-			  if (message == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (message, buffer);
-			  free (buffer);
-			  strcat (message, stringnumber);
-			}
-		      free (tmpstr1);
+		      sprintf (stringnumber, "%c%s",
+			       cfgvalues.record_separator, tmpstr1);
 		    }
+		  messagecap =
+		    string_cat (&message, stringnumber, messagecap);
+
+		  free (tmpstr1);
 		}
 	    }
 
-	  submit_log (message);
+	  if ((message != NULL) && (strlen (message) > 0))
+	    {
+	      submit_log (message);
+	    }
 
 	  //clean used memory
 	  free (message);
@@ -1240,8 +1034,6 @@ read_fw1_logfile (char **LogfileName)
 	}
     }
 
-  free (leaconf);
-
   return 0;
 }
 
@@ -1252,6 +1044,11 @@ int
 read_fw1_logfile_queryack (OpsecSession * psession, int filterID,
 			   eLeaFilterAction filterAction, int filterResult)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function read_fw1_logfile_queryack\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr, "DEBUG: LEA logfile query ack handler was invoked\n");
@@ -1260,16 +1057,92 @@ read_fw1_logfile_queryack (OpsecSession * psession, int filterID,
   return OPSEC_SESSION_OK;
 }
 
+/* 
+ * function string_cat
+ */
+unsigned int
+string_cat (char **dst, const char *src, unsigned int cap)
+{
+  char *buffer = NULL;
+  unsigned int capacity = cap;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function string_cat\n");
+    }
+
+  // allocate memory for the string if NULL
+  if (*dst == NULL)
+    {
+      *dst = (char *) malloc (INITIAL_CAPACITY + 1);
+      if (*dst == NULL)
+	{
+	  fprintf (stderr, "ERROR: Out of memory\n");
+	  exit_loggrabber (1);
+	}
+      **dst = '\0';
+      capacity = INITIAL_CAPACITY;
+    }
+
+  // is src NULL, just return the capacity of dst
+  if (!src)
+    {
+      return (capacity);
+    }
+
+  // is the capacity big enough for both src and dst?
+  if (capacity >= strlen (*dst) + strlen (src))
+    {
+      strcat (*dst, src);
+      return (capacity);
+    }
+
+  // otherwise define the new capacity
+  capacity =
+    ((capacity + CAPACITY_INCREMENT) >=
+     (strlen (*dst) + strlen (src))) ? (capacity +
+					CAPACITY_INCREMENT) : (strlen (*dst) +
+							       strlen (src));
+
+  // and allocate a temp buffer for dst
+  buffer = (char *) malloc (strlen (*dst) + 1);
+  if (!buffer)
+    {
+      fprintf (stderr, "ERROR: Out of memory\n");
+      exit_loggrabber (1);
+    }
+
+  // copy dst to the tempbuffer and destroy dst
+  strcpy (buffer, *dst);
+  free (*dst);
+
+  // recreate dst with the new capacity
+  *dst = (char *) malloc (capacity + 1);
+  if (*dst == NULL)
+    {
+      fprintf (stderr, "ERROR: Out of memory\n");
+      exit_loggrabber (1);
+    }
+
+  // finally copy buffered dst and src back to dest and destroy temp buffer
+  strcpy (*dst, buffer);
+  free (buffer);
+  strcat (*dst, src);
+
+  // retrung new capacity
+  return (capacity);
+}
+
 /*
- * function read_fw1_logfile_n_record_stdout
+ * function read_fw1_logfile_record
  */
 int
-read_fw1_logfile_n_record_stdout (OpsecSession * pSession, lea_record * pRec,
-				  int pnAttribPerm[])
+read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
+			 int pnAttribPerm[])
 {
   char *szAttrib;
   char szNum[20];
-  int i, j, match;
+  int i, j, match, index;
   unsigned long ul;
   unsigned short us;
   char tmpdata[16];
@@ -1279,48 +1152,58 @@ read_fw1_logfile_n_record_stdout (OpsecSession * pSession, lea_record * pRec,
   char *tmpstr1;
   char *tmpstr2;
   short first = TRUE;
-
-  int capacity = initialCapacity;
-  char *buffer = NULL;
   char *message = NULL;
+  char *mymsg = NULL;
+  char *(**fields);
+  char *(**headers);
+  int *order;
+  int num;
+  int time;
+  int number_fields;
+  unsigned int messagecap = 0;
 #ifdef USE_ODBC
-  int capacity2 = initialCapacity;
+  unsigned int headercap = 0;
+  unsigned int valuescap = 0;
   char *header = NULL;
   char *values = NULL;
+  char *(**dbheaders);
 #endif
 
-  // This last plus one is needed to hold the terminator, '\0' //
-  message = (char *) malloc (capacity + 1);
-  if (message == NULL)
+  if (cfgvalues.debug_mode >= 2)
     {
-      fprintf (stderr, "ERROR: Out of memory\n");
-      exit_loggrabber (1);
+      fprintf (stderr, "DEBUG: function read_fw1_logfile_record\n");
     }
-  *message = '\0';
 
+  if (cfgvalues.audit_mode)
+    {
+      num = AIDX_NUM;
+      time = AIDX_TIME;
+      number_fields = NUMBER_AIDX_FIELDS;
+      fields = afields;
+      headers = afield_headers;
+      order = afield_order;
 #ifdef USE_ODBC
-  header = (char *) malloc (capacity + 1);
-  if (header == NULL)
-    {
-      fprintf (stderr, "ERROR: Out of memory\n");
-      exit_loggrabber (1);
-    }
-  *header = '\0';
-
-  values = (char *) malloc (capacity2 + 1);
-  if (values == NULL)
-    {
-      fprintf (stderr, "ERROR: Out of memory\n");
-      exit_loggrabber (1);
-    }
-  *values = '\0';
+      dbheaders = afield_dbheaders;
 #endif
+    }
+  else
+    {
+      num = LIDX_NUM;
+      time = LIDX_TIME;
+      number_fields = NUMBER_LIDX_FIELDS;
+      fields = lfields;
+      headers = lfield_headers;
+      order = lfield_order;
+#ifdef USE_ODBC
+      dbheaders = lfield_dbheaders;
+#endif
+    }
 
   /*
    * get record position
    */
   sprintf (szNum, "%d", lea_get_record_pos (pSession) - 1);
-  *lfields[LIDX_NUM] = string_duplicate (szNum);
+  *fields[num] = string_duplicate (szNum);
 
   /*
    * process all fields of logentry
@@ -1377,27 +1260,27 @@ read_fw1_logfile_n_record_stdout (OpsecSession * pSession, lea_record * pRec,
       /*
        * transfer values to array
        */
-      while (!match && (j < NUMBER_LIDX_FIELDS))
+      while (!match && (j < number_fields))
 	{
-	  if (strcmp (szAttrib, *lfield_headers[LIDX_TIME]) == 0)
+	  if (strcmp (szAttrib, *headers[time]) == 0)
 	    {
 	      switch (cfgvalues.dateformat)
 		{
 		case DATETIME_CP:
-		  *lfields[LIDX_TIME] =
+		  *fields[time] =
 		    string_duplicate (lea_resolve_field
 				      (pSession, pRec->fields[i]));
 		  break;
 		case DATETIME_UNIX:
 		  sprintf (timestring, "%lu",
 			   pRec->fields[i].lea_value.ul_value);
-		  *lfields[LIDX_TIME] = string_duplicate (timestring);
+		  *fields[time] = string_duplicate (timestring);
 		  break;
 		case DATETIME_STD:
 		  logtime = (time_t) pRec->fields[i].lea_value.ul_value;
 		  datetime = localtime (&logtime);
 		  strftime (timestring, 20, "%Y-%m-%d %H:%M:%S", datetime);
-		  *lfields[LIDX_TIME] = string_duplicate (timestring);
+		  *fields[time] = string_duplicate (timestring);
 		  break;
 		default:
 		  fprintf (stderr, "ERROR: Unsupported dateformat chosen\n");
@@ -1405,15 +1288,15 @@ read_fw1_logfile_n_record_stdout (OpsecSession * pSession, lea_record * pRec,
 		}
 	      match = TRUE;
 	    }
-	  else if (strcmp (szAttrib, *lfield_headers[j]) == 0)
+	  else if (strcmp (szAttrib, *headers[j]) == 0)
 	    {
 	      if (tmpdata[0])
 		{
-		  *lfields[j] = string_duplicate (tmpdata);
+		  *fields[j] = string_duplicate (tmpdata);
 		}
 	      else
 		{
-		  *lfields[j] =
+		  *fields[j] =
 		    string_duplicate (lea_resolve_field
 				      (pSession, pRec->fields[i]));
 		}
@@ -1435,8 +1318,9 @@ read_fw1_logfile_n_record_stdout (OpsecSession * pSession, lea_record * pRec,
   // add tableindex to sql insert statement
   if (cfgvalues.log_mode == ODBC)
     {
-      sprintf (values, "%d", tableindex++);
-      sprintf (header, "%s", "fw1number");
+      sprintf (tmpdata, "%ld", tableindex++);
+      valuescap = string_cat (&values, tmpdata, valuescap);
+      headercap = string_cat (&header, "fw1number", headercap);
       first = FALSE;
     }
 #endif
@@ -1444,294 +1328,75 @@ read_fw1_logfile_n_record_stdout (OpsecSession * pSession, lea_record * pRec,
   /*
    * print logentry to stdout
    */
-  for (i = 0; i < NUMBER_LIDX_FIELDS; i++)
+  for (i = 0; i < number_fields; i++)
     {
-      // we want to output only certain fields and are not in ODBC mode
-      if ((output_fields) && (cfgvalues.log_mode != ODBC))
+#ifdef USE_ODBC
+      if (cfgvalues.log_mode == ODBC)
 	{
-	  // are there still fields to be printed
-	  if (lfield_order[i] >= 0)
+	  if (*fields[i])
 	    {
-	      if (*lfields[lfield_order[i]])
+	      if (*dbheaders[i])
 		{
-		  if (cfgvalues.fieldnames_mode)
+		  // DB-Mode AND current field is supported in DB-Mode
+		  // so just store it...
+		  tmpstr1 = string_rmchar (*fields[i], '\'');
+		  if (first)
 		    {
-		      tmpstr1 =
-			string_escape (*lfield_headers[lfield_order[i]],
-				       cfgvalues.record_separator);
-		      tmpstr2 =
-			string_escape (*lfields[lfield_order[i]],
-				       cfgvalues.record_separator);
-		      if (first)
+		      if ((string_icmp (*dbheaders[i], "fw1time")
+			   == 0)
+			  && (string_incmp (dbms_name, "oracle", 6) == 0))
 			{
-			  sprintf (stringnumber, "%s=%s", tmpstr1, tmpstr2);
-			  first = FALSE;
+			  sprintf (stringnumber,
+				   "TO_DATE('%s','yyyy-mm-dd HH24:MI:SS')",
+				   tmpstr1);
 			}
 		      else
 			{
-			  sprintf (stringnumber, "%c%s=%s",
-				   cfgvalues.record_separator, tmpstr1,
-				   tmpstr2);
+			  sprintf (stringnumber, "'%s'", tmpstr1);
 			}
-		      if (capacity >=
-			  (strlen (message) + strlen (stringnumber)))
-			{
-			  strcat (message, stringnumber);
-			}
-		      else
-			{
-			  capacity =
-			    ((capacity + capacityIncrement) >=
-			     (strlen (message) +
-			      strlen (stringnumber))) ? (capacity +
-							 capacityIncrement)
-			    : (strlen (message) + strlen (stringnumber));
-			  buffer = (char *) malloc (strlen (message) + 1);
-			  if (buffer == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (buffer, message);
-			  free (message);
-			  // This last plus one is needed to hold the terminator, '\0' //
-			  message = (char *) malloc (capacity + 1);
-			  if (message == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (message, buffer);
-			  free (buffer);
-			  strcat (message, stringnumber);
-			}
-		      free (tmpstr1);
-		      free (tmpstr2);
+		      sprintf (headernumber, "%s", *dbheaders[i]);
+		      first = FALSE;
 		    }
 		  else
 		    {
-		      tmpstr1 =
-			string_escape (*lfields[lfield_order[i]],
-				       cfgvalues.record_separator);
-		      if (first)
+		      if ((string_icmp (*dbheaders[i], "fw1time")
+			   == 0)
+			  && (string_incmp (dbms_name, "oracle", 6) == 0))
 			{
-			  sprintf (stringnumber, "%s", tmpstr1);
-			  first = FALSE;
+			  sprintf (stringnumber,
+				   ",TO_DATE('%s','yyyy-mm-dd HH24:MI:SS')",
+				   tmpstr1);
 			}
 		      else
 			{
-			  sprintf (stringnumber, "%c%s",
-				   cfgvalues.record_separator, tmpstr1);
+			  sprintf (stringnumber, ",'%s'", tmpstr1);
 			}
-		      if (capacity >=
-			  (strlen (message) + strlen (stringnumber)))
-			{
-			  strcat (message, stringnumber);
-			}
-		      else
-			{
-			  capacity =
-			    ((capacity + capacityIncrement) >=
-			     (strlen (message) +
-			      strlen (stringnumber))) ? (capacity +
-							 capacityIncrement)
-			    : (strlen (message) + strlen (stringnumber));
-			  buffer = (char *) malloc (strlen (message) + 1);
-			  if (buffer == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (buffer, message);
-			  free (message);
-			  // This last plus one is needed to hold the terminator, '\0' //
-			  message = (char *) malloc (capacity + 1);
-			  if (message == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (message, buffer);
-			  free (buffer);
-			  strcat (message, stringnumber);
-			}
-		      free (tmpstr1);
+		      sprintf (headernumber, ",%s", *dbheaders[i]);
 		    }
-		}
-	      else
-		{
-		  if (!(cfgvalues.fieldnames_mode))
-		    {
-		      if (first)
-			{
-			  first = FALSE;
-			}
-		      else
-			{
-			  sprintf (stringnumber, "%c",
-				   cfgvalues.record_separator);
-			  if (capacity >=
-			      (strlen (message) + strlen (stringnumber)))
-			    {
-			      strcat (message, stringnumber);
-			    }
-			  else
-			    {
-			      capacity =
-				((capacity + capacityIncrement) >=
-				 (strlen (message) +
-				  strlen (stringnumber))) ? (capacity +
-							     capacityIncrement)
-				: (strlen (message) + strlen (stringnumber));
-			      buffer = (char *) malloc (strlen (message) + 1);
-			      if (buffer == NULL)
-				{
-				  fprintf (stderr, "ERROR: Out of memory\n");
-				  exit_loggrabber (1);
-				}
-			      strcpy (buffer, message);
-			      free (message);
-			      // This last plus one is needed to hold the terminator, '\0' //
-			      message = (char *) malloc (capacity + 1);
-			      if (message == NULL)
-				{
-				  fprintf (stderr, "ERROR: Out of memory\n");
-				  exit_loggrabber (1);
-				}	//end of inner if
-			      strcpy (message, buffer);
-			      free (buffer);
-			      strcat (message, stringnumber);
-			    }	//end of middle if
-			}
-		    }
+
+		  headercap = string_cat (&header, headernumber, headercap);
+		  valuescap = string_cat (&values, stringnumber, valuescap);
+
+		  free (tmpstr1);
 		}
 	    }
 	}
-      // we don't want to output only certain fields
-      else if ((!output_fields) || (cfgvalues.log_mode == ODBC))
-	{
-	  if (*lfields[i])
-	    {
-#ifdef USE_ODBC
-	      if (cfgvalues.log_mode == ODBC)
-		{
-		  if (*lfield_dbheaders[i])
-		    {
-		      // DB-Mode AND current field is supported in DB-Mode
-		      // so just store it...
-		      tmpstr1 = string_rmchar (*lfields[i], '\'');
-		      if (first)
-			{
-			  if (
-			      (string_icmp (*lfield_dbheaders[i], "fw1time")
-			       == 0)
-			      && (string_incmp (dbms_name, "oracle", 6) == 0))
-			    {
-			      sprintf (stringnumber,
-				       "TO_DATE('%s','yyyy-mm-dd HH24:MI:SS')",
-				       tmpstr1);
-			    }
-			  else
-			    {
-			      sprintf (stringnumber, "'%s'", tmpstr1);
-			    }
-			  sprintf (headernumber, "%s", *lfield_dbheaders[i]);
-			  first = FALSE;
-			}
-		      else
-			{
-			  if (
-			      (string_icmp (*lfield_dbheaders[i], "fw1time")
-			       == 0)
-			      && (string_incmp (dbms_name, "oracle", 6) == 0))
-			    {
-			      sprintf (stringnumber,
-				       ",TO_DATE('%s','yyyy-mm-dd HH24:MI:SS')",
-				       tmpstr1);
-			    }
-			  else
-			    {
-			      sprintf (stringnumber, ",'%s'", tmpstr1);
-			    }
-			  sprintf (headernumber, ",%s", *lfield_dbheaders[i]);
-			}
-		      if (capacity >=
-			  (strlen (header) + strlen (headernumber)))
-			{
-			  strcat (header, headernumber);
-			}
-		      else
-			{
-			  capacity =
-			    ((capacity + capacityIncrement) >=
-			     (strlen (header) +
-			      strlen (headernumber))) ? (capacity +
-							 capacityIncrement)
-			    : (strlen (header) + strlen (headernumber));
-			  buffer = (char *) malloc (strlen (header) + 1);
-			  if (buffer == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (buffer, header);
-			  free (header);
-			  // This last plus one is needed to hold the terminator, '\0' //
-			  header = (char *) malloc (capacity + 1);
-			  if (header == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (header, buffer);
-			  free (buffer);
-			  strcat (header, headernumber);
-			}
-
-		      if (capacity2 >=
-			  (strlen (values) + strlen (stringnumber)))
-			{
-			  strcat (values, stringnumber);
-			}
-		      else
-			{
-			  capacity2 =
-			    ((capacity2 + capacityIncrement) >=
-			     (strlen (values) +
-			      strlen (stringnumber))) ? (capacity2 +
-							 capacityIncrement)
-			    : (strlen (values) + strlen (stringnumber));
-			  buffer = (char *) malloc (strlen (values) + 1);
-			  if (buffer == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (buffer, values);
-			  free (values);
-			  // This last plus one is needed to hold the terminator, '\0' //
-			  values = (char *) malloc (capacity2 + 1);
-			  if (values == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (values, buffer);
-			  free (buffer);
-			  strcat (values, stringnumber);
-			}
-		      free (tmpstr1);
-		    }
-		}
-	      else
+      else
 #endif
-	      if (cfgvalues.fieldnames_mode)
+	// fieldname mode -> process only existing fields
+      if (cfgvalues.fieldnames_mode)
+	{
+	  if ((!output_fields) || (order[i] >= 0))
+	    {
+	      index = (output_fields) ? order[i] : i;
+	      if (*fields[index])
 		{
 		  tmpstr1 =
-		    string_escape (*lfield_headers[i],
+		    string_escape (*headers[index],
 				   cfgvalues.record_separator);
 		  tmpstr2 =
-		    string_escape (*lfields[i], cfgvalues.record_separator);
+		    string_escape (*fields[index],
+				   cfgvalues.record_separator);
 		  if (first)
 		    {
 		      sprintf (stringnumber, "%s=%s", tmpstr1, tmpstr2);
@@ -1742,145 +1407,49 @@ read_fw1_logfile_n_record_stdout (OpsecSession * pSession, lea_record * pRec,
 		      sprintf (stringnumber, "%c%s=%s",
 			       cfgvalues.record_separator, tmpstr1, tmpstr2);
 		    }
-		  if (capacity >= (strlen (message) + strlen (stringnumber)))
-		    {
-		      strcat (message, stringnumber);
-		    }
-		  else
-		    {
-		      capacity =
-			((capacity + capacityIncrement) >=
-			 (strlen (message) +
-			  strlen (stringnumber))) ? (capacity +
-						     capacityIncrement)
-			: (strlen (message) + strlen (stringnumber));
-		      buffer = (char *) malloc (strlen (message) + 1);
-		      if (buffer == NULL)
-			{
-			  fprintf (stderr, "ERROR: Out of memory\n");
-			  exit_loggrabber (1);
-			}
-		      strcpy (buffer, message);
-		      free (message);
-		      // This last plus one is needed to hold the terminator, '\0' //
-		      message = (char *) malloc (capacity + 1);
-		      if (message == NULL)
-			{
-			  fprintf (stderr, "ERROR: Out of memory\n");
-			  exit_loggrabber (1);
-			}
-		      strcpy (message, buffer);
-		      free (buffer);
-		      strcat (message, stringnumber);
-		    }
+
+		  messagecap =
+		    string_cat (&message, stringnumber, messagecap);
+
 		  free (tmpstr1);
 		  free (tmpstr2);
 		}
+	    }
+	}
+      // no fieldname mode -> process all fields
+      else
+	{
+	  if ((!output_fields) || (order[i] >= 0))
+	    {
+	      index = (output_fields) ? order[i] : i;
+	      tmpstr1 = (*fields[index] == NULL)
+		? string_duplicate ("")
+		: string_escape (*fields[index], cfgvalues.record_separator);
+	      if (first)
+		{
+		  sprintf (stringnumber, "%s", tmpstr1);
+		  first = FALSE;
+		}
 	      else
 		{
-		  tmpstr1 =
-		    string_escape (*lfields[i], cfgvalues.record_separator);
-		  if (first)
-		    {
-		      sprintf (stringnumber, "%s", tmpstr1);
-		      first = FALSE;
-		    }
-		  else
-		    {
-		      sprintf (stringnumber, "%c%s",
-			       cfgvalues.record_separator, tmpstr1);
-		    }
-		  if (capacity >= (strlen (message) + strlen (stringnumber)))
-		    {
-		      strcat (message, stringnumber);
-		    }
-		  else
-		    {
-		      capacity =
-			((capacity + capacityIncrement) >=
-			 (strlen (message) +
-			  strlen (stringnumber))) ? (capacity +
-						     capacityIncrement)
-			: (strlen (message) + strlen (stringnumber));
-		      buffer = (char *) malloc (strlen (message) + 1);
-		      if (buffer == NULL)
-			{
-			  fprintf (stderr, "ERROR: Out of memory\n");
-			  exit_loggrabber (1);
-			}
-		      strcpy (buffer, message);
-		      free (message);
-		      // This last plus one is needed to hold the terminator, '\0' //
-		      message = (char *) malloc (capacity + 1);
-		      if (message == NULL)
-			{
-			  fprintf (stderr, "ERROR: Out of memory\n");
-			  exit_loggrabber (1);
-			}
-		      strcpy (message, buffer);
-		      free (buffer);
-		      strcat (message, stringnumber);
-		    }
-		  free (tmpstr1);
+		  sprintf (stringnumber, "%c%s",
+			   cfgvalues.record_separator, tmpstr1);
 		}
-	    }
-	  else
-	    {
-	      if (!(cfgvalues.fieldnames_mode))
-		{
-		  if (first)
-		    {
-		      first = FALSE;
-		    }
-		  else
-		    {
-		      sprintf (stringnumber, "%c",
-			       cfgvalues.record_separator);
-		      if (capacity >=
-			  (strlen (message) + strlen (stringnumber)))
-			{
-			  strcat (message, stringnumber);
-			}
-		      else
-			{
-			  capacity =
-			    ((capacity + capacityIncrement) >=
-			     (strlen (message) +
-			      strlen (stringnumber))) ? (capacity +
-							 capacityIncrement)
-			    : (strlen (message) + strlen (stringnumber));
-			  buffer = (char *) malloc (strlen (message) + 1);
-			  if (buffer == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (buffer, message);
-			  free (message);
-			  // This last plus one is needed to hold the terminator, '\0' //
-			  message = (char *) malloc (capacity + 1);
-			  if (message == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }	//end of inner if
-			  strcpy (message, buffer);
-			  free (buffer);
-			  strcat (message, stringnumber);
-			}	//end of middle if
-		    }
-		}
+
+	      messagecap = string_cat (&message, stringnumber, messagecap);
+
+	      free (tmpstr1);
 	    }
 	}
     }
 
   // empty string fields
-  for (i = 0; i < NUMBER_LIDX_FIELDS; i++)
+  for (i = 0; i < number_fields; i++)
     {
-      if (*lfields[i] != NULL)
+      if (*fields[i] != NULL)
 	{
-	  free (*lfields[i]);
-	  *lfields[i] = NULL;
+	  free (*fields[i]);
+	  *fields[i] = NULL;
 	}
     }
 
@@ -1895,686 +1464,53 @@ read_fw1_logfile_n_record_stdout (OpsecSession * pSession, lea_record * pRec,
 	  fprintf (stderr, "ERROR: Out of memory\n");
 	  exit_loggrabber (1);
 	}
-      sprintf (message, "INSERT INTO %s (%s) VALUES (%s);", logtable, header,
-	       values);
-    }
-#endif
-
-
-	#ifdef WIN32
-		if (WaitForSingleObject(mutex,INFINITE) == WAIT_FAILED){
-			fprintf (stderr, "Error: OPSEC LEA thread.\n");
-			ReleaseMutex (mutex);
-			exit_loggrabber (1);
-		}
-		//enter critical section
-		add(message);
-		ReleaseMutex(mutex); // end critical section
-		if (!(cfgvalues.fw1_2000)) {
-			if(isFull())	{
-				lea_session_suspend(pSession);
-				suspended = TRUE;
-			}
-		}
-	#else
-		pthread_mutex_lock(&mutex);
-		//enter critical section
-		add(message);
-		pthread_mutex_unlock(&mutex);// end critical section
-		if (!(cfgvalues.fw1_2000)) {
-			if(isFull())	{
-				lea_session_suspend(pSession);
-				suspended = TRUE;
-			}
-		}
-	#endif
-
-  return OPSEC_SESSION_OK;
-}
-
-/*
- * function read_fw1_logfile_a_record_stdout
- */
-int
-read_fw1_logfile_a_record_stdout (OpsecSession * pSession, lea_record * pRec,
-				  int pnAttribPerm[])
-{
-  char *szAttrib;
-  char szNum[20];
-  int i, j, match;
-  unsigned long ul;
-  unsigned short us;
-  char tmpdata[16];
-  time_t logtime;
-  struct tm *datetime;
-  char timestring[21];
-  char *tmpstr1;
-  char *tmpstr2;
-  short first = TRUE;
-
-  int capacity = initialCapacity;
-  char *buffer = NULL;
-  char *message = NULL;
-#ifdef USE_ODBC
-  int capacity2 = initialCapacity;
-  char *header = NULL;
-  char *values = NULL;
-#endif
-
-  // This last plus one is needed to hold the terminator, '\0' //
-  message = (char *) malloc (capacity + 1);
-  if (message == NULL)
-    {
-      fprintf (stderr, "ERROR: Out of memory\n");
-      exit_loggrabber (1);
-    }
-  *message = '\0';
-
-#ifdef USE_ODBC
-  header = (char *) malloc (capacity + 1);
-  if (header == NULL)
-    {
-      fprintf (stderr, "ERROR: Out of memory\n");
-      exit_loggrabber (1);
-    }
-  *header = '\0';
-
-  values = (char *) malloc (capacity2 + 1);
-  if (values == NULL)
-    {
-      fprintf (stderr, "ERROR: Out of memory\n");
-      exit_loggrabber (1);
-    }
-  *values = '\0';
-#endif
-
-  /*
-   * get record position
-   */
-  sprintf (szNum, "%d", lea_get_record_pos (pSession) - 1);
-  *afields[AIDX_NUM] = string_duplicate (szNum);
-
-  /*
-   * process all fields of logentry
-   */
-  for (i = 0; i < pRec->n_fields; i++)
-    {
-      j = 0;
-      match = FALSE;
-      strcpy (tmpdata, "\0");
-      szAttrib = lea_attr_name (pSession, pRec->fields[i].lea_attr_id);
-
-      if (!(cfgvalues.resolve_mode))
-	{
-	  switch (pRec->fields[i].lea_val_type)
-	    {
-	      /*
-	       * create dotted string of IP address. this differs between
-	       * Linux and Solaris.
-	       */
-	    case LEA_VT_IP_ADDR:
-	      ul = pRec->fields[i].lea_value.ul_value;
-	      if (BYTE_ORDER == LITTLE_ENDIAN)
-		{
-		  sprintf (tmpdata, "%d.%d.%d.%d", (int) ((ul & 0xff) >> 0),
-			   (int) ((ul & 0xff00) >> 8),
-			   (int) ((ul & 0xff0000) >> 16),
-			   (int) ((ul & 0xff000000) >> 24));
-		}
-	      else
-		{
-		  sprintf (tmpdata, "%d.%d.%d.%d",
-			   (int) ((ul & 0xff000000) >> 24),
-			   (int) ((ul & 0xff0000) >> 16),
-			   (int) ((ul & 0xff00) >> 8),
-			   (int) ((ul & 0xff) >> 0));
-		}
-	      break;
-
-	      /*
-	       * print out the port number of the used service
-	       */
-	    case LEA_VT_TCP_PORT:
-	    case LEA_VT_UDP_PORT:
-	      us = pRec->fields[i].lea_value.ush_value;
-	      if (BYTE_ORDER == LITTLE_ENDIAN)
-		{
-		  us = (us >> 8) + ((us & 0xff) << 8);
-		}
-	      sprintf (tmpdata, "%d", us);
-	      break;
-	    }
-	}
-
-      /*
-       * transfer values to array
-       */
-      while (!match && (j < NUMBER_AIDX_FIELDS))
-	{
-	  if (strcmp (szAttrib, *afield_headers[AIDX_TIME]) == 0)
-	    {
-	      switch (cfgvalues.dateformat)
-		{
-		case DATETIME_CP:
-		  *afields[AIDX_TIME] =
-		    string_duplicate (lea_resolve_field
-				      (pSession, pRec->fields[i]));
-		  break;
-		case DATETIME_UNIX:
-		  sprintf (timestring, "%lu",
-			   pRec->fields[i].lea_value.ul_value);
-		  *afields[AIDX_TIME] = string_duplicate (timestring);
-		  break;
-		case DATETIME_STD:
-		  logtime = (time_t) pRec->fields[i].lea_value.ul_value;
-		  datetime = localtime (&logtime);
-		  strftime (timestring, 20, "%Y-%m-%d %H:%M:%S", datetime);
-		  *afields[AIDX_TIME] = string_duplicate (timestring);
-		  break;
-		default:
-		  fprintf (stderr, "ERROR: Unsupported dateformat chosen\n");
-		  exit_loggrabber (1);
-		}
-	      match = TRUE;
-	    }
-	  else if (strcmp (szAttrib, *afield_headers[j]) == 0)
-	    {
-	      if (tmpdata[0])
-		{
-		  *afields[j] = string_duplicate (tmpdata);
-		}
-	      else
-		{
-		  *afields[j] =
-		    string_duplicate (lea_resolve_field
-				      (pSession, pRec->fields[i]));
-		}
-	      match = TRUE;
-	    }
-	  j++;
-	}
-
-      if (cfgvalues.debug_mode && (!match))
-	{
-	  fprintf (stderr,
-		   "DEBUG: Unsupported field found (Position %d): %s=%s\n",
-		   i - 1, szAttrib, lea_resolve_field (pSession,
-						       pRec->fields[i]));
-	}
-    }
-
-#ifdef USE_ODBC
-  // add tableindex to sql insert statement
-  if (cfgvalues.log_mode == ODBC)
-    {
-      sprintf (values, "%d", tableindex++);
-      sprintf (header, "%s", "fw1number");
-      first = FALSE;
-    }
-#endif
-
-  /*
-   * print logentry to stdout
-   */
-  for (i = 0; i < NUMBER_AIDX_FIELDS; i++)
-    {
-      // we want to output only certain fields and are not in ODBC-mode
-      if ((output_fields) && (cfgvalues.log_mode != ODBC))
-	{
-	  // are there still fields to be printed
-	  if (afield_order[i] >= 0)
-	    {
-	      if (*afields[afield_order[i]])
-		{
-		  if (cfgvalues.fieldnames_mode)
-		    {
-		      tmpstr1 =
-			string_escape (*afield_headers[afield_order[i]],
-				       cfgvalues.record_separator);
-		      tmpstr2 =
-			string_escape (*afields[afield_order[i]],
-				       cfgvalues.record_separator);
-		      if (first)
-			{
-			  sprintf (stringnumber, "%s=%s", tmpstr1, tmpstr2);
-			  first = FALSE;
-			}
-		      else
-			{
-			  sprintf (stringnumber, "%c%s=%s",
-				   cfgvalues.record_separator, tmpstr1,
-				   tmpstr2);
-			}
-		      if (capacity >=
-			  (strlen (message) + strlen (stringnumber)))
-			{
-			  strcat (message, stringnumber);
-			}
-		      else
-			{
-			  capacity =
-			    ((capacity + capacityIncrement) >=
-			     (strlen (message) +
-			      strlen (stringnumber))) ? (capacity +
-							 capacityIncrement)
-			    : (strlen (message) + strlen (stringnumber));
-			  buffer = (char *) malloc (strlen (message) + 1);
-			  if (buffer == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (buffer, message);
-			  free (message);
-			  // This last plus one is needed to hold the terminator, '\0' //
-			  message = (char *) malloc (capacity + 1);
-			  if (message == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (message, buffer);
-			  free (buffer);
-			  strcat (message, stringnumber);
-			}
-		      free (tmpstr1);
-		      free (tmpstr2);
-		    }
-		  else
-		    {
-		      tmpstr1 =
-			string_escape (*afields[afield_order[i]],
-				       cfgvalues.record_separator);
-		      if (first)
-			{
-			  sprintf (stringnumber, "%s", tmpstr1);
-			  first = FALSE;
-			}
-		      else
-			{
-			  sprintf (stringnumber, "%c%s",
-				   cfgvalues.record_separator, tmpstr1);
-			}
-		      if (capacity >=
-			  (strlen (message) + strlen (stringnumber)))
-			{
-			  strcat (message, stringnumber);
-			}
-		      else
-			{
-			  capacity =
-			    ((capacity + capacityIncrement) >=
-			     (strlen (message) +
-			      strlen (stringnumber))) ? (capacity +
-							 capacityIncrement)
-			    : (strlen (message) + strlen (stringnumber));
-			  buffer = (char *) malloc (strlen (message) + 1);
-			  if (buffer == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (buffer, message);
-			  free (message);
-			  // This last plus one is needed to hold the terminator, '\0' //
-			  message = (char *) malloc (capacity + 1);
-			  if (message == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (message, buffer);
-			  free (buffer);
-			  strcat (message, stringnumber);
-			}
-		      free (tmpstr1);
-		    }
-		}
-	      else
-		{
-		  if (!(cfgvalues.fieldnames_mode))
-		    {
-		      if (first)
-			{
-			  first = FALSE;
-			}
-		      else
-			{
-			  sprintf (stringnumber, "%c",
-				   cfgvalues.record_separator);
-			  if (capacity >=
-			      (strlen (message) + strlen (stringnumber)))
-			    {
-			      strcat (message, stringnumber);
-			    }
-			  else
-			    {
-			      capacity =
-				((capacity + capacityIncrement) >=
-				 (strlen (message) +
-				  strlen (stringnumber))) ? (capacity +
-							     capacityIncrement)
-				: (strlen (message) + strlen (stringnumber));
-			      buffer = (char *) malloc (strlen (message) + 1);
-			      if (buffer == NULL)
-				{
-				  fprintf (stderr, "ERROR: Out of memory\n");
-				  exit_loggrabber (1);
-				}
-			      strcpy (buffer, message);
-			      free (message);
-			      // This last plus one is needed to hold the terminator, '\0' //
-			      message = (char *) malloc (capacity + 1);
-			      if (message == NULL)
-				{
-				  fprintf (stderr, "ERROR: Out of memory\n");
-				  exit_loggrabber (1);
-				}	//end of inner if
-			      strcpy (message, buffer);
-			      free (buffer);
-			      strcat (message, stringnumber);
-			    }
-			}
-		    }
-		}
-	    }
-	}
-      // we don't want to output only certain fields
-      else if ((!output_fields) || (cfgvalues.log_mode == ODBC))
-	{
-	  if (*afields[i])
-	    {
-#ifdef USE_ODBC
-	      if (cfgvalues.log_mode == ODBC)
-		{
-		  if (*afield_dbheaders[i])
-		    {
-		      // DB-Mode AND current field is supported in DB-Mode
-		      // so just store it...
-		      tmpstr1 = string_rmchar (*afields[i], '\'');
-		      if (first)
-			{
-			  if (
-			      (string_icmp (*afield_dbheaders[i], "fw1time")
-			       == 0)
-			      && (string_incmp (dbms_name, "oracle", 6) == 0))
-			    {
-			      sprintf (stringnumber,
-				       "TO_DATE('%s','yyyy-mm-dd HH24:MI:SS')",
-				       tmpstr1);
-			    }
-			  else
-			    {
-			      sprintf (stringnumber, "'%s'", tmpstr1);
-			    }
-			  sprintf (headernumber, "%s", *afield_dbheaders[i]);
-			  first = FALSE;
-			}
-		      else
-			{
-			  if (
-			      (string_icmp (*afield_dbheaders[i], "fw1time")
-			       == 0)
-			      && (string_incmp (dbms_name, "oracle", 6) == 0))
-			    {
-			      sprintf (stringnumber,
-				       ",TO_DATE('%s','yyyy-mm-dd HH24:MI:SS')",
-				       tmpstr1);
-			    }
-			  else
-			    {
-			      sprintf (stringnumber, ",'%s'", tmpstr1);
-			    }
-			  sprintf (headernumber, ",%s", *afield_dbheaders[i]);
-			}
-		      if (capacity >=
-			  (strlen (header) + strlen (headernumber)))
-			{
-			  strcat (header, headernumber);
-			}
-		      else
-			{
-			  capacity =
-			    ((capacity + capacityIncrement) >=
-			     (strlen (header) +
-			      strlen (headernumber))) ? (capacity +
-							 capacityIncrement)
-			    : (strlen (header) + strlen (headernumber));
-			  buffer = (char *) malloc (strlen (header) + 1);
-			  if (buffer == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (buffer, header);
-			  free (header);
-			  // This last plus one is needed to hold the terminator, '\0' //
-			  header = (char *) malloc (capacity + 1);
-			  if (header == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (header, buffer);
-			  free (buffer);
-			  strcat (header, headernumber);
-			}
-
-		      if (capacity2 >=
-			  (strlen (values) + strlen (stringnumber)))
-			{
-			  strcat (values, stringnumber);
-			}
-		      else
-			{
-			  capacity2 =
-			    ((capacity2 + capacityIncrement) >=
-			     (strlen (values) +
-			      strlen (stringnumber))) ? (capacity2 +
-							 capacityIncrement)
-			    : (strlen (values) + strlen (stringnumber));
-			  buffer = (char *) malloc (strlen (values) + 1);
-			  if (buffer == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (buffer, values);
-			  free (values);
-			  // This last plus one is needed to hold the terminator, '\0' //
-			  values = (char *) malloc (capacity2 + 1);
-			  if (values == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (values, buffer);
-			  free (buffer);
-			  strcat (values, stringnumber);
-			}
-		      free (tmpstr1);
-		    }
-		}
-	      else
-#endif
-	      if (cfgvalues.fieldnames_mode)
-		{
-		  tmpstr1 =
-		    string_escape (*afield_headers[i],
-				   cfgvalues.record_separator);
-		  tmpstr2 =
-		    string_escape (*afields[i], cfgvalues.record_separator);
-		  if (first)
-		    {
-		      sprintf (stringnumber, "%s=%s", tmpstr1, tmpstr2);
-		      first = FALSE;
-		    }
-		  else
-		    {
-		      sprintf (stringnumber, "%c%s=%s",
-			       cfgvalues.record_separator, tmpstr1, tmpstr2);
-		    }
-		  if (capacity >= (strlen (message) + strlen (stringnumber)))
-		    {
-		      strcat (message, stringnumber);
-		    }
-		  else
-		    {
-		      capacity =
-			((capacity + capacityIncrement) >=
-			 (strlen (message) +
-			  strlen (stringnumber))) ? (capacity +
-						     capacityIncrement)
-			: (strlen (message) + strlen (stringnumber));
-		      buffer = (char *) malloc (strlen (message) + 1);
-		      if (buffer == NULL)
-			{
-			  fprintf (stderr, "ERROR: Out of memory\n");
-			  exit_loggrabber (1);
-			}
-		      strcpy (buffer, message);
-		      free (message);
-		      // This last plus one is needed to hold the terminator, '\0' //
-		      message = (char *) malloc (capacity + 1);
-		      if (message == NULL)
-			{
-			  fprintf (stderr, "ERROR: Out of memory\n");
-			  exit_loggrabber (1);
-			}
-		      strcpy (message, buffer);
-		      free (buffer);
-		      strcat (message, stringnumber);
-		    }
-		  free (tmpstr1);
-		  free (tmpstr2);
-		}
-	      else
-		{
-		  tmpstr1 =
-		    string_escape (*afields[i], cfgvalues.record_separator);
-		  if (first)
-		    {
-		      sprintf (stringnumber, "%s", tmpstr1);
-		      first = FALSE;
-		    }
-		  else
-		    {
-		      sprintf (stringnumber, "%c%s",
-			       cfgvalues.record_separator, tmpstr1);
-		    }
-		  if (capacity >= (strlen (message) + strlen (stringnumber)))
-		    {
-		      strcat (message, stringnumber);
-		    }
-		  else
-		    {
-		      capacity =
-			((capacity + capacityIncrement) >=
-			 (strlen (message) +
-			  strlen (stringnumber))) ? (capacity +
-						     capacityIncrement)
-			: (strlen (message) + strlen (stringnumber));
-		      buffer = (char *) malloc (strlen (message) + 1);
-		      if (buffer == NULL)
-			{
-			  fprintf (stderr, "ERROR: Out of memory\n");
-			  exit_loggrabber (1);
-			}
-		      strcpy (buffer, message);
-		      free (message);
-		      // This last plus one is needed to hold the terminator, '\0' //
-		      message = (char *) malloc (capacity + 1);
-		      if (message == NULL)
-			{
-			  fprintf (stderr, "ERROR: Out of memory\n");
-			  exit_loggrabber (1);
-			}
-		      strcpy (message, buffer);
-		      free (buffer);
-		      strcat (message, stringnumber);
-		    }
-		  free (tmpstr1);
-		}
-	    }
-	  else
-	    {
-	      if (!(cfgvalues.fieldnames_mode))
-		{
-		  if (first)
-		    {
-		      first = FALSE;
-		    }
-		  else
-		    {
-		      sprintf (stringnumber, "%c",
-			       cfgvalues.record_separator);
-		      if (capacity >=
-			  (strlen (message) + strlen (stringnumber)))
-			{
-			  strcat (message, stringnumber);
-			}
-		      else
-			{
-			  capacity =
-			    ((capacity + capacityIncrement) >=
-			     (strlen (message) +
-			      strlen (stringnumber))) ? (capacity +
-							 capacityIncrement)
-			    : (strlen (message) + strlen (stringnumber));
-			  buffer = (char *) malloc (strlen (message) + 1);
-			  if (buffer == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }
-			  strcpy (buffer, message);
-			  free (message);
-			  // This last plus one is needed to hold the terminator, '\0' //
-			  message = (char *) malloc (capacity + 1);
-			  if (message == NULL)
-			    {
-			      fprintf (stderr, "ERROR: Out of memory\n");
-			      exit_loggrabber (1);
-			    }	//end of inner if
-			  strcpy (message, buffer);
-			  free (buffer);
-			  strcat (message, stringnumber);
-			}
-		    }
-		}
-	    }
-	}
-    }
-
-  // empty string fields
-  for (i = 0; i < NUMBER_AIDX_FIELDS; i++)
-    {
-      if (*afields[i] != NULL)
-	{
-	  free (*afields[i]);
-	  *afields[i] = NULL;
-	}
-    }
-
-#ifdef USE_ODBC
-  if (cfgvalues.log_mode == ODBC)
-    {
-      message =
-	(char *) malloc (strlen (values) + strlen (header) +
-			 strlen (audittable) + 27);
-      if (message == NULL)
-	{
-	  fprintf (stderr, "ERROR: Out of memory\n");
-	  exit_loggrabber (1);
-	}
-      sprintf (message, "INSERT INTO %s (%s) VALUES (%s);", audittable,
+      sprintf (message, "INSERT INTO %s (%s) VALUES (%s);", logtable,
 	       header, values);
+      free (header);
+      free (values);
     }
 #endif
 
-  submit_log (message);
-  //clean used memory
-  free (message);
+  if ((message != NULL) && (strlen (message) > 0))
+    {
+      mymsg = string_mask_newlines (message);
+      free (message);
+
+#ifdef WIN32
+      if (WaitForSingleObject(mutex,INFINITE) == WAIT_FAILED)
+        {
+          fprintf (stderr, "Error: OPSEC LEA thread.\n");
+          ReleaseMutex (mutex);
+          exit_loggrabber (1);
+        }
+      //enter critical section
+      add(mymsg);
+      ReleaseMutex(mutex); 
+      //end critical section
+      if (!(cfgvalues.fw1_2000)) 
+        {
+          if(isFull())
+            {
+              lea_session_suspend(pSession);
+              suspended = TRUE;
+            }
+        }
+#else
+      pthread_mutex_lock(&mutex);
+      //enter critical section
+      add(mymsg);
+      pthread_mutex_unlock(&mutex);
+      //end critical section
+      if (!(cfgvalues.fw1_2000)) 
+        {
+          if(isFull())    
+            {
+              lea_session_suspend(pSession);
+              suspended = TRUE;
+            }
+        }
+#endif
+    }
 
   return OPSEC_SESSION_OK;
 }
@@ -2586,6 +1522,11 @@ int
 read_fw1_logfile_dict (OpsecSession * psession, int dict_id, LEA_VT val_type,
 		       int n_d_entries)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function read_fw1_logfile_dict\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr, "DEBUG: LEA logfile dict handler was invoked\n");
@@ -2599,6 +1540,11 @@ read_fw1_logfile_dict (OpsecSession * psession, int dict_id, LEA_VT val_type,
 int
 read_fw1_logfile_eof (OpsecSession * psession)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function read_fw1_logfile_eof\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr, "DEBUG: LEA end of logfile handler was invoked\n");
@@ -2612,6 +1558,11 @@ read_fw1_logfile_eof (OpsecSession * psession)
 int
 read_fw1_logfile_switch (OpsecSession * psession)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function read_fw1_logfile_switch\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr, "DEBUG: LEA logfile switch handler was invoked\n");
@@ -2625,6 +1576,11 @@ read_fw1_logfile_switch (OpsecSession * psession)
 int
 read_fw1_logfile_collogs (OpsecSession * psession)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function read_fw1_logfile_collogs\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr, "DEBUG: LEA collected logfile handler was invoked\n");
@@ -2638,6 +1594,11 @@ read_fw1_logfile_collogs (OpsecSession * psession)
 int
 read_fw1_logfile_suspend (OpsecSession * psession)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function read_fw1_logfile_suspend\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr, "DEBUG: LEA suspended session handler was invoked\n");
@@ -2651,6 +1612,11 @@ read_fw1_logfile_suspend (OpsecSession * psession)
 int
 read_fw1_logfile_resume (OpsecSession * psession)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function read_fw1_logfile_resume\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr, "DEBUG: LEA resumed session handler was invoked\n");
@@ -2667,6 +1633,11 @@ get_fw1_logfiles_end (OpsecSession * psession)
   int end_reason = 0;
   int sic_errno = 0;
   char *sic_errmsg = NULL;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function get_fw1_logfiles_end\n");
+    }
 
   if (cfgvalues.debug_mode)
     {
@@ -2771,44 +1742,44 @@ get_fw1_logfiles_end (OpsecSession * psession)
  * function fc_handler
  */
 int fc_handler (OpsecEnv *pEnv, long eventid, void *raise_data, void *set_data) {
+                                                                                                                                 
+        if (eventid == initent) {
+                /* init event */
+                if (cfgvalues.debug_mode) {
+                        fprintf (stderr, "Info: User defined event has been initilized.\n");
+                }
+                return 0;
+        }
+ 
+        if (eventid == resumeent) {
+                /* resume event*/
+                if (cfgvalues.debug_mode) {
+                        fprintf (stderr, "Info: Resume event has been received.\n");
+                }
+ 
+                if(pSession!=NULL) {
+                        lea_session_resume(pSession);
+                }
+                return 0;
+        }
+ 
+        if (eventid == shutdownent) {
+                /* shut down event */
+                if (cfgvalues.debug_mode) {
+                        fprintf (stderr, "Info: Shutdown event has been received.\n");
+                }
+                opsec_del_event_handler (pEnv, initent, fc_handler, 0);
+                opsec_del_event_handler (pEnv, resumeent, fc_handler, 0);
+                opsec_del_event_handler (pEnv, shutdownent, fc_handler, 0);
+                                                                                                                                 
+                if(pSession!=NULL) {
+                        opsec_end_session(pSession);
+                }
+                                                                                                                                 
+                return 0;
+        }
 
-	if (eventid == initent) {
-		/* init event */
-		if (cfgvalues.debug_mode) {
-			fprintf (stderr, "Info: User defined event has been initilized.\n");
-		}
-		return 0;
-	}
-
-	if (eventid == resumeent) {
-		/* resume event*/
-		if (cfgvalues.debug_mode) {
-			fprintf (stderr, "Info: Resume event has been received.\n");
-		}
-
-		if(pSession!=NULL) {
-			lea_session_resume(pSession);
-		}
-		return 0;
-	}
-
-	if (eventid == shutdownent) {
-		/* shut down event */
-		if (cfgvalues.debug_mode) {
-			fprintf (stderr, "Info: Shutdown event has been received.\n");
-		}
-		opsec_del_event_handler (pEnv, initent, fc_handler, 0);
-		opsec_del_event_handler (pEnv, resumeent, fc_handler, 0);
-		opsec_del_event_handler (pEnv, shutdownent, fc_handler, 0);
-
-		if(pSession!=NULL) {
-			opsec_end_session(pSession);
-		}
-
-		return 0;
-	}
-
-	return 0;
+        return 0;
 }
 
 /*
@@ -2820,6 +1791,11 @@ read_fw1_logfile_end (OpsecSession * psession)
   int end_reason = 0;
   int sic_errno = 0;
   char *sic_errmsg = NULL;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function read_fw1_logfile_end\n");
+    }
 
   if (cfgvalues.debug_mode)
     {
@@ -2974,6 +1950,11 @@ read_fw1_logfile_end (OpsecSession * psession)
 int
 read_fw1_logfile_start (OpsecSession * psession)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function read_fw1_logfile_start\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr, "DEBUG: OPSEC session start handler was invoked\n");
@@ -2987,6 +1968,11 @@ read_fw1_logfile_start (OpsecSession * psession)
 int
 read_fw1_logfile_established (OpsecSession * psession)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function read_fw1_logfile_established\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr,
@@ -3003,6 +1989,11 @@ int
 read_fw1_logfile_failedconn (OpsecEntity * entity, long peer_ip,
 			     int sic_errno, char *sic_errmsg)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function read_fw1_logfile_failedconn\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr,
@@ -3029,97 +2020,16 @@ get_fw1_logfiles ()
   char *opsec_certificate;
   char *opsec_client_dn;
   char *opsec_server_dn;
-  char *leaconf;
 
-#ifdef WIN32
-  TCHAR buff[BUFSIZE];
-  DWORD dwRet;
-#else
-  long size;
-#endif
-
-#ifdef WIN32
-  dwRet = GetCurrentDirectory (BUFSIZE, buff);
-
-  if (dwRet == 0)
+  if (cfgvalues.debug_mode >= 2)
     {
-      fprintf (stderr,
-	       "ERROR: Cannot get current working directory (error code: %d)\n",
-	       GetLastError ());
-      exit_loggrabber (1);
+      fprintf (stderr, "DEBUG: function get_fw1_logfiles\n");
     }
-  if (dwRet > BUFSIZE)
-    {
-      fprintf (stderr,
-	       "ERROR: Getting the current working directory failed failed since buffer too small, and it needs %d chars\n",
-	       dwRet);
-      exit_loggrabber (1);
-    }
-  if ((leaconf = (char *) malloc (BUFSIZE)) == NULL)
-    {
-      fprintf (stderr, "ERROR: Out of memory\n");
-      exit_loggrabber (1);
-    }
-
-  if (cfgvalues.leaconfig_filename == NULL)
-    {
-      strcpy (leaconf, buff);
-      strcat (leaconf, "\\lea.conf");
-    }
-  else
-    {
-      if ((cfgvalues.leaconfig_filename[0] == '\\') ||
-	  ((cfgvalues.leaconfig_filename[1] == ':')
-	   && (cfgvalues.leaconfig_filename[2] == '\\')))
-	{
-	  strcpy (leaconf, cfgvalues.leaconfig_filename);
-	}
-      else
-	{
-	  strcpy (leaconf, buff);
-	  strcat (leaconf, "\\");
-	  strcat (leaconf, cfgvalues.leaconfig_filename);
-	}
-    }
-#else
-  size = pathconf (".", _PC_PATH_MAX);
-  if ((leaconf = (char *) malloc ((size_t) size)) == NULL)
-    {
-      fprintf (stderr, "ERROR: Out of memory\n");
-      exit_loggrabber (1);
-    }
-
-  if (cfgvalues.leaconfig_filename == NULL)
-    {
-      if (getcwd (leaconf, (size_t) size) == NULL)
-	{
-	  fprintf (stderr, "ERROR: Cannot get current working directory\n");
-	  exit_loggrabber (1);
-	}
-      strcat (leaconf, "/lea.conf");
-    }
-  else
-    {
-      if (cfgvalues.leaconfig_filename[0] == '/')
-	{
-	  strcpy (leaconf, cfgvalues.leaconfig_filename);
-	}
-      else
-	{
-	  if (getcwd (leaconf, (size_t) size) == NULL)
-	    {
-	      fprintf (stderr,
-		       "ERROR: Cannot get current working directory\n");
-	      exit_loggrabber (1);
-	    }
-	  strcat (leaconf, "/");
-	  strcat (leaconf, cfgvalues.leaconfig_filename);
-	}
-    }
-#endif
 
   /* create opsec environment for the main loop */
-  if ((pEnv = opsec_init (OPSEC_CONF_FILE, leaconf, OPSEC_EOL)) == NULL)
+  if ((pEnv =
+       opsec_init (OPSEC_CONF_FILE, cfgvalues.leaconfig_filename,
+		   OPSEC_EOL)) == NULL)
     {
       fprintf (stderr, "ERROR: unable to create environment (%s)\n",
 	       opsec_errno_str (opsec_errno));
@@ -3129,7 +2039,8 @@ get_fw1_logfiles ()
   if (cfgvalues.debug_mode)
     {
 
-      fprintf (stderr, "DEBUG: OPSEC LEA conf file is %s\n", leaconf);
+      fprintf (stderr, "DEBUG: OPSEC LEA conf file is %s\n",
+	       cfgvalues.leaconfig_filename);
 
       fw1_server = opsec_get_conf (pEnv, "lea_server", "ip", NULL);
       if (fw1_server == NULL)
@@ -3243,8 +2154,6 @@ get_fw1_logfiles ()
    */
   cleanup_fw1_environment (pEnv, pClient, pServer);
 
-  free (leaconf);
-
   return 0;
 }
 
@@ -3259,6 +2168,11 @@ get_fw1_logfiles_dict (OpsecSession * pSession, int nDictId, LEA_VT nValType,
   int nID = 0;
   int aID = 0;
   char *logfile = NULL;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function get_fw1_logfiles_dict\n");
+    }
 
   if (cfgvalues.debug_mode)
     {
@@ -3303,6 +2217,11 @@ void
 cleanup_fw1_environment (OpsecEnv * env, OpsecEntity * client,
 			 OpsecEntity * server)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function cleanup_fw1_environment\n");
+    }
+
   if (client)
     opsec_destroy_entity (client);
   if (server)
@@ -3318,6 +2237,11 @@ void
 show_supported_fields ()
 {
   int i;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function show_supported_fields\n");
+    }
 
   fprintf (stderr,
 	   "\nFW1-Loggrabber v%s, (C)2004, Torsten Fellhauer, Xiaodong Lin\n",
@@ -3340,9 +2264,13 @@ show_supported_fields ()
 void
 usage (char *szProgName)
 {
-  fprintf (stderr,
-	   "\nFW1-Loggrabber v%s, (C)2004, Torsten Fellhauer, Xiaodong Lin\n",
-	   VERSION);
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function usage\n");
+    }
+
+  fprintf (stderr, "\nFW1-Loggrabber v%s (%s)\n", VERSION, ODBCVERSION);
+  fprintf (stderr, "    (C)2005, Torsten Fellhauer, Xiaodong Lin\n\n");
   fprintf (stderr, "Usage:\n");
   fprintf (stderr, " %s [ options ]\n", szProgName);
   fprintf (stderr,
@@ -3367,6 +2295,10 @@ usage (char *szProgName)
 	   "  --auditlog|--normallog     : Get data of audit-logfile (fw.adtlog)(default: normallog)\n");
   fprintf (stderr,
 	   "  --fieldnames|--nofieldnames: Print fieldnames in each line or once at beginning\n");
+#ifdef USE_ODBC
+  fprintf (stderr,
+	   "  --create-tables            : Create tables in ODBC-Database and exit\n");
+#endif
   fprintf (stderr,
 	   "  --debug-level <level>      : Specify Debuglevel (default: 0 - no debugging)\n");
   fprintf (stderr,
@@ -3381,6 +2313,19 @@ usage (char *szProgName)
 int
 stringlist_append (stringlist ** lst, char *data)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function stringlist_append\n");
+    }
+
+  /*
+   * return if data is NULL
+   */
+  if (data == NULL)
+    {
+      return 0;
+    }
+
   /*
    * move to last element of list
    */
@@ -3406,6 +2351,11 @@ stringlist_append (stringlist ** lst, char *data)
 void
 stringlist_print (stringlist ** lst)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function stringlist_print\n");
+    }
+
   while (*lst)
     {
       printf ("%s\n", (*lst)->data);
@@ -3420,6 +2370,11 @@ stringlist *
 stringlist_delete (stringlist ** lst)
 {
   stringlist *first;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function stringlist_delete\n");
+    }
 
   if (*lst)
     {
@@ -3440,6 +2395,19 @@ stringlist_delete (stringlist ** lst)
 stringlist *
 stringlist_search (stringlist ** lst, char *searchstring, char **result)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function stringlist_search\n");
+    }
+
+  /*
+   * return if searchstring is NULL
+   */
+  if (searchstring == NULL)
+    {
+      return NULL;
+    }
+
   /*
    * compare all elements of list with given string
    */
@@ -3483,6 +2451,11 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
   char *tmpstring2;
   struct tm timestruct;
   char tempchararray[10];
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function create_fw1_filter_rule\n");
+    }
 
   /*
    * create an empty rule with action "pass"
@@ -3606,8 +2579,7 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
 	  /*
 	   * create filter predicate
 	   */
-	  if (
-	      (ppred =
+	  if ((ppred =
 	       lea_filter_predicate_create ("product", -1, negation,
 					    LEA_FILTER_PRED_BELONGS_TO,
 					    argumentcount, val_arr)) == NULL)
@@ -3675,9 +2647,9 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
 	      /*
 	       * transform values (accept, drop, reject) into corresponding values
 	       */
-	      if (strcmp (argumentsinglevalue, "accept") == 0)
+	      if (strcmp (argumentsinglevalue, "ctl") == 0)
 		{
-		  tempint = 4;
+		  tempint = 0;
 		}
 	      else if (strcmp (argumentsinglevalue, "drop") == 0)
 		{
@@ -3686,6 +2658,22 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
 	      else if (strcmp (argumentsinglevalue, "reject") == 0)
 		{
 		  tempint = 3;
+		}
+	      else if (strcmp (argumentsinglevalue, "accept") == 0)
+		{
+		  tempint = 4;
+		}
+	      else if (strcmp (argumentsinglevalue, "encrypt") == 0)
+		{
+		  tempint = 5;
+		}
+	      else if (strcmp (argumentsinglevalue, "decrypt") == 0)
+		{
+		  tempint = 6;
+		}
+	      else if (strcmp (argumentsinglevalue, "keyinst") == 0)
+		{
+		  tempint = 7;
 		}
 	      else
 		{
@@ -3713,9 +2701,104 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
 	  /*
 	   * create filter predicate
 	   */
-	  if (
-	      (ppred =
+	  if ((ppred =
 	       lea_filter_predicate_create ("action", -1, negation,
+					    LEA_FILTER_PRED_BELONGS_TO,
+					    argumentcount, val_arr)) == NULL)
+	    {
+	      fprintf (stderr, "ERROR: failed to create predicate\n");
+	      lea_value_ex_destroy (val_arr[argumentcount - 1]);
+	      lea_filter_rule_destroy (prule);
+	      return NULL;
+	    }
+
+	  lea_value_ex_destroy (val_arr[argumentcount - 1]);
+
+	  /*
+	   * add current predicate to current rule
+	   */
+	  if (lea_filter_rule_add_predicate (prule, ppred) == LEA_FILTER_ERR)
+	    {
+	      fprintf (stderr, "ERROR: failed to add predicate to rule\n");
+	      lea_filter_rule_destroy (prule);
+	      lea_filter_predicate_destroy (ppred);
+	      return NULL;
+	    }
+
+	  lea_filter_predicate_destroy (ppred);
+	}
+
+      /*
+       * process arguments of type "orig"
+       */
+      else if (strcmp (argumentname, "orig") == 0)
+	{
+	  /*
+	   * if the value specifies a network, create the filter predicate directly
+	   */
+	  argumentcount = 0;
+	  /*
+	   * get argument values separated by ","
+	   */
+	  while (argumentvalue)
+	    {
+	      argumentsinglevalue =
+		string_trim (string_get_token (&argumentvalue, ','), ' ');
+	      if (strlen (argumentsinglevalue) == 0)
+		{
+		  fprintf (stderr,
+			   "ERROR: syntax error in rule value of argument orig: '%s'.\n"
+			   "       Required syntax: 'orig=aaa.bbb.ccc.ddd'\n",
+			   argumentsinglevalue);
+		  return NULL;
+		}
+	      argumentcount++;
+	      if (val_arr)
+		{
+		  val_arr =
+		    (lea_value_ex_t **) realloc (val_arr,
+						 argumentcount *
+						 sizeof (lea_value_ex_t *));
+		  if (val_arr == NULL)
+		    {
+		      fprintf (stderr, "ERROR: Out of memory\n");
+		      exit_loggrabber (1);
+		    }
+		}
+	      else
+		{
+		  val_arr =
+		    (lea_value_ex_t **) malloc (argumentcount *
+						sizeof (lea_value_ex_t *));
+		  if (val_arr == NULL)
+		    {
+		      fprintf (stderr, "ERROR: Out of memory\n");
+		      exit_loggrabber (1);
+		    }
+		}
+
+	      /*
+	       * create extended opsec value
+	       */
+	      val_arr[argumentcount - 1] = lea_value_ex_create ();
+	      if (lea_value_ex_set
+		  (val_arr[argumentcount - 1], LEA_VT_IP_ADDR,
+		   inet_addr (argumentsinglevalue)) == OPSEC_SESSION_ERR)
+		{
+		  fprintf (stderr,
+			   "ERROR: failed to set rule value (%s)\n",
+			   opsec_errno_str (opsec_errno));
+		  lea_value_ex_destroy (val_arr[argumentcount - 1]);
+		  lea_filter_rule_destroy (prule);
+		  return NULL;
+		}
+	    }
+
+	  /*
+	   * create filter predicate
+	   */
+	  if ((ppred =
+	       lea_filter_predicate_create ("orig", -1, negation,
 					    LEA_FILTER_PRED_BELONGS_TO,
 					    argumentcount, val_arr)) == NULL)
 	    {
@@ -3744,8 +2827,7 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
       /*
        * process arguments of type "dst"
        */
-      else if ((strcmp (argumentname, "dst") == 0)
-	       && (!(cfgvalues.audit_mode)))
+      else if (strcmp (argumentname, "dst") == 0)
 	{
 	  /*
 	   * check whether values are valid
@@ -3775,8 +2857,7 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
 			   tmpstring1, tmpstring2);
 		  return NULL;
 		}
-	      if (
-		  (ppred =
+	      if ((ppred =
 		   lea_filter_predicate_create ("dst", -1, negation,
 						LEA_FILTER_PRED_BELONGS_TO_MASK,
 						inet_addr (tmpstring1),
@@ -3854,8 +2935,7 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
 	      /*
 	       * create filter predicate
 	       */
-	      if (
-		  (ppred =
+	      if ((ppred =
 		   lea_filter_predicate_create ("dst", -1, negation,
 						LEA_FILTER_PRED_BELONGS_TO,
 						argumentcount,
@@ -3887,8 +2967,7 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
       /*
        * process arguments of type "proto"
        */
-      else if ((strcmp (argumentname, "proto") == 0)
-	       && (!(cfgvalues.audit_mode)))
+      else if (strcmp (argumentname, "proto") == 0)
 	{
 	  argumentcount = 0;
 	  /*
@@ -3964,8 +3043,7 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
 	  /*
 	   * create filter predicate
 	   */
-	  if (
-	      (ppred =
+	  if ((ppred =
 	       lea_filter_predicate_create ("proto", -1, negation,
 					    LEA_FILTER_PRED_BELONGS_TO,
 					    argumentcount, val_arr)) == NULL)
@@ -4071,8 +3149,7 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
 	  /*
 	   * create filter predicate
 	   */
-	  if (
-	      (ppred =
+	  if ((ppred =
 	       lea_filter_predicate_create ("time", -1, negation,
 					    LEA_FILTER_PRED_GREATER_EQUAL,
 					    lea_value)) == NULL)
@@ -4178,8 +3255,7 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
 	  /*
 	   * create filter predicate
 	   */
-	  if (
-	      (ppred =
+	  if ((ppred =
 	       lea_filter_predicate_create ("time", -1, negation,
 					    LEA_FILTER_PRED_SMALLER_EQUAL,
 					    lea_value)) == NULL)
@@ -4209,8 +3285,7 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
       /*
        * process arguments of type "rule"
        */
-      else if ((strcmp (argumentname, "rule") == 0)
-	       && (!(cfgvalues.audit_mode)))
+      else if (strcmp (argumentname, "rule") == 0)
 	{
 	  argumentcount = 0;
 	  /*
@@ -4294,8 +3369,7 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
 	  /*
 	   * create filter predicate
 	   */
-	  if (
-	      (ppred =
+	  if ((ppred =
 	       lea_filter_predicate_create ("rule", -1, negation,
 					    LEA_FILTER_PRED_BELONGS_TO,
 					    argumentcount, val_arr)) == NULL)
@@ -4325,8 +3399,7 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
       /*
        * process arguments of type "service"
        */
-      else if ((strcmp (argumentname, "service") == 0)
-	       && (!(cfgvalues.audit_mode)))
+      else if (strcmp (argumentname, "service") == 0)
 	{
 	  argumentcount = 0;
 	  /*
@@ -4413,8 +3486,7 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
 	  /*
 	   * create filter predicate
 	   */
-	  if (
-	      (ppred =
+	  if ((ppred =
 	       lea_filter_predicate_create ("service", -1, negation,
 					    LEA_FILTER_PRED_BELONGS_TO,
 					    argumentcount, val_arr)) == NULL)
@@ -4444,8 +3516,7 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
       /*
        * process arguments of type "src"
        */
-      else if ((strcmp (argumentname, "src") == 0)
-	       && (!(cfgvalues.audit_mode)))
+      else if (strcmp (argumentname, "src") == 0)
 	{
 	  /*
 	   * check whether values are valid
@@ -4475,8 +3546,7 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
 			   tmpstring1, tmpstring2);
 		  return NULL;
 		}
-	      if (
-		  (ppred =
+	      if ((ppred =
 		   lea_filter_predicate_create ("src", -1, negation,
 						LEA_FILTER_PRED_BELONGS_TO_MASK,
 						inet_addr (tmpstring1),
@@ -4554,8 +3624,7 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
 	      /*
 	       * create filter predicate
 	       */
-	      if (
-		  (ppred =
+	      if ((ppred =
 		   lea_filter_predicate_create ("src", -1, negation,
 						LEA_FILTER_PRED_BELONGS_TO,
 						argumentcount,
@@ -4632,6 +3701,11 @@ create_audit_filter_rule (LeaFilterRulebase * prulebase,
   int negation;
   struct tm timestruct;
   char tempchararray[10];
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function create_audit_filter_rule\n");
+    }
 
   /*
    * create an empty rule with action "pass"
@@ -4731,7 +3805,8 @@ create_audit_filter_rule (LeaFilterRulebase * prulebase,
 		    (strcmp (argumentsinglevalue, "Policy Editor") == 0) ||
 		    (strcmp (argumentsinglevalue, "SmartView Tracker") == 0)
 		    || (strcmp (argumentsinglevalue, "SmartView Status") == 0)
-		    || (strcmp (argumentsinglevalue, "SmartView Monitor") == 0)
+		    || (strcmp (argumentsinglevalue, "SmartView Monitor") ==
+			0)
 		    || (strcmp (argumentsinglevalue, "System Monitor") == 0)
 		    || (strcmp (argumentsinglevalue, "cpstat_monitor") == 0)
 		    || (strcmp (argumentsinglevalue, "SmartUpdate") == 0)
@@ -4761,8 +3836,7 @@ create_audit_filter_rule (LeaFilterRulebase * prulebase,
 	  /*
 	   * create filter predicate
 	   */
-	  if (
-	      (ppred =
+	  if ((ppred =
 	       lea_filter_predicate_create ("product", -1, negation,
 					    LEA_FILTER_PRED_BELONGS_TO,
 					    argumentcount, val_arr)) == NULL)
@@ -4846,9 +3920,101 @@ create_audit_filter_rule (LeaFilterRulebase * prulebase,
 	  /*
 	   * create filter predicate
 	   */
-	  if (
-	      (ppred =
+	  if ((ppred =
 	       lea_filter_predicate_create ("Administrator", -1, negation,
+					    LEA_FILTER_PRED_BELONGS_TO,
+					    argumentcount, val_arr)) == NULL)
+	    {
+	      fprintf (stderr, "ERROR: failed to create predicate\n");
+	      lea_value_ex_destroy (val_arr[argumentcount - 1]);
+	      lea_filter_rule_destroy (prule);
+	      return NULL;
+	    }
+
+	  lea_value_ex_destroy (val_arr[argumentcount - 1]);
+
+	  /*
+	   * add current predicate to current rule
+	   */
+	  if (lea_filter_rule_add_predicate (prule, ppred) == LEA_FILTER_ERR)
+	    {
+	      fprintf (stderr, "ERROR: failed to add predicate to rule\n");
+	      lea_filter_rule_destroy (prule);
+	      lea_filter_predicate_destroy (ppred);
+	      return NULL;
+	    }
+
+	  lea_filter_predicate_destroy (ppred);
+	}
+
+      /*
+       * process arguments of type "orig"
+       */
+      else if (strcmp (argumentname, "orig") == 0)
+	{
+	  argumentcount = 0;
+	  /*
+	   * get argument values separated by ","
+	   */
+	  while (argumentvalue)
+	    {
+	      argumentsinglevalue =
+		string_trim (string_get_token (&argumentvalue, ','), ' ');
+	      if (strlen (argumentsinglevalue) == 0)
+		{
+		  fprintf (stderr,
+			   "ERROR: syntax error in rule value of argument orig: '%s'.\n"
+			   "       Required syntax: 'orig=aaa.bbb.ccc.ddd'\n",
+			   argumentsinglevalue);
+		  return NULL;
+		}
+	      argumentcount++;
+	      if (val_arr)
+		{
+		  val_arr =
+		    (lea_value_ex_t **) realloc (val_arr,
+						 argumentcount *
+						 sizeof (lea_value_ex_t *));
+		  if (val_arr == NULL)
+		    {
+		      fprintf (stderr, "ERROR: Out of memory\n");
+		      exit_loggrabber (1);
+		    }
+		}
+	      else
+		{
+		  val_arr =
+		    (lea_value_ex_t **) malloc (argumentcount *
+						sizeof (lea_value_ex_t *));
+		  if (val_arr == NULL)
+		    {
+		      fprintf (stderr, "ERROR: Out of memory\n");
+		      exit_loggrabber (1);
+		    }
+		}
+
+	      /*
+	       * create extended opsec value
+	       */
+	      val_arr[argumentcount - 1] = lea_value_ex_create ();
+	      if (lea_value_ex_set
+		  (val_arr[argumentcount - 1], LEA_VT_IP_ADDR,
+		   inet_addr (argumentsinglevalue)) == OPSEC_SESSION_ERR)
+		{
+		  fprintf (stderr,
+			   "ERROR: failed to set rule value (%s)\n",
+			   opsec_errno_str (opsec_errno));
+		  lea_value_ex_destroy (val_arr[argumentcount - 1]);
+		  lea_filter_rule_destroy (prule);
+		  return NULL;
+		}
+	    }
+
+	  /*
+	   * create filter predicate
+	   */
+	  if ((ppred =
+	       lea_filter_predicate_create ("orig", -1, negation,
 					    LEA_FILTER_PRED_BELONGS_TO,
 					    argumentcount, val_arr)) == NULL)
 	    {
@@ -4915,9 +4081,9 @@ create_audit_filter_rule (LeaFilterRulebase * prulebase,
 	      /*
 	       * transform values (accept, drop, reject) into corresponding values
 	       */
-	      if (strcmp (argumentsinglevalue, "accept") == 0)
+	      if (strcmp (argumentsinglevalue, "ctl") == 0)
 		{
-		  tempint = 4;
+		  tempint = 0;
 		}
 	      else if (strcmp (argumentsinglevalue, "drop") == 0)
 		{
@@ -4926,6 +4092,22 @@ create_audit_filter_rule (LeaFilterRulebase * prulebase,
 	      else if (strcmp (argumentsinglevalue, "reject") == 0)
 		{
 		  tempint = 3;
+		}
+	      else if (strcmp (argumentsinglevalue, "accept") == 0)
+		{
+		  tempint = 4;
+		}
+	      else if (strcmp (argumentsinglevalue, "encrypt") == 0)
+		{
+		  tempint = 5;
+		}
+	      else if (strcmp (argumentsinglevalue, "decrypt") == 0)
+		{
+		  tempint = 6;
+		}
+	      else if (strcmp (argumentsinglevalue, "keyinst") == 0)
+		{
+		  tempint = 7;
 		}
 	      else
 		{
@@ -4953,8 +4135,7 @@ create_audit_filter_rule (LeaFilterRulebase * prulebase,
 	  /*
 	   * create filter predicate
 	   */
-	  if (
-	      (ppred =
+	  if ((ppred =
 	       lea_filter_predicate_create ("action", -1, negation,
 					    LEA_FILTER_PRED_BELONGS_TO,
 					    argumentcount, val_arr)) == NULL)
@@ -5060,8 +4241,7 @@ create_audit_filter_rule (LeaFilterRulebase * prulebase,
 	  /*
 	   * create filter predicate
 	   */
-	  if (
-	      (ppred =
+	  if ((ppred =
 	       lea_filter_predicate_create ("time", -1, negation,
 					    LEA_FILTER_PRED_GREATER_EQUAL,
 					    lea_value)) == NULL)
@@ -5167,8 +4347,7 @@ create_audit_filter_rule (LeaFilterRulebase * prulebase,
 	  /*
 	   * create filter predicate
 	   */
-	  if (
-	      (ppred =
+	  if ((ppred =
 	       lea_filter_predicate_create ("time", -1, negation,
 					    LEA_FILTER_PRED_SMALLER_EQUAL,
 					    lea_value)) == NULL)
@@ -5232,6 +4411,19 @@ string_get_token (char **tokstring, char separator)
   char *returnstring;
   int strlength;
 
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function string_get_token\n");
+    }
+
+  /* 
+   * return if tokstring is NULL
+   */
+  if (*tokstring == NULL)
+    {
+      return NULL;
+    }
+
   /*
    * search for first separator
    */
@@ -5272,6 +4464,16 @@ string_duplicate (const char *src)
   size_t length;
   char *dst;
 
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function string_duplicate\n");
+    }
+
+  if (src == NULL)
+    {
+      return NULL;
+    }
+
   length = strlen (src) + 1;
   dst = malloc (length);
   if (!dst)
@@ -5290,7 +4492,12 @@ string_left_trim (char *string, char character)
 {
   char *tmp;
 
-  if (!string)
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function string_left_trim\n");
+    }
+
+  if (string == NULL)
     {
       return NULL;
     }
@@ -5308,7 +4515,12 @@ string_right_trim (char *string, char character)
 {
   int tmp;
 
-  if (!string)
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function string_right_trim\n");
+    }
+
+  if (string == NULL)
     {
       return NULL;
     }
@@ -5325,8 +4537,59 @@ string_right_trim (char *string, char character)
 char *
 string_trim (char *string, char character)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function string_trim\n");
+    }
+
   return (string_right_trim
 	  (string_left_trim (string, character), character));
+}
+
+/*
+ * BEGIN: function string_mask_newlines
+ */
+char *
+string_mask_newlines (char *string)
+{
+  int i = 0;
+  int z1, z2;
+  int length = strlen (string);
+  char *sptr = string;
+  char *s;
+
+  sptr = strchr (sptr, '\n');
+  while (sptr != NULL)
+    {
+      i++;
+      sptr = strchr (++sptr, '\n');
+    }
+
+  s = (char *) malloc (length + (i * 2) + 1);
+
+  if (!s)
+    {
+      fprintf (stderr, "ERROR: out of memory\n");
+      exit_loggrabber (1);
+    }
+
+  for (z1 = 0, z2 = 0; z1 < length; z1++)
+    {
+      if (string[z1] == '\n')
+	{
+	  s[z2++] = '(';
+	  s[z2++] = '+';
+	  s[z2++] = ')';
+	}
+      else
+	{
+	  s[z2++] = string[z1];
+	}
+    }
+
+  s[z2] = '\0';
+
+  return (s);
 }
 
 /*
@@ -5338,6 +4601,19 @@ string_escape (char *string, char character)
   int i = strlen (string);
   int z1, z2;
   char *s = (char *) malloc (i * 2 + 1);
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function string_escape\n");
+    }
+
+  /*
+   * return if string is NULL
+   */
+  if (string == NULL)
+    {
+      return NULL;
+    }
 
   if (!s)
     {
@@ -5369,6 +4645,19 @@ string_rmchar (char *string, char character)
   int z1, z2;
   char *s = (char *) malloc (i + 1);
 
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function string_rmchar\n");
+    }
+
+  /*
+   * return if string is NULL
+   */
+  if (string == NULL)
+    {
+      return NULL;
+    }
+
   if (!s)
     {
       fprintf (stderr, "ERROR: out of memory\n");
@@ -5395,7 +4684,20 @@ char *
 string_toupper (const char *str1)
 {
   char *tempstr1;
-  int i;
+  unsigned int i;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function string_toupper\n");
+    }
+
+  /*
+   * return if string is NULL
+   */
+  if (str1 == NULL)
+    {
+      return NULL;
+    }
 
   tempstr1 = string_duplicate (str1);
 
@@ -5416,7 +4718,12 @@ string_icmp (const char *str1, const char *str2)
   char *tempstr1;
   char *tempstr2;
   int cmpresult;
-  int i;
+  unsigned int i;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function string_icmp\n");
+    }
 
   tempstr1 = string_duplicate (str1);
   tempstr2 = string_duplicate (str2);
@@ -5440,7 +4747,7 @@ string_icmp (const char *str1, const char *str2)
 }
 
 /*
- * BEGIN: function string_icmp
+ * BEGIN: function string_incmp
  */
 int
 string_incmp (const char *str1, const char *str2, size_t count)
@@ -5448,7 +4755,12 @@ string_incmp (const char *str1, const char *str2, size_t count)
   char *tempstr1;
   char *tempstr2;
   int cmpresult;
-  int i;
+  unsigned int i;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function string_incmp\n");
+    }
 
   tempstr1 = string_duplicate (str1);
   tempstr2 = string_duplicate (str2);
@@ -5483,104 +4795,10 @@ read_config_file (char *filename, configvalues * cfgvalues)
   char *configparameter;
   char *configvalue;
   char *tmpstr;
-  char *loggrabberconf;
 
-#ifdef WIN32
-  TCHAR buff[BUFSIZE];
-  DWORD dwRet;
-#else
-  long size;
-#endif
-
-#ifdef WIN32
-  dwRet = GetCurrentDirectory (BUFSIZE, buff);
-
-  if (dwRet == 0)
+  if ((configfile = fopen (filename, "r")) == NULL)
     {
-      fprintf (stderr,
-	       "ERROR: Cannot get current working directory (error code: %d)\n",
-	       GetLastError ());
-      exit_loggrabber (1);
-    }
-  if (dwRet > BUFSIZE)
-    {
-      fprintf (stderr,
-	       "ERROR: Getting the current working directory failed failed since buffer too small, and it needs %d chars\n",
-	       dwRet);
-      exit_loggrabber (1);
-    }
-  if ((loggrabberconf = (char *) malloc (BUFSIZE)) == NULL)
-    {
-      fprintf (stderr, "ERROR: Out of memory\n");
-      exit_loggrabber (1);
-    }
-
-  if (filename == NULL)
-    {
-      strcpy (loggrabberconf, buff);
-      strcat (loggrabberconf, "\\fw1-loggrabber.conf");
-    }
-  else
-    {
-      if ((filename[0] == '\\') ||
-	  ((filename[1] == ':') && (filename[2] == '\\')))
-	{
-	  strcpy (loggrabberconf, filename);
-	}
-      else
-	{
-	  strcpy (loggrabberconf, buff);
-	  strcat (loggrabberconf, "\\");
-	  strcat (loggrabberconf, filename);
-	}
-    }
-#else
-  size = pathconf (".", _PC_PATH_MAX);
-  if ((loggrabberconf = (char *) malloc ((size_t) size)) == NULL)
-    {
-      fprintf (stderr, "ERROR: Out of memory\n");
-      exit_loggrabber (1);
-    }
-
-  if (filename == NULL)
-    {
-      if (getcwd (loggrabberconf, (size_t) size) == NULL)
-	{
-	  fprintf (stderr, "ERROR: Cannot get current working directory\n");
-	  exit_loggrabber (1);
-	}
-      strcat (loggrabberconf, "/fw1-loggrabber.conf");
-    }
-  else
-    {
-      if (filename[0] == '/')
-	{
-	  strcpy (loggrabberconf, filename);
-	}
-      else
-	{
-	  if (getcwd (loggrabberconf, (size_t) size) == NULL)
-	    {
-	      fprintf (stderr,
-		       "ERROR: Cannot get current working directory\n");
-	      exit_loggrabber (1);
-	    }
-	  strcat (loggrabberconf, "/");
-	  strcat (loggrabberconf, filename);
-	}
-    }
-#endif
-
-  if (debug_mode > 0)
-    {
-      fprintf (stderr, "DEBUG: fw1-loggrabber conf file is %s\n",
-	       loggrabberconf);
-    }
-
-  if ((configfile = fopen (loggrabberconf, "r")) == NULL)
-    {
-      fprintf (stderr, "ERROR: Cannot open configfile (%s)\n",
-	       loggrabberconf);
+      fprintf (stderr, "ERROR: Cannot open configfile (%s)\n", filename);
       exit_loggrabber (1);
     }
 
@@ -5769,6 +4987,7 @@ read_config_file (char *filename, configvalues * cfgvalues)
 			   "WARNING: Illegal entry in configuration file: %s=%s\n",
 			   configparameter, configvalue);
 		}
+	      free (configvalue);
 	    }
 	  else if (strcmp (configparameter, "OUTPUT_FILE_PREFIX") == 0)
 	    {
@@ -5833,6 +5052,7 @@ read_config_file (char *filename, configvalues * cfgvalues)
 			   "WARNING: Illegal entry in configuration file: %s=%s\n",
 			   configparameter, configvalue);
 		}
+	      free (configvalue);
 #endif
 	    }
 	  else if (strcmp (configparameter, "FW1_OUTPUT") == 0)
@@ -5859,6 +5079,49 @@ read_config_file (char *filename, configvalues * cfgvalues)
 	      cfgvalues->fw1_logfile =
 		string_duplicate (string_trim (configvalue, '"'));
 	    }
+	  else if (strcmp (configparameter, "FIELDS") == 0)
+	    {
+	      if (cfgvalues->fields != NULL)
+		{
+		  fprintf (stderr,
+			   "ERROR: multiple FIELDS definitions in configuration file: %s=%s\n",
+			   configparameter, configvalue);
+		  exit_loggrabber (1);
+		}
+	      cfgvalues->fields =
+		string_duplicate (string_trim (configvalue, '"'));
+	    }
+	  else if (strcmp (configparameter, "FW1_FILTER_RULE") == 0)
+	    {
+	      cfgvalues->fw1_filter_count++;
+	      cfgvalues->fw1_filter_array =
+		(char **) realloc (cfgvalues->fw1_filter_array,
+				   cfgvalues->fw1_filter_count *
+				   sizeof (char *));
+	      if (cfgvalues->fw1_filter_array == NULL)
+		{
+		  fprintf (stderr, "ERROR: Out of memory\n");
+		  exit_loggrabber (1);
+		}
+	      cfgvalues->fw1_filter_array[cfgvalues->fw1_filter_count - 1] =
+		string_duplicate (string_trim (configvalue, '"'));
+	    }
+	  else if (strcmp (configparameter, "AUDIT_FILTER_RULE") == 0)
+	    {
+	      cfgvalues->audit_filter_count++;
+	      cfgvalues->audit_filter_array =
+		(char **) realloc (cfgvalues->audit_filter_array,
+				   cfgvalues->audit_filter_count *
+				   sizeof (char *));
+	      if (cfgvalues->audit_filter_array == NULL)
+		{
+		  fprintf (stderr, "ERROR: Out of memory\n");
+		  exit_loggrabber (1);
+		}
+	      cfgvalues->audit_filter_array[cfgvalues->audit_filter_count -
+					    1] =
+		string_duplicate (string_trim (configvalue, '"'));
+	    }
 	  else
 	    {
 	      fprintf (stderr,
@@ -5869,8 +5132,6 @@ read_config_file (char *filename, configvalues * cfgvalues)
     }
 
   fclose (configfile);
-
-  free (loggrabberconf);
 }
 
 #ifdef USE_ODBC
@@ -5881,6 +5142,11 @@ void
 initialize_lfield_dbheaders (char **headers[NUMBER_LIDX_FIELDS])
 {
   int i;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function initialize_lfield_headers\n");
+    }
 
   for (i = 0; i < NUMBER_LIDX_FIELDS; i++)
     {
@@ -5911,7 +5177,7 @@ initialize_lfield_dbheaders (char **headers[NUMBER_LIDX_FIELDS])
   *headers[LIDX_XLATESPORT] = string_duplicate ("fw1xlatesport");
   *headers[LIDX_XLATEDPORT] = string_duplicate ("fw1xlatedport");
   *headers[LIDX_NAT_RULENUM] = string_duplicate ("fw1nat_rulenum");
-  *headers[LIDX_NAT_ADDRULENUM] = NULL;
+  *headers[LIDX_NAT_ADDRULENUM] = string_duplicate ("fw1nat_addrulenum");
   *headers[LIDX_RESOURCE] = string_duplicate ("fw1resource");
   *headers[LIDX_ELAPSED] = string_duplicate ("fw1elapsed");
   *headers[LIDX_PACKETS] = string_duplicate ("fw1packets");
@@ -5922,75 +5188,209 @@ initialize_lfield_dbheaders (char **headers[NUMBER_LIDX_FIELDS])
   *headers[LIDX_FROM] = string_duplicate ("fw1from");
   *headers[LIDX_TO] = string_duplicate ("fw1to");
   *headers[LIDX_SYS_MSGS] = string_duplicate ("fw1sys_msgs");
-  *headers[LIDX_FW_MESSAGE] = NULL;
-  *headers[LIDX_INTERNAL_CA] = NULL;
-  *headers[LIDX_SERIAL_NUM] = NULL;
-  *headers[LIDX_DN] = NULL;
-  *headers[LIDX_ICMP] = NULL;
-  *headers[LIDX_ICMP_TYPE] = NULL;
-  *headers[LIDX_ICMP_TYPE2] = NULL;
-  *headers[LIDX_ICMP_CODE] = NULL;
-  *headers[LIDX_ICMP_CODE2] = NULL;
-  *headers[LIDX_MSGID] = NULL;
-  *headers[LIDX_MESSAGE_INFO] = NULL;
-  *headers[LIDX_LOG_SYS_MESSAGE] = NULL;
-  *headers[LIDX_SESSION_ID] = NULL;
-  *headers[LIDX_DNS_QUERY] = NULL;
-  *headers[LIDX_DNS_TYPE] = NULL;
-  *headers[LIDX_SCHEME] = NULL;
-  *headers[LIDX_SRCKEYID] = NULL;
-  *headers[LIDX_DSTKEYID] = NULL;
-  *headers[LIDX_METHODS] = NULL;
-  *headers[LIDX_PEER_GATEWAY] = NULL;
-  *headers[LIDX_IKE] = NULL;
-  *headers[LIDX_IKE_IDS] = NULL;
-  *headers[LIDX_ENCRYPTION_FAILURE] = NULL;
-  *headers[LIDX_ENCRYPTION_FAIL_R] = NULL;
-  *headers[LIDX_COOKIEI] = NULL;
-  *headers[LIDX_COOKIER] = NULL;
-  *headers[LIDX_START_TIME] = NULL;
-  *headers[LIDX_SEGMENT_TIME] = NULL;
-  *headers[LIDX_CLIENT_IN_PACKETS] = NULL;
-  *headers[LIDX_CLIENT_OUT_PACKETS] = NULL;
-  *headers[LIDX_CLIENT_IN_BYTES] = NULL;
-  *headers[LIDX_CLIENT_OUT_BYTES] = NULL;
-  *headers[LIDX_CLIENT_IN_IF] = NULL;
-  *headers[LIDX_CLIENT_OUT_IF] = NULL;
-  *headers[LIDX_SERVER_IN_PACKETS] = NULL;
-  *headers[LIDX_SERVER_OUT_PACKETS] = NULL;
-  *headers[LIDX_SERVER_IN_BYTES] = NULL;
-  *headers[LIDX_SERVER_OUT_BYTES] = NULL;
-  *headers[LIDX_SERVER_IN_IF] = NULL;
-  *headers[LIDX_SERVER_OUT_IF] = NULL;
-  *headers[LIDX_MESSAGE] = NULL;
-  *headers[LIDX_USER] = NULL;
-  *headers[LIDX_SRCNAME] = NULL;
-  *headers[LIDX_OM] = NULL;
-  *headers[LIDX_OM_METHOD] = NULL;
-  *headers[LIDX_ASSIGNED_IP] = NULL;
-  *headers[LIDX_VPN_USER] = NULL;
-  *headers[LIDX_MAC] = NULL;
-  *headers[LIDX_ATTACK] = NULL;
-  *headers[LIDX_ATTACK_INFO] = NULL;
-  *headers[LIDX_CLUSTER_INFO] = NULL;
+  *headers[LIDX_FW_MESSAGE] = string_duplicate ("fw1fw_message");
+  *headers[LIDX_INTERNAL_CA] = string_duplicate ("fw1internal_ca");
+  *headers[LIDX_SERIAL_NUM] = string_duplicate ("fw1serial_num");
+  *headers[LIDX_DN] = string_duplicate ("fw1dn");
+  *headers[LIDX_ICMP] = string_duplicate ("fw1icmp");
+  *headers[LIDX_ICMP_TYPE] = string_duplicate ("fw1icmp_type");
+  *headers[LIDX_ICMP_TYPE2] = string_duplicate ("fw1icmp_type2");
+  *headers[LIDX_ICMP_CODE] = string_duplicate ("fw1icmp_code");
+  *headers[LIDX_ICMP_CODE2] = string_duplicate ("fw1icmp_code2");
+  *headers[LIDX_MSGID] = string_duplicate ("fw1msgid");
+  *headers[LIDX_MESSAGE_INFO] = string_duplicate ("fw1message_info");
+  *headers[LIDX_LOG_SYS_MESSAGE] = string_duplicate ("fw1log_sys_message");
+  *headers[LIDX_SESSION_ID] = string_duplicate ("fw1session_id");
+  *headers[LIDX_DNS_QUERY] = string_duplicate ("fw1dns_query");
+  *headers[LIDX_DNS_TYPE] = string_duplicate ("fw1dns_type");
+  *headers[LIDX_SCHEME] = string_duplicate ("fw1scheme");
+  *headers[LIDX_SRCKEYID] = string_duplicate ("fw1srckeyid");
+  *headers[LIDX_DSTKEYID] = string_duplicate ("fw1dstkeyid");
+  *headers[LIDX_METHODS] = string_duplicate ("fw1methods");
+  *headers[LIDX_PEER_GATEWAY] = string_duplicate ("fw1peer_gateway");
+  *headers[LIDX_IKE] = string_duplicate ("fw1ike");
+  *headers[LIDX_IKE_IDS] = string_duplicate ("fw1ike_ids");
+  *headers[LIDX_ENCRYPTION_FAILURE] =
+    string_duplicate ("fw1encryption_failure");
+  *headers[LIDX_ENCRYPTION_FAIL_R] =
+    string_duplicate ("fw1encryption_fail_r");
+  *headers[LIDX_COOKIEI] = string_duplicate ("fw1cookiei");
+  *headers[LIDX_COOKIER] = string_duplicate ("fw1cookier");
+  *headers[LIDX_START_TIME] = string_duplicate ("fw1start_time");
+  *headers[LIDX_SEGMENT_TIME] = string_duplicate ("fw1segment_time");
+  *headers[LIDX_CLIENT_IN_PACKETS] =
+    string_duplicate ("fw1client_in_packets");
+  *headers[LIDX_CLIENT_OUT_PACKETS] =
+    string_duplicate ("fw1client_out_packets");
+  *headers[LIDX_CLIENT_IN_BYTES] = string_duplicate ("fw1client_in_bytes");
+  *headers[LIDX_CLIENT_OUT_BYTES] = string_duplicate ("fw1client_out_bytes");
+  *headers[LIDX_CLIENT_IN_IF] = string_duplicate ("fw1client_in_if");
+  *headers[LIDX_CLIENT_OUT_IF] = string_duplicate ("fw1client_out_if");
+  *headers[LIDX_SERVER_IN_PACKETS] =
+    string_duplicate ("fw1server_in_packets");
+  *headers[LIDX_SERVER_OUT_PACKETS] =
+    string_duplicate ("fw1server_out_packets");
+  *headers[LIDX_SERVER_IN_BYTES] = string_duplicate ("fw1server_in_bytes");
+  *headers[LIDX_SERVER_OUT_BYTES] = string_duplicate ("fw1server_out_bytes");
+  *headers[LIDX_SERVER_IN_IF] = string_duplicate ("fw1server_in_if");
+  *headers[LIDX_SERVER_OUT_IF] = string_duplicate ("fw1server_out_if");
+  *headers[LIDX_MESSAGE] = string_duplicate ("fw1message");
+  *headers[LIDX_USER] = string_duplicate ("fw1user");
+  *headers[LIDX_SRCNAME] = string_duplicate ("fw1srcname");
+  *headers[LIDX_OM] = string_duplicate ("fw1om");
+  *headers[LIDX_OM_METHOD] = string_duplicate ("fw1om_method");
+  *headers[LIDX_ASSIGNED_IP] = string_duplicate ("fw1assigned_ip");
+  *headers[LIDX_VPN_USER] = string_duplicate ("fw1vpn_user");
+  *headers[LIDX_MAC] = string_duplicate ("fw1mac");
+  *headers[LIDX_ATTACK] = string_duplicate ("fw1attack");
+  *headers[LIDX_ATTACK_INFO] = string_duplicate ("fw1attack_info");
+  *headers[LIDX_CLUSTER_INFO] = string_duplicate ("fw1cluster_info");
   *headers[LIDX_DCE_RPC_UUID] = NULL;
   *headers[LIDX_DCE_RPC_UUID_1] = NULL;
   *headers[LIDX_DCE_RPC_UUID_2] = NULL;
   *headers[LIDX_DCE_RPC_UUID_3] = NULL;
-  *headers[LIDX_DURING_SEC] = NULL;
-  *headers[LIDX_FRAGMENTS_DROPPED] = NULL;
-  *headers[LIDX_IP_ID] = NULL;
-  *headers[LIDX_IP_LEN] = NULL;
-  *headers[LIDX_IP_OFFSET] = NULL;
-  *headers[LIDX_TCP_FLAGS2] = NULL;
-  *headers[LIDX_SYNC_INFO] = NULL;
-  *headers[LIDX_LOG] = NULL;
-  *headers[LIDX_CPMAD] = NULL;
-  *headers[LIDX_AUTH_METHOD] = NULL;
-  *headers[LIDX_TCP_PACKET_OOS] = NULL;
-  *headers[LIDX_RPC_PROG] = NULL;
-  *headers[LIDX_TH_FLAGS] = NULL;
-  *headers[LIDX_CP_MESSAGE] = NULL;
+  *headers[LIDX_DURING_SEC] = string_duplicate ("fw1during_sec");
+  *headers[LIDX_FRAGMENTS_DROPPED] =
+    string_duplicate ("fw1fragments_dropped");
+  *headers[LIDX_IP_ID] = string_duplicate ("fw1ip_id");
+  *headers[LIDX_IP_LEN] = string_duplicate ("fw1ip_len");
+  *headers[LIDX_IP_OFFSET] = string_duplicate ("fw1ip_offset");
+  *headers[LIDX_TCP_FLAGS2] = string_duplicate ("fw1tcp_flags2");
+  *headers[LIDX_SYNC_INFO] = string_duplicate ("fw1sync_info");
+  *headers[LIDX_LOG] = string_duplicate ("fw1log");
+  *headers[LIDX_CPMAD] = string_duplicate ("fw1cpmad");
+  *headers[LIDX_AUTH_METHOD] = string_duplicate ("fw1auth_method");
+  *headers[LIDX_TCP_PACKET_OOS] = string_duplicate ("fw1tcp_packet_oos");
+  *headers[LIDX_RPC_PROG] = string_duplicate ("fw1rpc_prog");
+  *headers[LIDX_TH_FLAGS] = string_duplicate ("fw1th_flags");
+  *headers[LIDX_CP_MESSAGE] = string_duplicate ("fw1cp_message");
+  *headers[LIDX_REJECT_CATEGORY] = string_duplicate ("fw1reject_cat");
+  *headers[LIDX_IKE_LOG] = NULL;
+  *headers[LIDX_NEGOTIATION_ID] = NULL;
+  *headers[LIDX_DECRYPTION_FAILURE] = NULL;
+  *headers[LIDX_LEN] = NULL;
+}
+
+
+/*
+ * BEGIN: function to initialize fields dblength of logfile fields
+ */
+void
+initialize_lfield_dblength (int length[NUMBER_LIDX_FIELDS])
+{
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function initialize_lfield_dblength\n");
+    }
+
+  length[LIDX_NUM] = -1;
+  length[LIDX_TIME] = 0;
+  length[LIDX_ACTION] = 20;
+  length[LIDX_ORIG] = 50;
+  length[LIDX_ALERT] = 50;
+  length[LIDX_IF_DIR] = 50;
+  length[LIDX_IF_NAME] = 50;
+  length[LIDX_HAS_ACCOUNTING] = -1;
+  length[LIDX_UUID] = -1;
+  length[LIDX_PRODUCT] = 100;
+  length[LIDX_POLICY_ID_TAG] = -1;
+  length[LIDX_SRC] = 50;
+  length[LIDX_S_PORT] = 50;
+  length[LIDX_DST] = 50;
+  length[LIDX_SERVICE] = 50;
+  length[LIDX_TCP_FLAGS] = 50;
+  length[LIDX_PROTO] = 20;
+  length[LIDX_RULE] = 20;
+  length[LIDX_XLATESRC] = 30;
+  length[LIDX_XLATEDST] = 30;
+  length[LIDX_XLATESPORT] = 30;
+  length[LIDX_XLATEDPORT] = 30;
+  length[LIDX_NAT_RULENUM] = 20;
+  length[LIDX_NAT_ADDRULENUM] = 20;
+  length[LIDX_RESOURCE] = 30;
+  length[LIDX_ELAPSED] = 30;
+  length[LIDX_PACKETS] = 0;
+  length[LIDX_BYTES] = 0;
+  length[LIDX_REASON] = 100;
+  length[LIDX_SERVICE_NAME] = 50;
+  length[LIDX_AGENT] = 50;
+  length[LIDX_FROM] = 100;
+  length[LIDX_TO] = 100;
+  length[LIDX_SYS_MSGS] = 255;
+  length[LIDX_FW_MESSAGE] = 255;
+  length[LIDX_INTERNAL_CA] = 50;
+  length[LIDX_SERIAL_NUM] = 50;
+  length[LIDX_DN] = 100;
+  length[LIDX_ICMP] = 50;
+  length[LIDX_ICMP_TYPE] = 50;
+  length[LIDX_ICMP_TYPE2] = 50;
+  length[LIDX_ICMP_CODE] = 50;
+  length[LIDX_ICMP_CODE2] = 50;
+  length[LIDX_MSGID] = 50;
+  length[LIDX_MESSAGE_INFO] = 255;
+  length[LIDX_LOG_SYS_MESSAGE] = 255;
+  length[LIDX_SESSION_ID] = 50;
+  length[LIDX_DNS_QUERY] = 50;
+  length[LIDX_DNS_TYPE] = 50;
+  length[LIDX_SCHEME] = 50;
+  length[LIDX_SRCKEYID] = 50;
+  length[LIDX_DSTKEYID] = 50;
+  length[LIDX_METHODS] = 50;
+  length[LIDX_PEER_GATEWAY] = 30;
+  length[LIDX_IKE] = 30;
+  length[LIDX_IKE_IDS] = 30;
+  length[LIDX_ENCRYPTION_FAILURE] = 255;
+  length[LIDX_ENCRYPTION_FAIL_R] = 255;
+  length[LIDX_COOKIEI] = 20;
+  length[LIDX_COOKIER] = 20;
+  length[LIDX_START_TIME] = 20;
+  length[LIDX_SEGMENT_TIME] = 20;
+  length[LIDX_CLIENT_IN_PACKETS] = 10;
+  length[LIDX_CLIENT_OUT_PACKETS] = 10;
+  length[LIDX_CLIENT_IN_BYTES] = 10;
+  length[LIDX_CLIENT_OUT_BYTES] = 10;
+  length[LIDX_CLIENT_IN_IF] = 20;
+  length[LIDX_CLIENT_OUT_IF] = 20;
+  length[LIDX_SERVER_IN_PACKETS] = 10;
+  length[LIDX_SERVER_OUT_PACKETS] = 10;
+  length[LIDX_SERVER_IN_BYTES] = 10;
+  length[LIDX_SERVER_OUT_BYTES] = 10;
+  length[LIDX_SERVER_IN_IF] = 20;
+  length[LIDX_SERVER_OUT_IF] = 20;
+  length[LIDX_MESSAGE] = 255;
+  length[LIDX_USER] = 30;
+  length[LIDX_SRCNAME] = 50;
+  length[LIDX_OM] = 50;
+  length[LIDX_OM_METHOD] = 50;
+  length[LIDX_ASSIGNED_IP] = 20;
+  length[LIDX_VPN_USER] = 30;
+  length[LIDX_MAC] = 20;
+  length[LIDX_ATTACK] = 50;
+  length[LIDX_ATTACK_INFO] = 255;
+  length[LIDX_CLUSTER_INFO] = 255;
+  length[LIDX_DCE_RPC_UUID] = -1;
+  length[LIDX_DCE_RPC_UUID_1] = -1;
+  length[LIDX_DCE_RPC_UUID_2] = -1;
+  length[LIDX_DCE_RPC_UUID_3] = -1;
+  length[LIDX_DURING_SEC] = 29;
+  length[LIDX_FRAGMENTS_DROPPED] = 10;
+  length[LIDX_IP_ID] = 10;
+  length[LIDX_IP_LEN] = 10;
+  length[LIDX_IP_OFFSET] = 10;
+  length[LIDX_TCP_FLAGS2] = 20;
+  length[LIDX_SYNC_INFO] = 255;
+  length[LIDX_LOG] = 50;
+  length[LIDX_CPMAD] = 100;
+  length[LIDX_AUTH_METHOD] = 50;
+  length[LIDX_TCP_PACKET_OOS] = 30;
+  length[LIDX_RPC_PROG] = 50;
+  length[LIDX_TH_FLAGS] = 30;
+  length[LIDX_CP_MESSAGE] = 255;
+  length[LIDX_REJECT_CATEGORY] = 50;
+  length[LIDX_IKE_LOG] = -1;
+  length[LIDX_NEGOTIATION_ID] = -1;
+  length[LIDX_DECRYPTION_FAILURE] = -1;
+  length[LIDX_LEN] = -1;
 }
 #endif
 
@@ -6001,6 +5401,11 @@ void
 initialize_lfield_headers (char **headers[NUMBER_LIDX_FIELDS])
 {
   int i;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function initialize_lfield_headers\n");
+    }
 
   for (i = 0; i < NUMBER_LIDX_FIELDS; i++)
     {
@@ -6125,6 +5530,12 @@ initialize_lfield_headers (char **headers[NUMBER_LIDX_FIELDS])
   *headers[LIDX_RPC_PROG] = string_duplicate ("rpc_prog");
   *headers[LIDX_TH_FLAGS] = string_duplicate ("th_flags");
   *headers[LIDX_CP_MESSAGE] = string_duplicate ("cp_message:");
+  *headers[LIDX_REJECT_CATEGORY] = string_duplicate ("reject_category");
+  *headers[LIDX_IKE_LOG] = string_duplicate ("IKE Log:");
+  *headers[LIDX_NEGOTIATION_ID] = string_duplicate ("Negotiation Id:");
+  *headers[LIDX_DECRYPTION_FAILURE] =
+    string_duplicate ("decryption failure:");
+  *headers[LIDX_LEN] = string_duplicate ("len");
 }
 
 /*
@@ -6135,12 +5546,20 @@ free_lfield_arrays (char **headers[NUMBER_LIDX_FIELDS])
 {
   int i;
 
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function free_lfield_arrays\n");
+    }
+
   for (i = 0; i < NUMBER_LIDX_FIELDS; i++)
     {
-      if (*headers[i] != NULL)
+      if (headers[i] != NULL)
 	{
-	  free (*headers[i]);
-	  *headers[i] = NULL;
+	  if (*headers[i] != NULL)
+	    {
+	      free (*headers[i]);
+	      *headers[i] = NULL;
+	    }
 	}
       free (headers[i]);
     }
@@ -6148,12 +5567,51 @@ free_lfield_arrays (char **headers[NUMBER_LIDX_FIELDS])
 
 #ifdef USE_ODBC
 /*
+ * BEGIN: function to initialize fields dblength of audit fields
+ */
+void
+initialize_afield_dblength (int length[NUMBER_AIDX_FIELDS])
+{
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function initialize_afield_dblength\n");
+    }
+
+  length[AIDX_NUM] = -1;
+  length[AIDX_TIME] = 0;
+  length[AIDX_ACTION] = 20;
+  length[AIDX_ORIG] = 255;
+  length[AIDX_IF_DIR] = 50;
+  length[AIDX_IF_NAME] = 50;
+  length[AIDX_HAS_ACCOUNTING] = -1;
+  length[AIDX_UUID] = -1;
+  length[AIDX_PRODUCT] = 100;
+  length[AIDX_OBJECTNAME] = 255;
+  length[AIDX_OBJECTTYPE] = 255;
+  length[AIDX_OBJECTTABLE] = 255;
+  length[AIDX_OPERATION] = 50;
+  length[AIDX_UID] = 40;
+  length[AIDX_ADMINISTRATOR] = 50;
+  length[AIDX_MACHINE] = 50;
+  length[AIDX_SUBJECT] = 50;
+  length[AIDX_AUDIT_STATUS] = 50;
+  length[AIDX_ADDITIONAL_INFO] = 255;
+  length[AIDX_OPERATION_NUMBER] = 20;
+  length[AIDX_FIELDSCHANGES] = 255;
+}
+
+/*
  * BEGIN: function to initialize fields dbheaders of audit fields
  */
 void
 initialize_afield_dbheaders (char **headers[NUMBER_AIDX_FIELDS])
 {
   int i;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function initialize_afield_dbheaders\n");
+    }
 
   for (i = 0; i < NUMBER_AIDX_FIELDS; i++)
     {
@@ -6193,6 +5651,11 @@ initialize_afield_headers (char **headers[NUMBER_AIDX_FIELDS])
 {
   int i;
 
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function initialize_afield_headers\n");
+    }
+
   for (i = 0; i < NUMBER_AIDX_FIELDS; i++)
     {
       headers[i] = malloc (sizeof (char *));
@@ -6230,12 +5693,20 @@ free_afield_arrays (char **headers[NUMBER_AIDX_FIELDS])
 {
   int i;
 
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function free_afield_arrays\n");
+    }
+
   for (i = 0; i < NUMBER_AIDX_FIELDS; i++)
     {
-      if (*headers[i] != NULL)
+      if (headers[i] != NULL)
 	{
-	  free (*headers[i]);
-	  *headers[i] = NULL;
+	  if (*headers[i] != NULL)
+	    {
+	      free (*headers[i]);
+	      *headers[i] = NULL;
+	    }
 	}
       free (headers[i]);
     }
@@ -6248,6 +5719,11 @@ void
 initialize_lfield_values (char **values[NUMBER_LIDX_FIELDS])
 {
   int i;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function initialize_lfield_values\n");
+    }
 
   for (i = 0; i < NUMBER_LIDX_FIELDS; i++)
     {
@@ -6264,6 +5740,11 @@ initialize_afield_values (char **values[NUMBER_AIDX_FIELDS])
 {
   int i;
 
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function initialize_afield_values\n");
+    }
+
   for (i = 0; i < NUMBER_AIDX_FIELDS; i++)
     {
       values[i] = malloc (sizeof (char *));
@@ -6279,6 +5760,11 @@ initialize_lfield_order (int *order)
 {
   int i;
 
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function initialize_lfield_order\n");
+    }
+
   for (i = 0; i < NUMBER_LIDX_FIELDS; i++)
     {
       order[i] = -1;
@@ -6292,6 +5778,11 @@ void
 initialize_afield_order (int *order)
 {
   int i;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function initialize_afield_order\n");
+    }
 
   for (i = 0; i < NUMBER_AIDX_FIELDS; i++)
     {
@@ -6307,9 +5798,14 @@ initialize_lfield_output (int *output)
 {
   int i;
 
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function initialize_lfield_output\n");
+    }
+
   for (i = 0; i < NUMBER_LIDX_FIELDS; i++)
     {
-      lfield_output[i] = 0;
+      output[i] = 0;
     }
 }
 
@@ -6321,9 +5817,14 @@ initialize_afield_output (int *output)
 {
   int i;
 
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function initialize_afield_output\n");
+    }
+
   for (i = 0; i < NUMBER_AIDX_FIELDS; i++)
     {
-      afield_output[i] = 0;
+      output[i] = 0;
     }
 }
 
@@ -6333,7 +5834,11 @@ initialize_afield_output (int *output)
 void
 exit_loggrabber (int errorcode)
 {
-  int i;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function exit_loggrabber\n");
+    }
 
 #ifdef USE_ODBC
   if (connected)
@@ -6351,7 +5856,7 @@ exit_loggrabber (int errorcode)
   free_lfield_arrays (lfields);
   free_afield_arrays (afields);
 
-  if (LogfileName)
+  if (LogfileName != NULL)
     {
       free (LogfileName);
     }
@@ -6359,18 +5864,26 @@ exit_loggrabber (int errorcode)
 //              free(cfgvalues.fw1_logfile);
 //      }
 
-  for (i = 0; i < filtercount; i++)
-    {
-      if (filterarray[i])
-	{
-	  free (filterarray[i]);
-	}
-    }
+//  for (i = 0; i < filtercount; i++)
+//    {
+//      if (filterarray[i])
+//      {
+//        free (filterarray[i]);
+//      }
+//    }
 
   while (sl)
     {
       sl = stringlist_delete (&sl);
     }
+
+//  if (cfgvalues.config_filename != NULL) {
+//    free (cfgvalues.config_filename);
+//  }
+
+//  if (cfgvalues.leaconfig_filename != NULL) {
+//    free (cfgvalues.leaconfig_filename);
+//  }
 
   exit (errorcode);
 }
@@ -6381,6 +5894,11 @@ exit_loggrabber (int errorcode)
 void
 logging_init_env (int logging)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function logging_init_env\n");
+    }
+
   // Specifies which logging operation shall be executed.
   switch (logging)
     {
@@ -6424,6 +5942,11 @@ logging_init_env (int logging)
 void
 open_syslog ()
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function open_syslog\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr, "DEBUG: Open connection to Syslog.\n");
@@ -6436,6 +5959,11 @@ open_syslog ()
 void
 submit_syslog (char *message)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function submit_syslog\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr, "DEBUG: Submit message to Syslog.\n");
@@ -6447,6 +5975,11 @@ submit_syslog (char *message)
 void
 close_syslog ()
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function close_syslog\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr, "DEBUG: Close connection to Syslog.\n");
@@ -6473,14 +6006,24 @@ open_odbc ()
   short buflen;
   char buf[1024];
   SQLINTEGER maxvalue;
-  SQLINTEGER maxlength;
+#ifdef SOLARIS2
+  SQLLEN tablelength;
+  SQLLEN maxlength;
+#else
   SQLINTEGER tablelength;
+  SQLINTEGER maxlength;
+#endif
   SQLSMALLINT testvar;
   SQLCHAR tablename[255];
   char *dsn;
   char *tmptablename;
   SQLHSTMT teststmt;
   short table_exists = FALSE;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function open_odbc\n");
+    }
 
   dsn = (char *) malloc (strlen (cfgvalues.odbc_dsn) + 5);
   if (dsn == NULL)
@@ -6596,7 +6139,7 @@ open_odbc ()
 	}
       if (SQLTables
 	  (hstmt, NULL, 0, NULL, 0, (SQLCHAR *) tmptablename,
-	   strlen (tmptablename), NULL, 0) != SQL_SUCCESS)
+	   (short) strlen (tmptablename), NULL, 0) != SQL_SUCCESS)
 	{
 	  fprintf (stderr, "ERROR: Failure in SQLTables call.\n");
 	  ODBC_Errors ("SQLTables");
@@ -6654,10 +6197,17 @@ open_odbc ()
 			      &maxlength);
 		  while (SQLFetch (teststmt) == SQL_SUCCESS)
 		    {
-		      tableindex = maxvalue + 1;
+		      tableindex = (maxvalue < 0) ? 0 : maxvalue + 1;
 		    }
 		}
 	    }
+	}
+      else
+	{
+	  fprintf (stderr,
+		   "ERROR: Table %s doesn't exist. Use --create-tables option to create database tables\n",
+		   cfgvalues.audit_mode ? audittable : logtable);
+	  exit_loggrabber (1);
 	}
 
       SQLFreeStmt (teststmt, SQL_CLOSE);
@@ -6684,6 +6234,11 @@ void
 submit_odbc (char *message)
 {
   int status;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function submit_odbc\n");
+    }
 
   if (cfgvalues.debug_mode)
     {
@@ -6720,6 +6275,11 @@ submit_odbc (char *message)
 void
 close_odbc ()
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function close_odbc\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr, "DEBUG: Close connection to ODBC driver.\n");
@@ -6757,6 +6317,11 @@ close_odbc ()
 void
 open_screen ()
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function open_screen\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr, "DEBUG: Open connection to screen.\n");
@@ -6768,6 +6333,11 @@ open_screen ()
 void
 submit_screen (char *message)
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function submit_screen\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr, "DEBUG: Submit message to screen.\n");
@@ -6780,6 +6350,11 @@ submit_screen (char *message)
 void
 close_screen ()
 {
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function close_screen\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr, "DEBUG: Close connection to screen.\n");
@@ -6796,6 +6371,11 @@ open_logfile ()
 {
 
   char *output_file_name;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function open_logfile\n");
+    }
 
   if (cfgvalues.debug_mode)
     {
@@ -6839,6 +6419,11 @@ submit_logfile (char *message)
   int hour;			// 0 through 23
   int minute;			// 0 through 59
   int second;			// 0 through 59
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function submit_logfile\n");
+    }
 
   if (cfgvalues.debug_mode)
     {
@@ -6904,6 +6489,11 @@ void
 close_logfile ()
 {
 
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function close_logfile\n");
+    }
+
   if (cfgvalues.debug_mode)
     {
       fprintf (stderr, "DEBUG: Close the log file.\n");
@@ -6922,6 +6512,12 @@ fileCopy (const char *inputFile, const char *outputFile)
 
   // fpi points to the input file, fpo points to the output file
   FILE *fpi, *fpo;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function fileCopy\n");
+    }
+
   // Open input file, read-only
   fpi = fopen (inputFile, "r");
   // Open output file, write-only
@@ -6945,6 +6541,11 @@ fileExist (const char *fileName)
 {
   FILE *infile;
 
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function fileExist\n");
+    }
+
   infile = fopen (fileName, "r");
   if (infile == NULL)
     {
@@ -6961,12 +6562,13 @@ fileExist (const char *fileName)
 int
 create_loggrabber_tables ()
 {
-  char buf[1024];
-  SQLINTEGER rowcount;
+  char buf[4096];
+  char digitbuf[20];
   short create;
   char answer;
   char *tablename;
   int status;
+  int i;
   SQLCHAR szTest[129];
   SQLCHAR sqltables_col1[129];
   SQLCHAR sqltables_col2[129];
@@ -6974,6 +6576,16 @@ create_loggrabber_tables ()
   SQLCHAR sqltables_col4[129];
   SQLCHAR sqltables_col5[129];
   SQLINTEGER szTest2;
+#ifdef SOLARIS2
+  SQLLEN iTest;
+  SQLLEN sqltables_len1;
+  SQLLEN sqltables_len2;
+  SQLLEN sqltables_len3;
+  SQLLEN sqltables_len4;
+  SQLLEN sqltables_len5;
+  SQLLEN iTest2;
+  SQLLEN rowcount;
+#else
   SQLINTEGER iTest;
   SQLINTEGER sqltables_len1;
   SQLINTEGER sqltables_len2;
@@ -6981,10 +6593,21 @@ create_loggrabber_tables ()
   SQLINTEGER sqltables_len4;
   SQLINTEGER sqltables_len5;
   SQLINTEGER iTest2;
+  SQLINTEGER rowcount;
+#endif
+  char *dbtype_varchar;
+  char *dbtype_bigint;
+  char *dbtype_int;
+  char *dbtype_datetime;
 
   short infotable_exists = FALSE;
   short logtable_exists = FALSE;
   short audittable_exists = FALSE;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function create_loggrabber_tables\n");
+    }
 
   open_odbc ();
 
@@ -7048,6 +6671,49 @@ create_loggrabber_tables ()
       SQLFreeStmt (hstmt, SQL_CLOSE);
     }
 
+  /*
+   * define DBMS specific stuff
+   */
+  if (string_incmp (dbms_name, "mysql", 5) == 0)
+    {
+      dbtype_varchar = string_duplicate ("VARCHAR");
+      dbtype_bigint = string_duplicate ("BIGINT");
+      dbtype_int = string_duplicate ("INT");
+      dbtype_datetime = string_duplicate ("DATETIME");
+    }
+  else if (string_incmp (dbms_name, "postgresql", 10) == 0)
+    {
+      dbtype_varchar = string_duplicate ("VARCHAR");
+      dbtype_bigint = string_duplicate ("BIGINT");
+      dbtype_int = string_duplicate ("INT");
+      dbtype_datetime = string_duplicate ("TIMESTAMP");
+    }
+  else if (string_incmp (dbms_name, "ms sql server", 13) == 0)
+    {
+      dbtype_varchar = string_duplicate ("VARCHAR");
+      dbtype_bigint = string_duplicate ("BIGINT");
+      dbtype_int = string_duplicate ("INT");
+      dbtype_datetime = string_duplicate ("TIMESTAMP");
+    }
+  else if (string_incmp (dbms_name, "db2", 3) == 0)
+    {
+      dbtype_varchar = string_duplicate ("VARCHAR");
+      dbtype_bigint = string_duplicate ("BIGINT");
+      dbtype_int = string_duplicate ("INT");
+      dbtype_datetime = string_duplicate ("TIMESTAMP");
+    }
+  else if (string_incmp (dbms_name, "oracle", 6) == 0)
+    {
+      dbtype_varchar = string_duplicate ("VARCHAR2");
+      dbtype_bigint = string_duplicate ("NUMBER");
+      dbtype_int = string_duplicate ("NUMBER");
+      dbtype_datetime = string_duplicate ("DATE");
+    }
+  else
+    {
+      fprintf (stderr, "ERROR: DBMS %s is not supported\n", dbms_name);
+      exit_loggrabber (1);
+    }
 
   /*
    * create infotable
@@ -7064,8 +6730,8 @@ create_loggrabber_tables ()
     }
 
   if (SQLTables
-      (hstmt, NULL, 0, NULL, 0, (SQLCHAR *) tablename, strlen (tablename),
-       NULL, 0) != SQL_SUCCESS)
+      (hstmt, NULL, 0, NULL, 0, (SQLCHAR *) tablename,
+       (short) strlen (tablename), NULL, 0) != SQL_SUCCESS)
     {
       fprintf (stderr, "ERROR: Failure in SQLTables call.\n");
       ODBC_Errors ("SQLTables");
@@ -7134,51 +6800,11 @@ create_loggrabber_tables ()
 
   if (create)
     {
-      if (string_incmp (dbms_name, "mysql", 5) == 0)
-	{
-	  sprintf (buf, "CREATE TABLE %s ( \
-				parameter varchar(20) NOT NULL, \
-				value     varchar(20) NOT NULL, \
-				primary key (parameter) \
-				);", infotable);
-	}
-      else if (string_incmp (dbms_name, "postgresql", 10) == 0)
-	{
-	  sprintf (buf, "CREATE TABLE %s ( \
-				parameter varchar(20) NOT NULL, \
-				value     varchar(20) NOT NULL, \
-				primary key (parameter) \
-				);", infotable);
-	}
-      else if (string_incmp (dbms_name, "ms sql server", 13) == 0)
-	{
-	  sprintf (buf, "CREATE TABLE %s ( \
-				parameter varchar(20) NOT NULL, \
-				value     varchar(20) NOT NULL, \
-				primary key (parameter) \
-				);", infotable);
-	}
-      else if (string_incmp (dbms_name, "db2", 3) == 0)
-	{
-	  sprintf (buf, "CREATE TABLE %s ( \
-				parameter varchar(20) NOT NULL, \
-				value     varchar(20) NOT NULL, \
-				primary key (parameter) \
-				);", infotable);
-	}
-      else if (string_incmp (dbms_name, "oracle", 6) == 0)
-	{
-	  sprintf (buf, "CREATE TABLE %s ( \
-				parameter varchar2(20) NOT NULL, \
-				value     varchar2(20) NOT NULL, \
-				primary key (parameter) \
-				);", infotable);
-	}
-      else
-	{
-	  fprintf (stderr, "ERROR: DBMS %s is not supported\n", dbms_name);
-	  exit_loggrabber (1);
-	}
+      sprintf (buf, "CREATE TABLE %s ( \
+		parameter %s(20) NOT NULL, \
+		value     %s(20) NOT NULL, \
+		primary key (parameter) \
+		);", infotable, dbtype_varchar, dbtype_varchar);
 
       if (SQLPrepare (hstmt, (UCHAR *) buf, SQL_NTS) != SQL_SUCCESS)
 	{
@@ -7244,8 +6870,8 @@ create_loggrabber_tables ()
     }
 
   if (SQLTables
-      (hstmt, NULL, 0, NULL, 0, (SQLCHAR *) tablename, strlen (tablename),
-       NULL, 0) != SQL_SUCCESS)
+      (hstmt, NULL, 0, NULL, 0, (SQLCHAR *) tablename,
+       (short) strlen (tablename), NULL, 0) != SQL_SUCCESS)
     {
       fprintf (stderr, "ERROR: Failure in SQLTables call.\n");
     }
@@ -7313,191 +6939,33 @@ create_loggrabber_tables ()
 
   if (create)
     {
-      if (string_incmp (dbms_name, "mysql", 5) == 0)
+      sprintf (buf, "CREATE TABLE %s ( fw1number %s NOT NULL, ", logtable,
+	       dbtype_bigint);
+      for (i = 0; i < NUMBER_LIDX_FIELDS; i++)
 	{
-	  sprintf (buf, "CREATE TABLE %s ( \
-				fw1number BIGINT NOT NULL, \
-				fw1time DATETIME, \
-				fw1action varchar(20), \
-				fw1orig varchar(50), \
-				fw1alert varchar(50), \
-				fw1product varchar(100), \
-				fw1if_dir varchar(50), \
-				fw1if_name varchar(50), \
-				fw1service varchar(50), \
-				fw1tcpflags varchar(50), \
-				fw1s_port varchar(50), \
-				fw1src varchar(50), \
-				fw1dst varchar(50), \
-				fw1proto varchar(20), \
-				fw1rule varchar(20), \
-				fw1xlatesrc varchar(30), \
-				fw1xlatedst varchar(30), \
-				fw1xlatesport varchar(30), \
-				fw1xlatedport varchar(30), \
-				fw1nat_rulenum varchar(20), \
-				fw1resource varchar(30), \
-				fw1elapsed varchar(30), \
-				fw1packets INT, \
-				fw1bytes INT, \
-				fw1reason varchar(100), \
-				fw1service_name varchar(50), \
-				fw1agent varchar(50), \
-				fw1from varchar(100), \
-				fw1to varchar(100), \
-				fw1sys_msgs varchar(255), \
-				primary key (fw1number) \
-				);", logtable);
+	  if (*lfield_dbheaders[i])
+	    {
+	      strcat (buf, *lfield_dbheaders[i]);
+	      strcat (buf, " ");
+	      if (i == LIDX_TIME)
+		{
+		  strcat (buf, dbtype_datetime);
+		  strcat (buf, ", ");
+		}
+	      else if ((i == LIDX_PACKETS) || (i == LIDX_BYTES))
+		{
+		  strcat (buf, dbtype_int);
+		  strcat (buf, ", ");
+		}
+	      else
+		{
+		  strcat (buf, dbtype_varchar);
+		  sprintf (digitbuf, "(%d), ", lfield_dblength[i]);
+		  strcat (buf, digitbuf);
+		}
+	    }
 	}
-      else if (string_incmp (dbms_name, "postgresql", 10) == 0)
-	{
-	  sprintf (buf, "CREATE TABLE %s ( \
-				fw1number BIGINT NOT NULL, \
-				fw1time TIMESTAMP, \
-				fw1action varchar(20), \
-				fw1orig varchar(50), \
-				fw1alert varchar(50), \
-				fw1product varchar(100), \
-				fw1if_dir varchar(50), \
-				fw1if_name varchar(50), \
-				fw1service varchar(50), \
-				fw1tcpflags varchar(50), \
-				fw1s_port varchar(50), \
-				fw1src varchar(50), \
-				fw1dst varchar(50), \
-				fw1proto varchar(20), \
-				fw1rule varchar(20), \
-				fw1xlatesrc varchar(30), \
-				fw1xlatedst varchar(30), \
-				fw1xlatesport varchar(30), \
-				fw1xlatedport varchar(30), \
-				fw1nat_rulenum varchar(20), \
-				fw1resource varchar(30), \
-				fw1elapsed varchar(30), \
-				fw1packets INT, \
-				fw1bytes INT, \
-				fw1reason varchar(100), \
-				fw1service_name varchar(50), \
-				fw1agent varchar(50), \
-				fw1from varchar(100), \
-				fw1to varchar(100), \
-				fw1sys_msgs varchar(255), \
-				primary key (fw1number) \
-				);", logtable);
-	}
-      else if (string_incmp (dbms_name, "ms sql server", 13) == 0)
-	{
-	  sprintf (buf, "CREATE TABLE %s ( \
-				fw1number BIGINT NOT NULL, \
-				fw1time DATETIME, \
-				fw1action varchar(20), \
-				fw1orig varchar(50), \
-				fw1alert varchar(50), \
-				fw1product varchar(100), \
-				fw1if_dir varchar(50), \
-				fw1if_name varchar(50), \
-				fw1service varchar(50), \
-				fw1tcpflags varchar(50), \
-				fw1s_port varchar(50), \
-				fw1src varchar(50), \
-				fw1dst varchar(50), \
-				fw1proto varchar(20), \
-				fw1rule varchar(20), \
-				fw1xlatesrc varchar(30), \
-				fw1xlatedst varchar(30), \
-				fw1xlatesport varchar(30), \
-				fw1xlatedport varchar(30), \
-				fw1nat_rulenum varchar(20), \
-				fw1resource varchar(30), \
-				fw1elapsed varchar(30), \
-				fw1packets INT, \
-				fw1bytes INT, \
-				fw1reason varchar(100), \
-				fw1service_name varchar(50), \
-				fw1agent varchar(50), \
-				fw1from varchar(100), \
-				fw1to varchar(100), \
-				fw1sys_msgs varchar(255), \
-				primary key (fw1number) \
-				);", logtable);
-	}
-      else if (string_incmp (dbms_name, "db2", 3) == 0)
-	{
-	  sprintf (buf, "CREATE TABLE %s ( \
-				fw1number BIGINT NOT NULL, \
-				fw1time TIMESTAMP, \
-				fw1action varchar(20), \
-				fw1orig varchar(50), \
-				fw1alert varchar(50), \
-				fw1product varchar(100), \
-				fw1if_dir varchar(50), \
-				fw1if_name varchar(50), \
-				fw1service varchar(50), \
-				fw1tcpflags varchar(50), \
-				fw1s_port varchar(50), \
-				fw1src varchar(50), \
-				fw1dst varchar(50), \
-				fw1proto varchar(20), \
-				fw1rule varchar(20), \
-				fw1xlatesrc varchar(30), \
-				fw1xlatedst varchar(30), \
-				fw1xlatesport varchar(30), \
-				fw1xlatedport varchar(30), \
-				fw1nat_rulenum varchar(20), \
-				fw1resource varchar(30), \
-				fw1elapsed varchar(30), \
-				fw1packets INT, \
-				fw1bytes INT, \
-				fw1reason varchar(100), \
-				fw1service_name varchar(50), \
-				fw1agent varchar(50), \
-				fw1from varchar(100), \
-				fw1to varchar(100), \
-				fw1sys_msgs varchar(255), \
-				primary key (fw1number) \
-				);", logtable);
-	}
-      else if (string_incmp (dbms_name, "oracle", 6) == 0)
-	{
-	  sprintf (buf, "CREATE TABLE %s ( \
-				fw1number NUMBER NOT NULL, \
-				fw1time DATE, \
-				fw1action varchar2(20), \
-				fw1orig varchar2(50), \
-				fw1alert varchar2(50), \
-				fw1product varchar2(100), \
-				fw1if_dir varchar2(50), \
-				fw1if_name varchar2(50), \
-				fw1service varchar2(50), \
-				fw1tcpflags varchar2(50), \
-				fw1s_port varchar2(50), \
-				fw1src varchar2(50), \
-				fw1dst varchar2(50), \
-				fw1proto varchar2(20), \
-				fw1rule varchar2(20), \
-				fw1xlatesrc varchar2(30), \
-				fw1xlatedst varchar2(30), \
-				fw1xlatesport varchar2(30), \
-				fw1xlatedport varchar2(30), \
-				fw1nat_rulenum varchar2(20), \
-				fw1resource varchar2(30), \
-				fw1elapsed varchar2(30), \
-				fw1packets NUMBER, \
-				fw1bytes NUMBER, \
-				fw1reason varchar2(100), \
-				fw1service_name varchar2(50), \
-				fw1agent varchar2(50), \
-				fw1from varchar2(100), \
-				fw1to varchar2(100), \
-				fw1sys_msgs varchar2(255), \
-				primary key (fw1number) \
-				);", logtable);
-	}
-      else
-	{
-	  fprintf (stderr, "ERROR: DBMS %s is not supported\n", dbms_name);
-	  exit_loggrabber (1);
-	}
+      strcat (buf, "primary key (fw1number) );");
 
       if (SQLPrepare (hstmt, (UCHAR *) buf, SQL_NTS) != SQL_SUCCESS)
 	{
@@ -7539,8 +7007,8 @@ create_loggrabber_tables ()
     }
 
   if (SQLTables
-      (hstmt, NULL, 0, NULL, 0, (SQLCHAR *) tablename, strlen (tablename),
-       NULL, 0) != SQL_SUCCESS)
+      (hstmt, NULL, 0, NULL, 0, (SQLCHAR *) tablename,
+       (short) strlen (tablename), NULL, 0) != SQL_SUCCESS)
     {
       fprintf (stderr, "ERROR: Failure in SQLTables call.\n");
     }
@@ -7608,136 +7076,28 @@ create_loggrabber_tables ()
 
   if (create)
     {
-      if (string_incmp (dbms_name, "mysql", 5) == 0)
+      sprintf (buf, "CREATE TABLE %s ( fw1number %s NOT NULL, ", audittable,
+	       dbtype_bigint);
+      for (i = 0; i < NUMBER_AIDX_FIELDS; i++)
 	{
-	  sprintf (buf, "CREATE TABLE %s ( \
-				fw1number BIGINT NOT NULL, \
-				fw1time DATETIME, \
-				fw1action varchar(20), \
-				fw1orig varchar(255), \
-				fw1if_dir varchar(50), \
-				fw1if_name varchar(50), \
-				fw1product varchar(100), \
-				fw1objectname varchar(255), \
-				fw1objecttype varchar(255), \
-				fw1objecttable varchar(255), \
-				fw1operation varchar(50), \
-				fw1uid varchar(40), \
-				fw1administrator varchar(50), \
-				fw1machine varchar(50), \
-				fw1subject varchar(50), \
-				fw1auditstatus varchar(50), \
-				fw1additional_info varchar(255), \
-				fw1opernum varchar(20), \
-				fw1fieldschanges varchar(255), \
-				primary key (fw1number) \
-				);", audittable);
+	  if (*afield_dbheaders[i])
+	    {
+	      strcat (buf, *afield_dbheaders[i]);
+	      strcat (buf, " ");
+	      if (i == AIDX_TIME)
+		{
+		  strcat (buf, dbtype_datetime);
+		  strcat (buf, ", ");
+		}
+	      else
+		{
+		  strcat (buf, dbtype_varchar);
+		  sprintf (digitbuf, "(%d), ", afield_dblength[i]);
+		  strcat (buf, digitbuf);
+		}
+	    }
 	}
-      else if (string_incmp (dbms_name, "postgresql", 10) == 0)
-	{
-	  sprintf (buf, "CREATE TABLE %s ( \
-				fw1number BIGINT NOT NULL, \
-				fw1time TIMESTAMP, \
-				fw1action varchar(20), \
-				fw1orig varchar(255), \
-				fw1if_dir varchar(50), \
-				fw1if_name varchar(50), \
-				fw1product varchar(100), \
-				fw1objectname varchar(255), \
-				fw1objecttype varchar(255), \
-				fw1objecttable varchar(255), \
-				fw1operation varchar(50), \
-				fw1uid varchar(40), \
-				fw1administrator varchar(50), \
-				fw1machine varchar(50), \
-				fw1subject varchar(50), \
-				fw1auditstatus varchar(50), \
-				fw1additional_info varchar(255), \
-				fw1opernum varchar(20), \
-				fw1fieldschanges varchar(255), \
-				primary key (fw1number) \
-				);", audittable);
-	}
-      else if (string_incmp (dbms_name, "ms sql server", 13) == 0)
-	{
-	  sprintf (buf, "CREATE TABLE %s ( \
-				fw1number BIGINT NOT NULL, \
-				fw1time DATETIME, \
-				fw1action varchar(20), \
-				fw1orig varchar(255), \
-				fw1if_dir varchar(50), \
-				fw1if_name varchar(50), \
-				fw1product varchar(100), \
-				fw1objectname varchar(255), \
-				fw1objecttype varchar(255), \
-				fw1objecttable varchar(255), \
-				fw1operation varchar(50), \
-				fw1uid varchar(40), \
-				fw1administrator varchar(50), \
-				fw1machine varchar(50), \
-				fw1subject varchar(50), \
-				fw1auditstatus varchar(50), \
-				fw1additional_info varchar(255), \
-				fw1opernum varchar(20), \
-				fw1fieldschanges varchar(255), \
-				primary key (fw1number) \
-				);", audittable);
-	}
-      else if (string_incmp (dbms_name, "db2", 3) == 0)
-	{
-	  sprintf (buf, "CREATE TABLE %s ( \
-				fw1number BIGINT NOT NULL, \
-				fw1time TIMESTAMP, \
-				fw1action varchar(20), \
-				fw1orig varchar(255), \
-				fw1if_dir varchar(50), \
-				fw1if_name varchar(50), \
-				fw1product varchar(100), \
-				fw1objectname varchar(255), \
-				fw1objecttype varchar(255), \
-				fw1objecttable varchar(255), \
-				fw1operation varchar(50), \
-				fw1uid varchar(40), \
-				fw1administrator varchar(50), \
-				fw1machine varchar(50), \
-				fw1subject varchar(50), \
-				fw1auditstatus varchar(50), \
-				fw1additional_info varchar(255), \
-				fw1opernum varchar(20), \
-				fw1fieldschanges varchar(255), \
-				primary key (fw1number) \
-				);", audittable);
-	}
-      else if (string_incmp (dbms_name, "oracle", 6) == 0)
-	{
-	  sprintf (buf, "CREATE TABLE %s ( \
-				fw1number NUMBER NOT NULL, \
-				fw1time DATE, \
-				fw1action varchar2(20), \
-				fw1orig varchar2(255), \
-				fw1if_dir varchar2(50), \
-				fw1if_name varchar2(50), \
-				fw1product varchar2(100), \
-				fw1objectname varchar2(255), \
-				fw1objecttype varchar2(255), \
-				fw1objecttable varchar2(255), \
-				fw1operation varchar2(50), \
-				fw1uid varchar2(40), \
-				fw1administrator varchar2(50), \
-				fw1machine varchar2(50), \
-				fw1subject varchar2(50), \
-				fw1auditstatus varchar2(50), \
-				fw1additional_info varchar2(255), \
-				fw1opernum varchar2(20), \
-				fw1fieldschanges varchar2(255), \
-				primary key (fw1number) \
-				);", audittable);
-	}
-      else
-	{
-	  fprintf (stderr, "ERROR: DBMS %s is not supported\n", dbms_name);
-	  exit_loggrabber (1);
-	}
+      strcat (buf, "primary key (fw1number) );");
 
       if (SQLPrepare (hstmt, (UCHAR *) buf, SQL_NTS) != SQL_SUCCESS)
 	{
@@ -7763,6 +7123,11 @@ create_loggrabber_tables ()
 	}
     }
 
+  free (dbtype_varchar);
+  free (dbtype_bigint);
+  free (dbtype_int);
+  free (dbtype_datetime);
+
   close_odbc ();
 
   return (0);
@@ -7775,7 +7140,12 @@ ODBC_Errors (char *message)
   SQLCHAR sqlstate[15];
   SQLINTEGER native_error = 0;
 
-  int i;
+  short i;
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function ODBC_Errors\n");
+    }
 
   /*
    * Get statement errors
@@ -7824,71 +7194,478 @@ getschar ()
   char c;
   char ch;
 
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function getschar\n");
+    }
+
   ch = getchar ();
   while ((c = getchar ()) != '\n' && c != EOF);
   return ch;
 }
 
+void
+check_config_files (char *loggrabberconf, char *leaconf)
+{
+  char *configdir;
+  char *tempdir;
+  char *opsecdir;
+  char *opsecfile = NULL;
+  char *tmpleaconf = NULL;
+  char *tmploggrabberconf = NULL;
+  char filebuff[1024];
+  char *tempbuffer;
+
+  FILE *filetest;
+
+#ifdef WIN32
+  TCHAR buff[BUFSIZE];
+  DWORD dwRet;
+#else
+  long size;
+#endif
+
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function check_config_files\n");
+    }
+
+  configdir = getenv ("LOGGRABBER_CONFIG_PATH");
+  tempdir = getenv ("LOGGRABBER_TEMP_PATH");
+  opsecdir = getenv ("OPSECDIR");
+
+#ifdef WIN32
+  dwRet = GetCurrentDirectory (BUFSIZE, buff);
+
+  if (dwRet == 0)
+    {
+      fprintf (stderr,
+	       "ERROR: Cannot get current working directory (error code: %d)\n",
+	       GetLastError ());
+      exit_loggrabber (1);
+    }
+  if (dwRet > BUFSIZE)
+    {
+      fprintf (stderr,
+	       "ERROR: Getting the current working directory failed failed since buffer too small, and it needs %d chars\n",
+	       dwRet);
+      exit_loggrabber (1);
+    }
+
+  if ((tmploggrabberconf = (char *) malloc (BUFSIZE)) == NULL)
+    {
+      fprintf (stderr, "ERROR: Out of memory\n");
+      exit_loggrabber (1);
+    }
+
+  // no fw1-loggrabber.conf specified via function parameter, default to 'fw1-loggrabber.conf' in cwd
+  if (loggrabberconf == NULL)
+    {
+      strcpy (tmploggrabberconf, buff);
+      strcat (tmploggrabberconf, "\\fw1-loggrabber.conf");
+    }
+  // fw1-loggrabber.conf specified via function parameter
+  else
+    {
+      // first characters of fw1-loggrabber.conf filename are '\' or '.:\' -> absolute path
+      if ((loggrabberconf[0] == '\\') ||
+	  ((loggrabberconf[1] == ':') && (loggrabberconf[2] == '\\')))
+	{
+	  strcpy (tmploggrabberconf, loggrabberconf);
+	}
+      // otherwise append the relative path to cwd
+      else
+	{
+	  strcpy (tmploggrabberconf, buff);
+	  strcat (tmploggrabberconf, "\\");
+	  strcat (tmploggrabberconf, loggrabberconf);
+	}
+    }
+#else
+  size = pathconf (".", _PC_PATH_MAX);
+  if ((tmploggrabberconf = (char *) malloc ((size_t) size)) == NULL)
+    {
+      fprintf (stderr, "ERROR: Out of memory\n");
+      exit_loggrabber (1);
+    }
+
+  // no fw1-loggrabber.conf specified via function parameter, default to 'fw1-loggrabber.conf' in cwd
+  if (loggrabberconf == NULL)
+    {
+      if (getcwd (tmploggrabberconf, (size_t) size) == NULL)
+	{
+	  fprintf (stderr, "ERROR: Cannot get current working directory\n");
+	  exit_loggrabber (1);
+	}
+      strcat (tmploggrabberconf, "/fw1-loggrabber.conf");
+    }
+  // fw1-loggrabber.conf specified via function parameter
+  else
+    {
+      // first character of fw1-loggrabber.conf filename is '/' -> absolute path
+      if (loggrabberconf[0] == '/')
+	{
+	  strcpy (tmploggrabberconf, loggrabberconf);
+	}
+      // otherwise append the relative path to cwd
+      else
+	{
+	  if (getcwd (tmploggrabberconf, (size_t) size) == NULL)
+	    {
+	      fprintf (stderr,
+		       "ERROR: Cannot get current working directory\n");
+	      exit_loggrabber (1);
+	    }
+	  strcat (tmploggrabberconf, "/");
+	  strcat (tmploggrabberconf, loggrabberconf);
+	}
+    }
+#endif
+
+  // cannot read loggrabber.conf, so try to look into LOGGRABBER_CONFIG_PATH
+  if ((filetest = fopen (tmploggrabberconf, "r")) == NULL)
+    {
+      if (configdir != NULL)
+	{
+	  strcpy (tmploggrabberconf, configdir);
+#ifdef WIN32
+	  strcat (tmploggrabberconf, "\\");
+#else
+	  strcat (tmploggrabberconf, "/");
+#endif
+	  strcat (tmploggrabberconf, loggrabberconf);
+
+	  // also cannot read fw1-loggrabber.conf in LOGGRABBER_CONFIG_PATH
+	  if ((filetest = fopen (tmploggrabberconf, "r")) == NULL)
+	    {
+	      fprintf (stderr,
+		       "ERROR: Cannot open FW1-Loggrabber configuration file (%s)\n",
+		       loggrabberconf);
+	      fprintf (stderr,
+		       "       Specify either a absolute fw1-loggrabber.conf path on commandline,\n");
+	      fprintf (stderr,
+		       "       or place fw1-loggrabber.conf into current working directory\n");
+	      fprintf (stderr,
+		       "       or $LOGGRABBER_CONFIG_PATH directory.\n");
+	      exit_loggrabber (1);
+	    }
+	  else
+	    {
+	      fclose (filetest);
+	    }
+	}
+      else
+	{
+	  fprintf (stderr,
+		   "ERROR: Cannot open FW1-Loggrabber configuration file (%s)\n",
+		   loggrabberconf);
+	  fprintf (stderr,
+		   "       Specify either a absolute fw1-loggrabber.conf path on commandline,\n");
+	  fprintf (stderr,
+		   "       or place fw1-loggrabber.conf into current working directory\n");
+	  fprintf (stderr, "       or $LOGGRABBER_CONFIG_PATH directory.\n");
+	  exit_loggrabber (1);
+	}
+    }
+  else
+    {
+      fclose (filetest);
+    }
+
+#ifdef WIN32
+  dwRet = GetCurrentDirectory (BUFSIZE, buff);
+
+  if (dwRet == 0)
+    {
+      fprintf (stderr,
+	       "ERROR: Cannot get current working directory (error code: %d)\n",
+	       GetLastError ());
+      exit_loggrabber (1);
+    }
+  if (dwRet > BUFSIZE)
+    {
+      fprintf (stderr,
+	       "ERROR: Getting the current working directory failed failed since buffer too small, and it needs %d chars\n",
+	       dwRet);
+      exit_loggrabber (1);
+    }
+
+  if ((tmpleaconf = (char *) malloc (BUFSIZE)) == NULL)
+    {
+      fprintf (stderr, "ERROR: Out of memory\n");
+      exit_loggrabber (1);
+    }
+
+  // no lea.conf specified via function parameter, default to 'lea.conf' in cwd
+  if (leaconf == NULL)
+    {
+      strcpy (tmpleaconf, buff);
+      strcat (tmpleaconf, "\\lea.conf");
+    }
+  // lea.conf specified via function parameter
+  else
+    {
+      // first characters of lea.conf filename are '\' or '.:\' -> absolute path
+      if ((leaconf[0] == '\\') ||
+	  ((leaconf[1] == ':') && (leaconf[2] == '\\')))
+	{
+	  strcpy (tmpleaconf, leaconf);
+	}
+      // otherwise append the relative path to cwd
+      else
+	{
+	  strcpy (tmpleaconf, buff);
+	  strcat (tmpleaconf, "\\");
+	  strcat (tmpleaconf, leaconf);
+	}
+    }
+#else
+  size = pathconf (".", _PC_PATH_MAX);
+  if ((tmpleaconf = (char *) malloc ((size_t) size)) == NULL)
+    {
+      fprintf (stderr, "ERROR: Out of memory\n");
+      exit_loggrabber (1);
+    }
+
+  // no lea.conf specified via function parameter, default to 'lea.conf' in cwd
+  if (leaconf == NULL)
+    {
+      if (getcwd (tmpleaconf, (size_t) size) == NULL)
+	{
+	  fprintf (stderr, "ERROR: Cannot get current working directory\n");
+	  exit_loggrabber (1);
+	}
+      strcat (tmpleaconf, "/lea.conf");
+    }
+  // lea.conf specified via function parameter
+  else
+    {
+      // first character of lea.conf filename is '/' -> absolute path
+      if (leaconf[0] == '/')
+	{
+	  strcpy (tmpleaconf, leaconf);
+	}
+      // otherwise append the relative path to cwd
+      else
+	{
+	  if (getcwd (tmpleaconf, (size_t) size) == NULL)
+	    {
+	      fprintf (stderr,
+		       "ERROR: Cannot get current working directory\n");
+	      exit_loggrabber (1);
+	    }
+	  strcat (tmpleaconf, "/");
+	  strcat (tmpleaconf, leaconf);
+	}
+    }
+#endif
+
+  // cannot read lea.conf, so try to look into LOGGRABBER_CONFIG_PATH
+  if ((filetest = fopen (tmpleaconf, "r")) == NULL)
+    {
+      if (configdir != NULL)
+	{
+	  strcpy (tmpleaconf, configdir);
+#ifdef WIN32
+	  strcat (tmpleaconf, "\\");
+#else
+	  strcat (tmpleaconf, "/");
+#endif
+	  strcat (tmpleaconf, leaconf);
+
+	  // also cannot read lea.conf in LOGGRABBER_CONFIG_PATH
+	  if ((filetest = fopen (tmpleaconf, "r")) == NULL)
+	    {
+	      fprintf (stderr,
+		       "ERROR: Cannot open LEA configuration file (%s)\n",
+		       leaconf);
+	      fprintf (stderr,
+		       "       Specify either a absolute lea.conf path on commandline,\n");
+	      fprintf (stderr,
+		       "       or place lea.conf into current working directory\n");
+	      fprintf (stderr,
+		       "       or $LOGGRABBER_CONFIG_PATH directory.\n");
+	      exit_loggrabber (1);
+	    }
+	  else
+	    {
+	      fclose (filetest);
+	    }
+	}
+      else
+	{
+	  fprintf (stderr, "ERROR: Cannot open LEA configuration file (%s)\n",
+		   leaconf);
+	  fprintf (stderr,
+		   "       Specify either a absolute lea.conf path on commandline,\n");
+	  fprintf (stderr,
+		   "       or place lea.conf into current working directory\n");
+	  fprintf (stderr, "       or $LOGGRABBER_CONFIG_PATH directory.\n");
+	  exit_loggrabber (1);
+	}
+    }
+  else
+    {
+      fclose (filetest);
+    }
+
+  // open lea.conf in order to get opsec_sslca_file value
+  if ((filetest = fopen (tmpleaconf, "r")) == NULL)
+    {
+      fprintf (stderr, "ERROR: Cannot open LEA configuration file (%s)\n",
+	       leaconf);
+      fprintf (stderr,
+	       "       Specify either a absolute lea.conf path on commandline,\n");
+      fprintf (stderr,
+	       "       or place lea.conf into current working directory\n");
+      fprintf (stderr, "       or $LOGGRABBER_CONFIG_PATH directory.\n");
+      exit_loggrabber (1);
+    }
+  else
+    {
+      while (fgets (filebuff, 1023, filetest))
+	{
+	  if (string_incmp (filebuff, "opsec_sslca_file", 16) == 0)
+	    {
+	      opsecfile = string_trim (filebuff + (16 * sizeof (char)), ' ');
+	      break;
+	    }
+	}
+    }
+
+  // no opsec_sslca_file specified in lea.conf, so we probably don't need one...
+  if (opsecfile != NULL)
+    {
+#ifdef WIN32
+      // first characters of opsec_sslca_file filename are '\' or '.:\' -> absolute path
+      if (!((opsecfile[0] == '\\') ||
+	    ((opsecfile[1] == ':') && (opsecfile[2] == '\\'))))
+	{
+	  fprintf (stderr,
+		   "WARNING: You specified a relative path for opsec_sslca_file in\n");
+	  fprintf (stderr, "         %s. When not using an\n", tmpleaconf);
+	  fprintf (stderr,
+		   "         absolute path, the certificate will be searched in\n");
+	  fprintf (stderr,
+		   "         $LOGGRABBER_TEMP_PATH or in current working.\n");
+	  fprintf (stderr,
+		   "         directory if $LOGGRABBER_TEMP_PATH is not set.\n");
+	}
+#else
+      // first character of opsec_sslca_file filename is '/' -> absolute path
+      if (!(opsecfile[0] == '/'))
+	{
+	  fprintf (stderr,
+		   "WARNING: You specified a relative path for opsec_sslca_file in\n");
+	  fprintf (stderr, "         %s. When not using an\n", tmpleaconf);
+	  fprintf (stderr,
+		   "         absolute path, the certificate will be searched in\n");
+	  fprintf (stderr,
+		   "         $LOGGRABBER_TEMP_PATH or in current working.\n");
+	  fprintf (stderr,
+		   "         directory if $LOGGRABBER_TEMP_PATH is not set.\n");
+	}
+#endif
+    }
+
+  cfgvalues.leaconfig_filename = string_duplicate (tmpleaconf);
+  cfgvalues.config_filename = string_duplicate (tmploggrabberconf);
+
+  if (debug_mode > 0)
+    {
+      fprintf (stderr, "DEBUG: LEA configuration file is: %s\n",
+	       cfgvalues.leaconfig_filename);
+      fprintf (stderr, "DEBUG: LOGGRABBER configuration file is: %s\n",
+	       cfgvalues.config_filename);
+    }
+
+  if (tempdir != NULL)
+    {
+      tempbuffer = malloc (strlen (tempdir) + 10);
+      if (tempbuffer == NULL)
+	{
+	  fprintf (stderr, "ERROR: Out of memory\n");
+	  exit_loggrabber (1);
+	}
+      else
+	{
+	  sprintf (tempbuffer, "OPSECDIR=%s", tempdir);
+	  putenv (tempbuffer);
+	}
+    }
+
+  if (tmploggrabberconf != NULL)
+    {
+      free (tmploggrabberconf);
+    }
+
+  if (tmpleaconf != NULL)
+    {
+      free (tmpleaconf);
+    }
+}
+
 /* Function prototypes for thread routines */
 ThreadFuncReturnType leaRecordProcessor( void *data ){
-
-	LinkedList * records;
-	char* message;
-
-	alive = TRUE;
-
+                                                                                                                                 
+        LinkedList * records;
+        char* message;
+                                                                                                                                 
+        alive = TRUE;
+                                                                                                                                 
     while(alive)
-	{
-
-		#ifdef WIN32
-			if (WaitForSingleObject(mutex,INFINITE) == WAIT_FAILED){
-				fprintf(stderr,"Error: OPSEC LEA Record Worker Thread.");
-				ReleaseMutex (mutex);
-				exit_loggrabber(1);
-			}
-		#else
-			pthread_mutex_lock(&mutex);
-		#endif
-
-		//Enter critical section
-		if(isEmpty()) {
-			// end critical section
-			#ifdef WIN32
-				ReleaseMutex(hMutex);
-			#else
-				pthread_mutex_unlock(&mutex);
-			#endif
-			if (!(cfgvalues.fw1_2000)) {
-				if(suspended) {
-					/* trig resume event */
-					if (pEnv != NULL) {
-						opsec_raise_event (pEnv, resumeent, (void *) 0);
-					}
-					suspended=FALSE;
-				}
-			}
-			SLEEPMIL(8);
-		} else {
-			records = getFirst();
-			// end critical section
-			#ifdef WIN32
-				ReleaseMutex(hMutex);
-			#else
-				pthread_mutex_unlock(&mutex);
-			#endif
-			if(records != NULL) {
-				message = records->listElement;
-
-				//submit received lea record
-				submit_log (message);
-
-  				//clean used memory
-				free(message);
-				free(records);
-			}
-
-		}//end of if
-	}//end while
-
-	return 0;
+        {
+                                                                                                                                 
+                #ifdef WIN32
+                        if (WaitForSingleObject(mutex,INFINITE) == WAIT_FAILED){
+                                fprintf(stderr,"Error: OPSEC LEA Record Worker Thread.");
+                                ReleaseMutex (mutex);
+                                exit_loggrabber(1);
+                        }
+                #else
+                        pthread_mutex_lock(&mutex);
+                #endif
+                                                                                                                                 
+                //Enter critical section
+                if(isEmpty()) {
+                        // end critical section
+                        #ifdef WIN32
+                                ReleaseMutex(hMutex);
+                        #else
+                                pthread_mutex_unlock(&mutex);
+                        #endif
+                        if (!(cfgvalues.fw1_2000)) {
+                                if(suspended) {
+                                        /* trig resume event */
+                                        if (pEnv != NULL) {
+                                                opsec_raise_event (pEnv, resumeent, (void *) 0);
+                                        }
+                                        suspended=FALSE;
+                                }
+                        }
+                        SLEEPMIL(8);
+                } else {
+                        records = getFirst();
+                        // end critical section
+                        #ifdef WIN32
+                                ReleaseMutex(hMutex);
+                        #else
+                                pthread_mutex_unlock(&mutex);
+                        #endif
+                        if(records != NULL) {
+                                message = records->listElement;
+                                                                                                                                 
+                                //submit received lea record
+                                submit_log (message);
+                                                                                                                                 
+                                //clean used memory
+                                free(message);
+                                free(records);
+                        }
+                                                                                                                                 
+                }//end of if
+        }//end while
+                                                                                                                                 
+        return 0;
 }
+

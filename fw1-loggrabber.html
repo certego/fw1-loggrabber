@@ -3,13 +3,13 @@ Content-type: text/html
 <HTML><HEAD><TITLE>Manpage of FW1-LOGGRABBER</TITLE>
 </HEAD><BODY>
 <H1>FW1-LOGGRABBER</H1>
-Section: Misc. Reference Manual Pages (November 2004)<BR>Updated: Unix<BR><A HREF="#index">Index</A>
+Section: Misc. Reference Manual Pages (January 2005)<BR>Updated: Unix<BR><A HREF="#index">Index</A>
 <A HREF="http://localhost/cgi-bin/man/man2html">Return to Main Contents</A><HR>
 
 <A NAME="lbAB">&nbsp;</A>
 <H2>NAME</H2>
 
-fw1-loggrabber - a command line LEA-client for Checkpoint FW-1
+fw1-loggrabber - a command line LEA-client for Checkpoint Firewall-1
 <A NAME="lbAC">&nbsp;</A>
 <H2>SYNOPSIS</H2>
 
@@ -28,6 +28,50 @@ Checkpoint FW-1 log data using LIRE (<A HREF="http://www.logreport.org).">http:/
 their are a lot of additional features, which hopefully ease daily work
 of many firewall administrators.
 <A NAME="lbAE">&nbsp;</A>
+<H2>AVAILABLE VERSIONS</H2>
+
+The following versions of <B>fw1-loggrabber</B> are available on <A HREF="http://sourceforge.net/projects/fw1-loggrabber:">http://sourceforge.net/projects/fw1-loggrabber:</A>
+<DL COMPACT><DT><DD>
+<P>
+- Sourcecode distribution
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- Linux-binary (x86) distribution without ODBC-support
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- Linux-binary (x86) distribution with ODBC-support using statically linked iODBC-libraries
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- Linux-binary (x86) distribution with ODBC-support using statically linked unixODBC-libraries
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- Solaris-binary (SPARC) distribution without ODBC-support
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- Solaris-binary (SPARC) distribution with ODBC-support using statically linked iODBC-libraries
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- Solaris-binary (SPARC) distribution with ODBC-support using statically linked unixODBC-libraries
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- Windows-binary distribution with ODBC-support using Microsoft ODBC-libraries
+</DL>
+
+<A NAME="lbAF">&nbsp;</A>
 <H2>PREREQUISITES</H2>
 
 <B>fw1-loggrabber</B> is statically linked and runs on the following platforms. If you run <B>fw1-loggrabber</B> on another distribution, version or kernel version, please send me a mail describing your environment.
@@ -48,7 +92,36 @@ have to be installed
 - Windows NT/2000/XP - tested versions are currently only Windows 2000
 </DL>
 
-<A NAME="lbAF">&nbsp;</A>
+<A NAME="lbAG">&nbsp;</A>
+<H2>INSTALLATION</H2>
+
+Beginning with v1.11, <B>fw1-loggrabber</B> includes a very basic installer script
+for Linux and Solaris distributions as well as a self-extracting installer for the
+Windows distribution. If you want to use the installer script <B>INSTALL.sh</B>, you 
+should first modify the PATH-settings in INSTALL.sh according to your environment.
+On default, the script installs <B>fw1-loggrabber</B> to /usr/local/fw1-loggrabber.
+The install script also prompts you for adding two environment variables to your
+shell configuration file which will be explained in the following section.
+<A NAME="lbAH">&nbsp;</A>
+<H2>ENVIRONMENT VARIABLES</H2>
+
+<B>fw1-loggrabber</B> makes use of two environment variables, which should be defined
+in the shell configuration file:
+<DL COMPACT><DT><DD>
+<P>
+- LOGGRABBER_CONFIG_PATH - this variable defines a directory where <B>fw1-loggrabber</B> 
+searches its configuration files (fw1-loggrabber.conf, lea.conf). If this variable is not
+defined, <B>fw1-loggrabber</B> looks in the current directory for these configuration files.
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+- LOGGRABBER_TEMP_PATH - this variable defines a directory where <B>fw1-loggrabber</B> stores 
+temporary files. If this variable is not defined, <B>fw1-loggrabber</B> stores these files
+in the current directory.
+</DL>
+
+<A NAME="lbAI">&nbsp;</A>
 <H2>OPTIONS</H2>
 
 In the following lines, all available command line options are described in detail. Most
@@ -272,7 +345,7 @@ refer to the man page.
 This option just displays all fieldnames which are currently supported by 
 <B>fw1-loggrabber</B> for both normal logfiles and audit logfiles.
 </DL>
-<A NAME="lbAG">&nbsp;</A>
+<A NAME="lbAJ">&nbsp;</A>
 <H2>LEA CONFIGURATION FILE</H2>
 
 Starting with version 1.11, <B>fw1-loggrabber</B> uses the default connection configuration 
@@ -322,7 +395,7 @@ In that case the SIC name of the LEA-client has to be specified using this param
 Similar to <B>opsec_sic_name</B> you have to specify the SIC name of your FW1
 management station using this parameter when using authenticated connections..
 </DL>
-<A NAME="lbAH">&nbsp;</A>
+<A NAME="lbAK">&nbsp;</A>
 <H2>CONFIGURATION FILE</H2>
 
 This paragraph deals with the options that can be set within the configuration file.
@@ -459,6 +532,43 @@ be used when <B>LOGGING_CONFIGURATION</B> is set to <B>ODBC</B>.
 This parameter can be used to set the syslog facility to be used (Unix only). 
 Obviously this is only effective when running <B>fw1-loggrabber</B> with 
 <B>LOGGING_CONFIGURATION=SYSLOG</B>.
+<DT><B>FW1_FILTER_RULE=``&lt;filterexpression1&gt;[;&lt;filterexpression2&gt;]''</B>
+
+<DD>
+When using this option in the configuration file, you can define filters for normal log-mode in 
+the configuration file instead of a commandline option. You can specify multiple 
+filter rules using multiple <B>FW1_FILTER_RULE</B> lines. All filter rules are related by
+OR, i.e. if you specify multiple rules, a log entry will be displayed if one of the
+rules matches. Within one filter rule, you can specify multiple arguments. All of these
+arguments are related by AND, i.e. a single filter rule only matches a given log entry
+if the log entry is matched by all arguments. A more detailed description of filter rules
+you can find below in a separate chapter about filtering which also provides various examples.
+<DT><B>AUDIT_FILTER_RULE=``&lt;filterexpression1&gt;[;&lt;filterexpression2&gt;]''</B>
+
+<DD>
+In contrast to <B>FW1_FILTER_RULE</B>, <B>AUDIT_FILTER_RULE</B> allows definitions of filters
+for auditlog-mode within the configuration file.
+<DT><B>FIELDS=``&lt;field1&gt;[;&lt;field2&gt;]''</B>
+
+<DD>
+The FIELDS configuration file option can be used to display only a given set of fields
+instead of displaying all available fields. The order of the fields being displayed is
+the same as specified within the <B>FIELDS</B> option. E.g.
+<DL COMPACT><DT><DD>
+<P>
+FIELDS=&quot;loc;src;dst&quot;
+</DL>
+
+<DL COMPACT><DT><DD>
+<P>
+If there are more than one FIELDS-lines in the configuration file or unknown fieldnames
+are used in the FIELDS-line, <B>fw1-loggrabber</B> will abort with an error message.
+You can display the currently supported fields with the <B>--help-fields</B> option.
+If you are missing some fields, please run <B>fw1-loggrabber</B> with <B>--debug-level 1</B> 
+and check for debug output containing <I>&quot;Unsupported field found: fieldname=fieldvalue&quot;</I>.
+If you send me these lines I will implement the missing fields in the next release.
+</DL>
+
 <DT><B>AUTHENTICATED=&lt;yes|no&gt; [OBSOLETE]</B>
 
 <DD>
@@ -490,7 +600,7 @@ This option is obsolete starting from version 1.11. The connection configuration
 has to be done using the LEA configuration file. Please read the paragraph 
 <B>LEA CONFIGURATION FILE</B> for further description of available parameters.
 </DL>
-<A NAME="lbAI">&nbsp;</A>
+<A NAME="lbAL">&nbsp;</A>
 <H2>CONFIGURE FW-1</H2>
 
 For both authenticated and unauthenticated connections of <B>fw1-loggrabber</B> to  
@@ -1036,7 +1146,7 @@ opsec_pull_cert -h 10.1.1.1 -n myleaclient -p def456
 <P>
 
 </DL>
-<A NAME="lbAJ">&nbsp;</A>
+<A NAME="lbAM">&nbsp;</A>
 <H2>FILTERING</H2>
 
 Filter rules provide the possibility to display only log entries that
@@ -1052,7 +1162,7 @@ given log entry only, if all of the filter arguments match.
 
 <DD>
 <DL COMPACT><DT><DD>
-- action=&lt;accept|drop|reject&gt;
+- action=&lt;ctl|accept|drop|reject|encrypt|decrypt|keyinst&gt;
 </DL>
 
 <DL COMPACT><DT><DD>
@@ -1061,6 +1171,10 @@ given log entry only, if all of the filter arguments match.
 
 <DL COMPACT><DT><DD>
 - endtime=&lt;YYYYMMDDhhmmss&gt;
+</DL>
+
+<DL COMPACT><DT><DD>
+- orig=&lt;IP address&gt;
 </DL>
 
 <DL COMPACT><DT><DD>
@@ -1091,7 +1205,7 @@ given log entry only, if all of the filter arguments match.
 
 <DD>
 <DL COMPACT><DT><DD>
-- action=&lt;accept|drop|reject&gt;
+- action=&lt;ctl|accept|drop|reject|encrypt|decrypt|keyinst&gt;
 </DL>
 
 <DL COMPACT><DT><DD>
@@ -1100,6 +1214,10 @@ given log entry only, if all of the filter arguments match.
 
 <DL COMPACT><DT><DD>
 - endtime=&lt;YYYYMMDDhhmmss&gt;
+</DL>
+
+<DL COMPACT><DT><DD>
+- orig=&lt;IP address&gt;
 </DL>
 
 <DL COMPACT><DT><DD>
@@ -1201,7 +1319,7 @@ to be separated by ';'.
 </DL>
 
 </DL>
-<A NAME="lbAK">&nbsp;</A>
+<A NAME="lbAN">&nbsp;</A>
 <H2>FILES</H2>
 
 <I>fw1-loggrabber.conf</I>
@@ -1220,11 +1338,11 @@ LEA configuration file
 
 
 </DL>
-<A NAME="lbAL">&nbsp;</A>
+<A NAME="lbAO">&nbsp;</A>
 <H2>AUTHOR</H2>
 
 Torsten Fellhauer &lt;torsten at fellhauer dash web dot net&gt;
-<A NAME="lbAM">&nbsp;</A>
+<A NAME="lbAP">&nbsp;</A>
 <H2>BUGS</H2>
 
 Please report bugs using the bug report functionality on the projects 
@@ -1233,7 +1351,7 @@ website:
 <I><A HREF="http://sourceforge.net/projects/fw1-loggrabber">http://sourceforge.net/projects/fw1-loggrabber</A></I>
 </DL>
 
-<A NAME="lbAN">&nbsp;</A>
+<A NAME="lbAQ">&nbsp;</A>
 <H2>COPYRIGHT</H2>
 
 Copyright (c) 2003-2004 Torsten Fellhauer, Xiaodong Lin
@@ -1267,7 +1385,7 @@ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
 LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
-<A NAME="lbAO">&nbsp;</A>
+<A NAME="lbAR">&nbsp;</A>
 <H2>CREDITS</H2>
 
 Stefan Siebert for making the start of this project possible. Xiaodong Lin
@@ -1281,22 +1399,25 @@ with his excellent Opsec skills for helping me in further development of
 <DT><A HREF="#lbAB">NAME</A><DD>
 <DT><A HREF="#lbAC">SYNOPSIS</A><DD>
 <DT><A HREF="#lbAD">DESCRIPTION</A><DD>
-<DT><A HREF="#lbAE">PREREQUISITES</A><DD>
-<DT><A HREF="#lbAF">OPTIONS</A><DD>
-<DT><A HREF="#lbAG">LEA CONFIGURATION FILE</A><DD>
-<DT><A HREF="#lbAH">CONFIGURATION FILE</A><DD>
-<DT><A HREF="#lbAI">CONFIGURE FW-1</A><DD>
-<DT><A HREF="#lbAJ">FILTERING</A><DD>
-<DT><A HREF="#lbAK">FILES</A><DD>
-<DT><A HREF="#lbAL">AUTHOR</A><DD>
-<DT><A HREF="#lbAM">BUGS</A><DD>
-<DT><A HREF="#lbAN">COPYRIGHT</A><DD>
-<DT><A HREF="#lbAO">CREDITS</A><DD>
+<DT><A HREF="#lbAE">AVAILABLE VERSIONS</A><DD>
+<DT><A HREF="#lbAF">PREREQUISITES</A><DD>
+<DT><A HREF="#lbAG">INSTALLATION</A><DD>
+<DT><A HREF="#lbAH">ENVIRONMENT VARIABLES</A><DD>
+<DT><A HREF="#lbAI">OPTIONS</A><DD>
+<DT><A HREF="#lbAJ">LEA CONFIGURATION FILE</A><DD>
+<DT><A HREF="#lbAK">CONFIGURATION FILE</A><DD>
+<DT><A HREF="#lbAL">CONFIGURE FW-1</A><DD>
+<DT><A HREF="#lbAM">FILTERING</A><DD>
+<DT><A HREF="#lbAN">FILES</A><DD>
+<DT><A HREF="#lbAO">AUTHOR</A><DD>
+<DT><A HREF="#lbAP">BUGS</A><DD>
+<DT><A HREF="#lbAQ">COPYRIGHT</A><DD>
+<DT><A HREF="#lbAR">CREDITS</A><DD>
 </DL>
 <HR>
 This document was created by
 <A HREF="http://localhost/cgi-bin/man/man2html">man2html</A>,
 using the manual pages.<BR>
-Time: 12:46:40 GMT, October 07, 2004
+Time: 16:44:36 GMT, January 02, 2005
 </BODY>
 </HTML>

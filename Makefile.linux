@@ -11,19 +11,19 @@ PKG_DIR = /usr/local/fw1sdk
 
 #
 # uncomment the following setings for dynamic unixodbc support
-#ODBC_CFLAGS = -DODBCVER=0x0350 -DUSE_ODBC -I/usr/local/unixodbc/include
+#ODBC_CFLAGS = -DDYNAMIC_UNIXODBC -DODBCVER=0x0350 -DUSE_ODBC -I/usr/local/unixodbc/include
 #ODBC_LIBS   = /usr/local/unixodbc/lib/libodbc.so /usr/local/unixodbc/lib/libodbcinst.so
 #
 # uncomment the following setings for static unixodbc support
-#ODBC_CFLAGS = -DODBCVER=0x0350 -DUSE_ODBC -I/usr/local/unixodbc/include
+#ODBC_CFLAGS = -DSTATIC_UNIXODBC -DODBCVER=0x0350 -DUSE_ODBC -I/usr/local/unixodbc/include
 #ODBC_LIBS   = /usr/local/unixodbc/lib/libodbc.a /usr/local/unixodbc/lib/libodbcinst.a
 #
 # uncomment the following setings for dynamic iodbc support
-#ODBC_CFLAGS = -DODBCVER=0x0350 -DUSE_ODBC -I/usr/local/include
+#ODBC_CFLAGS = -DDYNAMIC_IODBC -DODBCVER=0x0350 -DUSE_ODBC -I/usr/local/include
 #ODBC_LIBS   = /usr/local/lib/libiodbc.so /usr/local/lib/libiodbcinst.so
 #
 # uncomment the following setings for static iodbc support
-#ODBC_CFLAGS = -DODBCVER=0x0350 -DUSE_ODBC -I/usr/local/include
+#ODBC_CFLAGS = -DSTATIC_IODBC -DODBCVER=0x0350 -DUSE_ODBC -I/usr/local/include
 #ODBC_LIBS   = /usr/local/lib/libiodbc.a /usr/local/lib/libiodbcinst.a
 
 #
