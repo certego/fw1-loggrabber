@@ -10,10 +10,9 @@ LD = $(GCC_PREFIX)/bin/$(LD_CMD)
 PKG_DIR = /usr/local/fw1sdk
 
 #
-# uncomment the following setting for database support
-#
-#MYSQL_CFLAGS=-DUSE_MYSQL
-#MYSQL_LIBS=-lmysqlclient -lz
+# uncomment the following setings for odbc support
+#ODBC_CFLAGS = -DODBCVER=0x0350 -DUSE_ODBC -I/usr/local/include
+#ODBC_LIBS   = /usr/local/lib/libiodbc.so /usr/local/lib/libiodbcinst.so
 
 #
 # you should not need to touch anything below
@@ -23,8 +22,6 @@ OBJ_FILES = fw1-loggrabber.o
 
 LIB_DIR = $(PKG_DIR)/lib/release.static
 CPC_DIR = $(PKG_DIR)/lib/lib/static
-MYSQL_DIR = /usr/lib/mysql
-Z_DIR = /usr/lib
 
 STATIC_LIBS = \
 	-lopsec \
@@ -41,18 +38,17 @@ STATIC_LIBS = \
 	-lEncode -lComUtils \
 	-lResolve -lDataStruct \
 	-lOS \
-	-lcpprod50 \
-	$(MYSQL_LIBS)
+	-lcpprod50 
 
-LIBS = -lpthread -lresolv -ldl -lpam -lnsl -lelf $(CPC_DIR)/libcpc++-3-libc6.1-2-2.10.0.a
+LIBS = -lpthread -lresolv -ldl -lpam -lnsl -lelf $(CPC_DIR)/libcpc++-3-libc6.1-2-2.10.0.a $(ODBC_LIBS)
 #LIBS = -lpthread -lresolv -ldl -lnsl -lelf -lcpc++
-CFLAGS += -g -Wall -fpic -I$(PKG_DIR)/include -DLINUX -DUNIXOS=1 -DDEBUG $(MYSQL_CFLAGS)
+CFLAGS += -g -Wall -fpic -I$(PKG_DIR)/include -DLINUX -DUNIXOS=1 -DDEBUG $(ODBC_CFLAGS)
 
 %.o: %.c
 	$(CC) -static $(CFLAGS) -c -o $@ $*.c
 
 $(EXE_NAME): $(OBJ_FILES)
-	$(LD) $(CFLAGS) -L$(LIB_DIR) -L$(CPC_DIR) -L$(MYSQL_DIR) -L$(Z_DIR) -o $@ $(OBJ_FILES) $(STATIC_LIBS) $(LIBS)
+	$(LD) $(CFLAGS) -L$(LIB_DIR) -L$(CPC_DIR) -o $@ $(OBJ_FILES) $(STATIC_LIBS) $(LIBS)
 #	$(LD) -static $(CFLAGS) -L$(LIB_DIR) -L$(CPC_DIR) -o $@ $(OBJ_FILES) $(STATIC_LIBS) $(LIBS)
 
 clean:
