@@ -875,7 +875,9 @@ int read_fw1_logfile(char **LogfileName)
 		 */
 		cleanup_fw1_environment(pEnv, pClient, pServer);
 
-		SLEEP(recoverInterval);
+		if (keepAlive) {
+			SLEEP(recoverInterval);
+		}
 	}
 
 	free(leaconf);
