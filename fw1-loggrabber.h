@@ -230,20 +230,27 @@ typedef struct configvalues
 	int	debug_mode;
 	int	online_mode;
 	int	resolve_mode;
+#ifdef USE_MYSQL
 	int	mysql_mode;
+#endif
 	int	fw1_2000;
 	int	audit_mode;
 	int	showfiles_mode;
 	int 	fieldnames_mode;
 	int 	dateformat;
 	int 	log_mode;
+#ifndef WIN32
+	int	syslog_facility;
+#endif
 	char	record_separator;
 	char*	config_filename;
 	char*	leaconfig_filename;
+#ifdef USE_MYSQL
 	char*	mysql_host;
 	char*	mysql_database;
 	char*	mysql_user;
 	char*	mysql_password;
+#endif
 	char*	fw1_logfile;
 	char*	output_file_prefix;
 	long	output_file_rotatesize;
@@ -490,7 +497,35 @@ int afield_output[NUMBER_AIDX_FIELDS];
 	MYSQL *mysqlconn, mysql;
 #endif
 
-configvalues cfgvalues = {0, 0, 1, 0, 0, 0, 0, 1, 2, SCREEN, '|', "fw1-loggrabber.conf", "lea.conf", "localhost", "fw1loggrabber", "fw1", "fw1", "fw.log", "fw1-loggrabber", 1048576};
+configvalues cfgvalues = {
+	0, 			// debug_mode
+	FALSE, 			// online_mode
+	TRUE, 			// resolve_mode
+#ifdef USE_MYSQL
+	FALSE, 			// mysql_mode
+#endif
+	FALSE, 			// fw1_2000
+	FALSE, 			// audit_mode
+	FALSE, 			// showfiles_mode
+	TRUE, 			// fieldnames_mode
+	DATETIME_STD,		// dateformat
+	SCREEN, 		// log_mode
+#ifndef WIN32
+	LOG_LOCAL1,		// syslog_facility
+#endif
+	'|', 			// record_separator
+	"fw1-loggrabber.conf", 	// config_filename
+	"lea.conf", 		// leaconfig_filename
+#ifdef USE_MYSQL
+	"localhost", 		// mysql_host
+	"fw1loggrabber", 	// mysql_database
+	"fw1", 			// mysql_user
+	"fw1", 			// mysql_password
+#endif
+	"fw.log", 		// fw1_logfile
+	"fw1-loggrabber", 	// output_file_prefix
+	1048576			// output_file_rotatesize
+};
 
 int initialCapacity	= 4096;
 int capacityIncrement	= 1024;

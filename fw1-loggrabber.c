@@ -480,7 +480,9 @@ int main(int argc, char *argv[])
 	/*
 	 * check whether command line options override configfile options
  	 */
+#ifdef USE_MYSQL
 	cfgvalues.mysql_mode = (mysql_mode != -1) ? mysql_mode : cfgvalues.mysql_mode;
+#endif
 	cfgvalues.debug_mode = (debug_mode != -1) ? debug_mode : cfgvalues.debug_mode;
 	cfgvalues.online_mode = (online_mode != -1) ? online_mode : cfgvalues.online_mode;
 	cfgvalues.resolve_mode = (resolve_mode != -1) ? resolve_mode : cfgvalues.resolve_mode;
@@ -1225,7 +1227,7 @@ int read_fw1_logfile_record_mysql(OpsecSession *pSession, lea_record *pRec, int 
 					strcat(fields, szAttrib);
 					szResValue = lea_resolve_field(pSession, pRec->fields[i]);
 					if (strcmp(szAttrib, "time") == 0) {
-						day[0]=(szResValue==' ')?'0':szResValue[0];day[1]=szResValue[1];day[2]=0;
+						day[0]=(szResValue[0]==' ')?'0':szResValue[0];day[1]=szResValue[1];day[2]=0;
 						month[0]=szResValue[2];month[1]=szResValue[3];month[2]=szResValue[4];month[3]=0;
 						if (strcmp(month,"Jan") == 0) { strcpy(month, "01\0"); }
 						else if (strcmp(month,"Feb") == 0) { strcpy(month, "02\0"); }
@@ -4107,6 +4109,31 @@ void read_config_file(char* filename, configvalues* cfgvalues)
 				cfgvalues->output_file_prefix = string_duplicate(string_trim(configvalue, '"'));
 			} else if (strcmp(configparameter, "OUTPUT_FILE_ROTATESIZE") == 0) {
 				cfgvalues->output_file_rotatesize = atol(string_trim(configvalue, '"'));
+#ifndef WIN32
+			} else if (strcmp(configparameter, "SYSLOG_FACILITY") == 0) {
+				configvalue = string_duplicate(string_trim(configvalue, '"'));
+				if (string_icmp(configvalue, "user") == 0) {
+					cfgvalues->syslog_facility = LOG_USER;
+				} else if (string_icmp(configvalue, "local0") == 0) {
+					cfgvalues->syslog_facility = LOG_LOCAL0;
+				} else if (string_icmp(configvalue, "local1") == 0) {
+					cfgvalues->syslog_facility = LOG_LOCAL1;
+				} else if (string_icmp(configvalue, "local2") == 0) {
+					cfgvalues->syslog_facility = LOG_LOCAL2;
+				} else if (string_icmp(configvalue, "local3") == 0) {
+					cfgvalues->syslog_facility = LOG_LOCAL3;
+				} else if (string_icmp(configvalue, "local4") == 0) {
+					cfgvalues->syslog_facility = LOG_LOCAL4;
+				} else if (string_icmp(configvalue, "local5") == 0) {
+					cfgvalues->syslog_facility = LOG_LOCAL5;
+				} else if (string_icmp(configvalue, "local6") == 0) {
+					cfgvalues->syslog_facility = LOG_LOCAL6;
+				} else if (string_icmp(configvalue, "local7") == 0) {
+					cfgvalues->syslog_facility = LOG_LOCAL7;
+				} else {
+					fprintf(stderr, "WARNING: Illegal entry in configuration file: %s=%s\n", configparameter, configvalue);
+				}
+#endif
 			} else if (strcmp(configparameter, "FW1_OUTPUT") == 0) {
 				configvalue = string_duplicate(string_trim(configvalue, '"'));
 				if (string_icmp(configvalue, "files") == 0) {
@@ -4441,7 +4468,7 @@ void open_syslog(){
 	if (cfgvalues.debug_mode) {
 		fprintf(stderr, "DEBUG: Open connection to Syslog.\n");
 	}
-	openlog ("fw1-loggrabber", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
+	openlog ("fw1-loggrabber", LOG_CONS | LOG_PID | LOG_NDELAY, cfgvalues.syslog_facility);
 	return;
 }
 

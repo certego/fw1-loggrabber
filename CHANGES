@@ -113,3 +113,7 @@ CHANGE HISTORY
   o added the possibility to process all available logfiles
   o disabled connection timeout
   o implemented additional output methods (file, syslog)
+
+* 1.11 - some new features (xxxx/xx/xx)
+  o seaprated connection configuration into lea.conf
+  o looking for config files in cwd or absolute dir
