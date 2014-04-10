@@ -670,9 +670,9 @@ read_fw1_logfile (char **LogfileName)
       /* trigger persistent INIT event */
       opsec_raise_event (pEnv, initent, (void *) 0);
 
-      opsec_set_event_handler ( pEnv, initent, fc_handler, (void *) 0);
-      opsec_set_event_handler ( pEnv, resumeent, fc_handler, (void *) 0);
-      opsec_set_event_handler ( pEnv, shutdownent, fc_handler, (void *) 0);
+      opsec_set_event_handler ( pEnv, initent, (void *) fc_handler, 0);
+      opsec_set_event_handler ( pEnv, resumeent, (void *) fc_handler, 0);
+      opsec_set_event_handler ( pEnv, shutdownent, (void *) fc_handler, 0);
 
       if (cfgvalues.debug_mode)
 	{
@@ -1284,7 +1284,7 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
 				      (pSession, pRec->fields[i]));
 		  break;
 		case DATETIME_UNIX:
-		  sprintf (timestring, "%lu",
+		  sprintf (timestring, "%u",
 			   pRec->fields[i].lea_value.ul_value);
 		  *fields[time] = string_duplicate (timestring);
 		  break;
@@ -1727,9 +1727,9 @@ get_fw1_logfiles_end (OpsecSession * psession)
 			break;
 	}				//end of switch
 
-	opsec_del_event_handler (pEnv, initent, fc_handler, 0);
-	opsec_del_event_handler (pEnv, resumeent, fc_handler, 0);
-	opsec_del_event_handler (pEnv, shutdownent, fc_handler, 0);
+	opsec_del_event_handler (pEnv, initent, (void *) fc_handler, 0);
+	opsec_del_event_handler (pEnv, resumeent, (void *) fc_handler, 0);
+	opsec_del_event_handler (pEnv, shutdownent, (void *) fc_handler, 0);
 
 	return OPSEC_SESSION_OK;
 
@@ -1765,9 +1765,9 @@ int fc_handler (OpsecEnv *pEnv, long eventid, void *raise_data, void *set_data) 
                 if (cfgvalues.debug_mode) {
                         fprintf (stderr, "Info: Shutdown event has been received.\n");
                 }
-                opsec_del_event_handler (pEnv, initent, fc_handler, 0);
-                opsec_del_event_handler (pEnv, resumeent, fc_handler, 0);
-                opsec_del_event_handler (pEnv, shutdownent, fc_handler, 0);
+                opsec_del_event_handler (pEnv, initent, (void *) fc_handler, 0);
+                opsec_del_event_handler (pEnv, resumeent, (void *) fc_handler, 0);
+                opsec_del_event_handler (pEnv, shutdownent, (void *) fc_handler, 0);
 
                 if(pSession!=NULL) {
                         opsec_end_session(pSession);
@@ -1903,9 +1903,9 @@ read_fw1_logfile_end (OpsecSession * psession)
 			break;
 	} //end of switch
 
-	opsec_del_event_handler (pEnv, initent, fc_handler, 0);
-	opsec_del_event_handler (pEnv, resumeent, fc_handler, 0);
-	opsec_del_event_handler (pEnv, shutdownent, fc_handler, 0);
+	opsec_del_event_handler (pEnv, initent, (void *) fc_handler, 0);
+	opsec_del_event_handler (pEnv, resumeent, (void *) fc_handler, 0);
+	opsec_del_event_handler (pEnv, shutdownent, (void *) fc_handler, 0);
 
 	return OPSEC_SESSION_OK;
 

@@ -45,6 +45,7 @@
 #define THREAD_H
 
 #include <stdio.h>
+#include <stdlib.h>
 #ifdef WIN32
 	#include <winbase.h>
 	#define ThreadFuncType LPTHREAD_START_ROUTINE
