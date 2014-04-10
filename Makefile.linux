@@ -2,12 +2,12 @@
 # Change the following variables according
 # to your system environment
 #
-GCC_PREFIX = /usr/local
+GCC_PREFIX = /usr
 CC_CMD = gcc
 LD_CMD = gcc
 CC = $(GCC_PREFIX)/bin/$(CC_CMD)
 LD = $(GCC_PREFIX)/bin/$(LD_CMD)
-PKG_DIR = /usr/local/fw1sdk
+PKG_DIR = ../OPSEC_SDK_6_0.linux30
 
 #
 # uncomment the following setings for dynamic unixodbc support
@@ -33,7 +33,7 @@ EXE_NAME = fw1-loggrabber
 OBJ_FILES = thread.o queue.o fw1-loggrabber.o
 
 LIB_DIR = $(PKG_DIR)/lib/release.static
-CPC_DIR = $(PKG_DIR)/lib/lib/static
+#CPC_DIR = $(PKG_DIR)/lib/lib/static
 
 STATIC_LIBS = \
 	-lopsec \
@@ -52,16 +52,18 @@ STATIC_LIBS = \
 	-lOS \
 	-lcpprod50 
 
-LIBS = -lpthread -lresolv -ldl -lpam -lnsl -lelf $(CPC_DIR)/libcpc++-3-libc6.1-2-2.10.0.a $(ODBC_LIBS)
+#LIBS = -lpthread -lresolv -ldl -lpam -lnsl -lelf $(CPC_DIR)/libcpc++-3-libc6.1-2-2.10.0.a $(ODBC_LIBS)
 #LIBS = -lpthread -lresolv -ldl -lnsl -lelf -lcpc++
-CFLAGS += -g -Wall -fpic -I$(PKG_DIR)/include -DLINUX -DUNIXOS=1 -DDEBUG $(ODBC_CFLAGS)
+LIBS = -lpthread -lresolv -ldl -lnsl -lelf -lstdc++
+CFLAGS += -m32 -g -Wall -fpic -I$(PKG_DIR)/include -DLINUX -DUNIXOS=1 -DDEBUG $(ODBC_CFLAGS)
 
 %.o: %.c
-	$(CC) -static $(CFLAGS) -c -o $@ $*.c
+	$(CC) $(CFLAGS) -c -o $@ $*.c
 
 $(EXE_NAME): $(OBJ_FILES)
-	$(LD) $(CFLAGS) -L$(LIB_DIR) -L$(CPC_DIR) -o $@ $(OBJ_FILES) $(STATIC_LIBS) $(LIBS)
+	$(LD) $(CFLAGS) -L$(LIB_DIR) -o $@ $(OBJ_FILES) $(STATIC_LIBS) $(LIBS)
+#	$(LD) $(CFLAGS) -L$(LIB_DIR) -L$(CPC_DIR) -o $@ $(OBJ_FILES) $(STATIC_LIBS) $(LIBS)
 #	$(LD) -static $(CFLAGS) -L$(LIB_DIR) -L$(CPC_DIR) -o $@ $(OBJ_FILES) $(STATIC_LIBS) $(LIBS)
 
 clean:
-	rm *.o $(EXE_NAME)
+	rm -f *.o $(EXE_NAME)
