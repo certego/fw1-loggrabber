@@ -1,40 +1,37 @@
-#
-# Change the following variables according
-# to your system environment
-#
+# Change the following variables according to your system environment
 GCC_PREFIX = /usr
 CC_CMD = gcc
 LD_CMD = gcc
 CC = $(GCC_PREFIX)/bin/$(CC_CMD)
 LD = $(GCC_PREFIX)/bin/$(LD_CMD)
 PKG_DIR = ../OPSEC_SDK_6_0.linux30
+INSTALL_PREFIX = /usr/local/fw1-loggrabber
 
-#
 # uncomment the following setings for dynamic unixodbc support
 #ODBC_CFLAGS = -DDYNAMIC_UNIXODBC -DODBCVER=0x0350 -DUSE_ODBC -I/usr/local/unixodbc/include
 #ODBC_LIBS   = /usr/local/unixodbc/lib/libodbc.so /usr/local/unixodbc/lib/libodbcinst.so
-#
+
 # uncomment the following setings for static unixodbc support
 #ODBC_CFLAGS = -DSTATIC_UNIXODBC -DODBCVER=0x0350 -DUSE_ODBC -I/usr/local/unixodbc/include
 #ODBC_LIBS   = /usr/local/unixodbc/lib/libodbc.a /usr/local/unixodbc/lib/libodbcinst.a
-#
+
 # uncomment the following setings for dynamic iodbc support
 #ODBC_CFLAGS = -DDYNAMIC_IODBC -DODBCVER=0x0350 -DUSE_ODBC -I/usr/local/include
 #ODBC_LIBS   = /usr/local/lib/libiodbc.so /usr/local/lib/libiodbcinst.so
-#
+
 # uncomment the following setings for static iodbc support
 #ODBC_CFLAGS = -DSTATIC_IODBC -DODBCVER=0x0350 -DUSE_ODBC -I/usr/local/include
 #ODBC_LIBS   = /usr/local/lib/libiodbc.a /usr/local/lib/libiodbcinst.a
 
-#
-# you should not need to touch anything below
-#
 EXE_NAME = fw1-loggrabber
 OBJ_FILES = thread.o queue.o fw1-loggrabber.o
 
-LIB_DIR = $(PKG_DIR)/lib/release.static
-#CPC_DIR = $(PKG_DIR)/lib/lib/static
+SYSCONFDIR=${INSTALL_PREFIX}/etc
+BINDIR=${INSTALL_PREFIX}/bin
+MANDIR=${INSTALL_PREFIX}/man
+TEMPDIR=/tmp
 
+LIB_DIR = $(PKG_DIR)/lib/release.static
 STATIC_LIBS = \
 	-lopsec \
 	-lsicauth -lsic \
@@ -52,8 +49,6 @@ STATIC_LIBS = \
 	-lOS \
 	-lcpprod50 
 
-#LIBS = -lpthread -lresolv -ldl -lpam -lnsl -lelf $(CPC_DIR)/libcpc++-3-libc6.1-2-2.10.0.a $(ODBC_LIBS)
-#LIBS = -lpthread -lresolv -ldl -lnsl -lelf -lcpc++
 LIBS = -lpthread -lresolv -ldl -lnsl -lelf -lstdc++
 CFLAGS += -m32 -g -Wall -fpic -I$(PKG_DIR)/include -DLINUX -DUNIXOS=1 -DDEBUG $(ODBC_CFLAGS)
 
@@ -62,8 +57,27 @@ CFLAGS += -m32 -g -Wall -fpic -I$(PKG_DIR)/include -DLINUX -DUNIXOS=1 -DDEBUG $(
 
 $(EXE_NAME): $(OBJ_FILES)
 	$(LD) $(CFLAGS) -L$(LIB_DIR) -o $@ $(OBJ_FILES) $(STATIC_LIBS) $(LIBS)
-#	$(LD) $(CFLAGS) -L$(LIB_DIR) -L$(CPC_DIR) -o $@ $(OBJ_FILES) $(STATIC_LIBS) $(LIBS)
-#	$(LD) -static $(CFLAGS) -L$(LIB_DIR) -L$(CPC_DIR) -o $@ $(OBJ_FILES) $(STATIC_LIBS) $(LIBS)
+
+install:
+	@echo
+	@echo "Installing FW1-Loggrabber to ${INSTALL_PREFIX}:"
+	@echo
+	install -v -d -o root -g root -m 755 ${BINDIR}
+	install -v -d -o root -g root -m 755 ${SYSCONFDIR}
+	install -v -d -o root -g root -m 755 ${MANDIR}/man1
+	install -v -o root -g root -m 755 -p fw1-loggrabber ${BINDIR}/fw1-loggrabber 
+	install -v -o root -g root -m 644 -p fw1-loggrabber.conf ${SYSCONFDIR}/fw1-loggrabber.conf 
+	install -v -o root -g root -m 644 -p lea.conf ${SYSCONFDIR}/lea.conf 
+	install -v -o root -g root -m 644 -p fw1-loggrabber.1 ${MANDIR}/man1/fw1-loggrabber.1
+	@echo
+	@echo "Installation complete! Please declare the following environment variables in your shell configuration file:"
+	@echo
+	@echo "  LOGGRABBER_CONFIG_PATH=${SYSCONFDIR}"
+	@echo "  export LOGGRABBER_CONFIG_PATH"
+	@echo "  LOGGRABBER_TEMP_PATH=${TEMPDIR}"
+	@echo "  export LOGGRABBER_TEMP_PATH"
+	@echo
 
 clean:
 	rm -f *.o $(EXE_NAME)
+

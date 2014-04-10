@@ -12,7 +12,7 @@ Edit ``Makefile`` and change the variables CC, LD and PKG_DIR according to your 
 
 To enable ODBC support (still untested), uncomment and modify lines concerning ODBC (requires iODBC or unixODBC).
 
-Then run ``make`` to build and ``./INSTALL.sh`` to install.
+Then run ``make`` to build and ``sudo make install`` to install.
 
 ## License
 
