@@ -26,7 +26,6 @@ then
 	${INSTALLBINARY} -f ${SYSCONFDIR} -u root -g root -m 644 fw1-loggrabber.conf
 	${INSTALLBINARY} -f ${SYSCONFDIR} -u root -g root -m 644 lea.conf
 	${INSTALLBINARY} -f ${MANDIR}/man1 -u root -g root -m 644 fw1-loggrabber.1
-	${INSTALLBINARY} -f ${DOCDIR} -u root -g root -m 644 fw1-loggrabber.html
 	${INSTALLBINARY} -f ${DOCDIR} -u root -g root -m 644 CHANGES
 fi
 
@@ -40,7 +39,6 @@ then
 	${INSTALLBINARY} -v -o root -g root -m 644 -p fw1-loggrabber.conf ${SYSCONFDIR}/fw1-loggrabber.conf 
 	${INSTALLBINARY} -v -o root -g root -m 644 -p lea.conf ${SYSCONFDIR}/lea.conf 
 	${INSTALLBINARY} -v -o root -g root -m 644 -p fw1-loggrabber.1 ${MANDIR}/man1/fw1-loggrabber.1
-	${INSTALLBINARY} -v -o root -g root -m 644 -p fw1-loggrabber.html ${DOCDIR}/fw1-loggrabber.html
 	${INSTALLBINARY} -v -o root -g root -m 644 -p CHANGES ${DOCDIR}/CHANGES
 fi
 
