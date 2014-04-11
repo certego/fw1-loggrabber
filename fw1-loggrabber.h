@@ -109,7 +109,7 @@
 #define DATETIME_UNIX           1
 #define DATETIME_STD            2
 
-#define NUMBER_LIDX_FIELDS      108
+#define NUMBER_LIDX_FIELDS      109
 
 #define LIDX_NUM                0
 #define LIDX_TIME               1
@@ -219,6 +219,7 @@
 #define LIDX_NEGOTIATION_ID     105
 #define LIDX_DECRYPTION_FAILURE 106
 #define LIDX_LEN                107
+#define LIDX_ORIGIN_SIC_NAME    108
 
 #define NUMBER_AIDX_FIELDS      21
 
@@ -659,3 +660,4 @@ int established = FALSE;
 
 int initialCapacity = 1024;
 int capacityIncrement = 4096;
+

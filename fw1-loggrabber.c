@@ -5112,7 +5112,7 @@ initialize_lfield_dbheaders (char **headers[NUMBER_LIDX_FIELDS])
 
   if (cfgvalues.debug_mode >= 2)
     {
-      fprintf (stderr, "DEBUG: function initialize_lfield_headers\n");
+      fprintf (stderr, "DEBUG: function initialize_lfield_dbheaders\n");
     }
 
   for (i = 0; i < NUMBER_LIDX_FIELDS; i++)
@@ -5503,6 +5503,7 @@ initialize_lfield_headers (char **headers[NUMBER_LIDX_FIELDS])
   *headers[LIDX_DECRYPTION_FAILURE] =
     string_duplicate ("decryption failure:");
   *headers[LIDX_LEN] = string_duplicate ("len");
+  *headers[LIDX_ORIGIN_SIC_NAME] = string_duplicate ("origin_sic_name");
 }
 
 /*
