@@ -47,52 +47,52 @@
 /* The following method is used solely for purpose of the unit test */
 /* Function prototypes for thread routines */
 ThreadFuncReturnType printMessageFunction( void *data ){
-	char *message;
-	message = (char *) data;
-	while(1) {
-		printf("%s\n", message);
-		SLEEPMIL(1);
-	}
-	printf("The thread that prints \"%s\" exited ...\n", message);
-	return 0;
+        char *message;
+        message = (char *) data;
+        while(1) {
+                printf("%s\n", message);
+                SLEEPMIL(1);
+        }
+        printf("The thread that prints \"%s\" exited ...\n", message);
+        return 0;
 }
 
 /*
 int main() {
-	testThread();
+        testThread();
 }
 */
 
 int testThread() {
 
-	ThreadIDType thread_id;
-	char *message1 = "Thread 1.";
-	char *message2 = "Thread 2.";
-	int count=0;
+        ThreadIDType thread_id;
+        char *message1 = "Thread 1.";
+        char *message2 = "Thread 2.";
+        int count=0;
 
-	createThread(&thread_id, printMessageFunction, (void *)message1);
-	SLEEPMIL(1);
-	createThread(&thread_id, printMessageFunction, (void *)message2);
-	SLEEPMIL(1);
-	while(count<=100) {
-		printf("The main thread.\n");
-		SLEEPMIL(1);
-		count++;
-	}
-	printf("The main thread exits...\n");
-	return 0;
+        createThread(&thread_id, printMessageFunction, (void *)message1);
+        SLEEPMIL(1);
+        createThread(&thread_id, printMessageFunction, (void *)message2);
+        SLEEPMIL(1);
+        while(count<=100) {
+                printf("The main thread.\n");
+                SLEEPMIL(1);
+                count++;
+        }
+        printf("The main thread exits...\n");
+        return 0;
 }
 
 /*
 * A cover for thread creation function
 */
 void createThread (ThreadIDType *threadID, ThreadFuncType thread_func, void * data) {
-	#ifdef WIN32
-		CreateThread(NULL, 0, thread_func, data, 0, threadID);
-	#else
-		if (pthread_create(threadID, NULL, thread_func, data) != 0) {
-			fprintf(stderr, "failed to create thread ...\n");
-			exit(2);
-		}
-	#endif
+        #ifdef WIN32
+                CreateThread(NULL, 0, thread_func, data, 0, threadID);
+        #else
+                if (pthread_create(threadID, NULL, thread_func, data) != 0) {
+                        fprintf(stderr, "failed to create thread ...\n");
+                        exit(2);
+                }
+        #endif
 }

@@ -47,19 +47,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef WIN32
-	#include <winbase.h>
-	#define ThreadFuncType LPTHREAD_START_ROUTINE
-	#define ThreadFuncReturnType DWORD WINAPI
-	#define SLEEPMIL(millisec) Sleep(millisec)
-	#define ThreadIDType DWORD
+        #include <winbase.h>
+        #define ThreadFuncType LPTHREAD_START_ROUTINE
+        #define ThreadFuncReturnType DWORD WINAPI
+        #define SLEEPMIL(millisec) Sleep(millisec)
+        #define ThreadIDType DWORD
 #else
-	#include <sys/types.h>   /* system types */
-	#include <unistd.h>      /* standard UNIX stuff */
-	#include <pthread.h>
-	#define ThreadFuncReturnType void *
-	typedef void * (*ThreadFuncType) (void *);
-	#define SLEEPMIL(millisec) usleep(millisec*1000)
-	#define ThreadIDType pthread_t
+        #include <sys/types.h>   /* system types */
+        #include <unistd.h>      /* standard UNIX stuff */
+        #include <pthread.h>
+        #define ThreadFuncReturnType void *
+        typedef void * (*ThreadFuncType) (void *);
+        #define SLEEPMIL(millisec) usleep(millisec*1000)
+        #define ThreadIDType pthread_t
 #endif
 
 void createThread(ThreadIDType * threadID, ThreadFuncType thread_func, void * data);

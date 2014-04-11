@@ -38,34 +38,34 @@
 #include <time.h>
 
 #ifdef SOLARIS2
-#	define  BIG_ENDIAN    4321
-#	define  LITTLE_ENDIAN 1234
-#	define  BYTE_ORDER BIG_ENDIAN
-#	define  SLEEP(sec) sleep(sec)
-#	include <netinet/in.h>
-#	include <arpa/inet.h>
-#	include <syslog.h>
-#	include <unistd.h>
+#        define  BIG_ENDIAN    4321
+#        define  LITTLE_ENDIAN 1234
+#        define  BYTE_ORDER BIG_ENDIAN
+#        define  SLEEP(sec) sleep(sec)
+#        include <netinet/in.h>
+#        include <arpa/inet.h>
+#        include <syslog.h>
+#        include <unistd.h>
 #elif WIN32
-#	define  BIG_ENDIAN    4321
-#	define  LITTLE_ENDIAN 1234
-#	define  BYTE_ORDER LITTLE_ENDIAN
-#	define  BUFSIZE MAX_PATH
-#	define  SLEEP(sec) Sleep(1000*sec)
-#	include <windows.h>
-#	include <winsock.h>
+#        define  BIG_ENDIAN    4321
+#        define  LITTLE_ENDIAN 1234
+#        define  BYTE_ORDER LITTLE_ENDIAN
+#        define  BUFSIZE MAX_PATH
+#        define  SLEEP(sec) Sleep(1000*sec)
+#        include <windows.h>
+#        include <winsock.h>
 #else
-#	define  SLEEP(sec) sleep(sec)
-#	include <netinet/in.h>
-#	include <arpa/inet.h>
-#	include <unistd.h>
-#	include <endian.h>
-#	include <syslog.h>
+#        define  SLEEP(sec) sleep(sec)
+#        include <netinet/in.h>
+#        include <arpa/inet.h>
+#        include <unistd.h>
+#        include <endian.h>
+#        include <syslog.h>
 #endif
 
 #ifdef USE_ODBC
-#	include <sql.h>
-#	include <sqlext.h>
+#        include <sql.h>
+#        include <sqlext.h>
 #endif
 
 /*
@@ -86,169 +86,169 @@
 /*
  * Constant definitions
  */
-#define VERSION			"1.11"
+#define VERSION                        "1.11"
 
 #ifdef WIN32
-#	define ODBCVERSION	"Windows-ODBC-support"
+#        define ODBCVERSION        "Windows-ODBC-support"
 #elif STATIC_IODBC
-#	define ODBCVERSION	"static iODBC-support"
+#        define ODBCVERSION        "static iODBC-support"
 #elif DYNAMIC_IODBC
-#	define ODBCVERSION	"dynamic iODBC-support"
+#        define ODBCVERSION        "dynamic iODBC-support"
 #elif STATIC_UNIXODBC
-#	define ODBCVERSION	"static unixODBC-support"
+#        define ODBCVERSION        "static unixODBC-support"
 #elif DYNAMIC_UNIXODBC
-#	define ODBCVERSION	"dynamic unixODBC-support"
+#        define ODBCVERSION        "dynamic unixODBC-support"
 #else
-#	define ODBCVERSION	"no ODBC-support"
+#        define ODBCVERSION        "no ODBC-support"
 #endif
 
-#define TRUE			1
-#define FALSE			0
+#define TRUE                        1
+#define FALSE                        0
 
-#define DATETIME_CP		0
-#define DATETIME_UNIX		1
-#define DATETIME_STD		2
+#define DATETIME_CP                0
+#define DATETIME_UNIX                1
+#define DATETIME_STD                2
 
-#define NUMBER_LIDX_FIELDS	108
+#define NUMBER_LIDX_FIELDS        108
 
-#define LIDX_NUM		0
-#define LIDX_TIME		1
-#define LIDX_ACTION		2
-#define LIDX_ORIG		3
-#define LIDX_ALERT		4
-#define LIDX_IF_DIR		5
-#define LIDX_IF_NAME		6
-#define LIDX_HAS_ACCOUNTING	7
-#define LIDX_UUID		8
-#define LIDX_PRODUCT		9
-#define LIDX_POLICY_ID_TAG	10
-#define LIDX_SRC		11
-#define LIDX_S_PORT		12
-#define LIDX_DST		13
-#define LIDX_SERVICE		14
-#define LIDX_TCP_FLAGS		15
-#define LIDX_PROTO		16
-#define LIDX_RULE		17
-#define LIDX_XLATESRC		18
-#define LIDX_XLATEDST		19
-#define LIDX_XLATESPORT		20
-#define LIDX_XLATEDPORT		21
-#define LIDX_NAT_RULENUM	22
-#define LIDX_RESOURCE		23
-#define LIDX_ELAPSED		24
-#define LIDX_PACKETS		25
-#define LIDX_BYTES		26
-#define LIDX_REASON		27
-#define LIDX_SERVICE_NAME	28
-#define LIDX_AGENT		29
-#define LIDX_FROM		30
-#define LIDX_TO			31
-#define LIDX_SYS_MSGS		32
-#define LIDX_FW_MESSAGE		33
-#define LIDX_INTERNAL_CA	34
-#define LIDX_SERIAL_NUM		35
-#define LIDX_DN			36
-#define LIDX_ICMP		37
-#define LIDX_ICMP_TYPE		38
-#define LIDX_ICMP_TYPE2		39
-#define LIDX_ICMP_CODE		40
-#define LIDX_ICMP_CODE2		41
-#define LIDX_MSGID		42
-#define LIDX_MESSAGE_INFO	43
-#define LIDX_LOG_SYS_MESSAGE	44
-#define LIDX_SESSION_ID		45
-#define LIDX_DNS_QUERY		46
-#define LIDX_DNS_TYPE		47
-#define LIDX_SCHEME		48
-#define LIDX_SRCKEYID		49
-#define LIDX_DSTKEYID		50
-#define LIDX_METHODS		51
-#define LIDX_PEER_GATEWAY	52
-#define LIDX_IKE		53
-#define LIDX_IKE_IDS		54
-#define LIDX_ENCRYPTION_FAILURE	55
+#define LIDX_NUM                0
+#define LIDX_TIME                1
+#define LIDX_ACTION                2
+#define LIDX_ORIG                3
+#define LIDX_ALERT                4
+#define LIDX_IF_DIR                5
+#define LIDX_IF_NAME                6
+#define LIDX_HAS_ACCOUNTING        7
+#define LIDX_UUID                8
+#define LIDX_PRODUCT                9
+#define LIDX_POLICY_ID_TAG        10
+#define LIDX_SRC                11
+#define LIDX_S_PORT                12
+#define LIDX_DST                13
+#define LIDX_SERVICE                14
+#define LIDX_TCP_FLAGS                15
+#define LIDX_PROTO                16
+#define LIDX_RULE                17
+#define LIDX_XLATESRC                18
+#define LIDX_XLATEDST                19
+#define LIDX_XLATESPORT                20
+#define LIDX_XLATEDPORT                21
+#define LIDX_NAT_RULENUM        22
+#define LIDX_RESOURCE                23
+#define LIDX_ELAPSED                24
+#define LIDX_PACKETS                25
+#define LIDX_BYTES                26
+#define LIDX_REASON                27
+#define LIDX_SERVICE_NAME        28
+#define LIDX_AGENT                29
+#define LIDX_FROM                30
+#define LIDX_TO                        31
+#define LIDX_SYS_MSGS                32
+#define LIDX_FW_MESSAGE                33
+#define LIDX_INTERNAL_CA        34
+#define LIDX_SERIAL_NUM                35
+#define LIDX_DN                        36
+#define LIDX_ICMP                37
+#define LIDX_ICMP_TYPE                38
+#define LIDX_ICMP_TYPE2                39
+#define LIDX_ICMP_CODE                40
+#define LIDX_ICMP_CODE2                41
+#define LIDX_MSGID                42
+#define LIDX_MESSAGE_INFO        43
+#define LIDX_LOG_SYS_MESSAGE        44
+#define LIDX_SESSION_ID                45
+#define LIDX_DNS_QUERY                46
+#define LIDX_DNS_TYPE                47
+#define LIDX_SCHEME                48
+#define LIDX_SRCKEYID                49
+#define LIDX_DSTKEYID                50
+#define LIDX_METHODS                51
+#define LIDX_PEER_GATEWAY        52
+#define LIDX_IKE                53
+#define LIDX_IKE_IDS                54
+#define LIDX_ENCRYPTION_FAILURE        55
 #define LIDX_ENCRYPTION_FAIL_R  56
-#define LIDX_COOKIEI		57
-#define LIDX_COOKIER		58
-#define LIDX_START_TIME		59
-#define LIDX_SEGMENT_TIME	60
-#define LIDX_CLIENT_IN_PACKETS	61
-#define LIDX_CLIENT_OUT_PACKETS	62
-#define LIDX_CLIENT_IN_BYTES	63
-#define LIDX_CLIENT_OUT_BYTES	64
-#define LIDX_CLIENT_IN_IF	65
-#define LIDX_CLIENT_OUT_IF	66
-#define LIDX_SERVER_IN_PACKETS	67
-#define LIDX_SERVER_OUT_PACKETS	68
-#define LIDX_SERVER_IN_BYTES	69
-#define LIDX_SERVER_OUT_BYTES	70
-#define LIDX_SERVER_IN_IF	71
-#define LIDX_SERVER_OUT_IF	72
-#define LIDX_MESSAGE		73
-#define LIDX_NAT_ADDRULENUM	74
-#define LIDX_USER		75
-#define LIDX_SRCNAME		76
-#define LIDX_VPN_USER		77
-#define LIDX_OM			78
-#define LIDX_OM_METHOD		79
-#define LIDX_ASSIGNED_IP	80
-#define LIDX_MAC		81
-#define LIDX_ATTACK		82
-#define LIDX_ATTACK_INFO	83
-#define LIDX_CLUSTER_INFO	84
-#define LIDX_DCE_RPC_UUID	85
-#define LIDX_DCE_RPC_UUID_1	86
-#define LIDX_DCE_RPC_UUID_2	87
-#define LIDX_DCE_RPC_UUID_3	88
-#define LIDX_DURING_SEC		89
-#define LIDX_FRAGMENTS_DROPPED	90
-#define LIDX_IP_ID		91
-#define LIDX_IP_LEN		92
-#define LIDX_IP_OFFSET		93
-#define LIDX_TCP_FLAGS2		94
-#define LIDX_SYNC_INFO		95
-#define LIDX_LOG		96
-#define LIDX_CPMAD		97
-#define LIDX_AUTH_METHOD	98
-#define LIDX_TCP_PACKET_OOS	99
-#define LIDX_RPC_PROG		100
-#define LIDX_TH_FLAGS		101
-#define LIDX_CP_MESSAGE		102
-#define LIDX_REJECT_CATEGORY	103
-#define LIDX_IKE_LOG		104
-#define LIDX_NEGOTIATION_ID	105
-#define LIDX_DECRYPTION_FAILURE	106
-#define LIDX_LEN		107
+#define LIDX_COOKIEI                57
+#define LIDX_COOKIER                58
+#define LIDX_START_TIME                59
+#define LIDX_SEGMENT_TIME        60
+#define LIDX_CLIENT_IN_PACKETS        61
+#define LIDX_CLIENT_OUT_PACKETS        62
+#define LIDX_CLIENT_IN_BYTES        63
+#define LIDX_CLIENT_OUT_BYTES        64
+#define LIDX_CLIENT_IN_IF        65
+#define LIDX_CLIENT_OUT_IF        66
+#define LIDX_SERVER_IN_PACKETS        67
+#define LIDX_SERVER_OUT_PACKETS        68
+#define LIDX_SERVER_IN_BYTES        69
+#define LIDX_SERVER_OUT_BYTES        70
+#define LIDX_SERVER_IN_IF        71
+#define LIDX_SERVER_OUT_IF        72
+#define LIDX_MESSAGE                73
+#define LIDX_NAT_ADDRULENUM        74
+#define LIDX_USER                75
+#define LIDX_SRCNAME                76
+#define LIDX_VPN_USER                77
+#define LIDX_OM                        78
+#define LIDX_OM_METHOD                79
+#define LIDX_ASSIGNED_IP        80
+#define LIDX_MAC                81
+#define LIDX_ATTACK                82
+#define LIDX_ATTACK_INFO        83
+#define LIDX_CLUSTER_INFO        84
+#define LIDX_DCE_RPC_UUID        85
+#define LIDX_DCE_RPC_UUID_1        86
+#define LIDX_DCE_RPC_UUID_2        87
+#define LIDX_DCE_RPC_UUID_3        88
+#define LIDX_DURING_SEC                89
+#define LIDX_FRAGMENTS_DROPPED        90
+#define LIDX_IP_ID                91
+#define LIDX_IP_LEN                92
+#define LIDX_IP_OFFSET                93
+#define LIDX_TCP_FLAGS2                94
+#define LIDX_SYNC_INFO                95
+#define LIDX_LOG                96
+#define LIDX_CPMAD                97
+#define LIDX_AUTH_METHOD        98
+#define LIDX_TCP_PACKET_OOS        99
+#define LIDX_RPC_PROG                100
+#define LIDX_TH_FLAGS                101
+#define LIDX_CP_MESSAGE                102
+#define LIDX_REJECT_CATEGORY        103
+#define LIDX_IKE_LOG                104
+#define LIDX_NEGOTIATION_ID        105
+#define LIDX_DECRYPTION_FAILURE        106
+#define LIDX_LEN                107
 
-#define NUMBER_AIDX_FIELDS	21
+#define NUMBER_AIDX_FIELDS        21
 
-#define AIDX_NUM		0
-#define AIDX_TIME		1
-#define AIDX_ACTION		2
-#define AIDX_ORIG		3
-#define AIDX_IF_DIR		4
-#define AIDX_IF_NAME		5
-#define AIDX_HAS_ACCOUNTING	6
-#define AIDX_UUID		7
-#define AIDX_PRODUCT		8
-#define AIDX_OBJECTNAME		9
-#define AIDX_OBJECTTYPE		10
-#define AIDX_OBJECTTABLE 	11
-#define AIDX_OPERATION		12
-#define AIDX_UID		13
-#define AIDX_ADMINISTRATOR	14
-#define AIDX_MACHINE		15
-#define AIDX_SUBJECT		16
-#define AIDX_AUDIT_STATUS	17
-#define AIDX_ADDITIONAL_INFO	18
-#define AIDX_OPERATION_NUMBER	19
-#define AIDX_FIELDSCHANGES	20
+#define AIDX_NUM                0
+#define AIDX_TIME                1
+#define AIDX_ACTION                2
+#define AIDX_ORIG                3
+#define AIDX_IF_DIR                4
+#define AIDX_IF_NAME                5
+#define AIDX_HAS_ACCOUNTING        6
+#define AIDX_UUID                7
+#define AIDX_PRODUCT                8
+#define AIDX_OBJECTNAME                9
+#define AIDX_OBJECTTYPE                10
+#define AIDX_OBJECTTABLE         11
+#define AIDX_OPERATION                12
+#define AIDX_UID                13
+#define AIDX_ADMINISTRATOR        14
+#define AIDX_MACHINE                15
+#define AIDX_SUBJECT                16
+#define AIDX_AUDIT_STATUS        17
+#define AIDX_ADDITIONAL_INFO        18
+#define AIDX_OPERATION_NUMBER        19
+#define AIDX_FIELDSCHANGES        20
 
 #define SCREEN                  0
 #define LOGFILE                 1
 #define SYSLOG                  2
 #define ODBC                    3
-#define SNMP                    4	// For future use
+#define SNMP                    4        // For future use
 
 #define INITIAL_CAPACITY   1024
 #define CAPACITY_INCREMENT 4096
@@ -357,7 +357,7 @@ int read_fw1_logfile_start (OpsecSession *);
  * dummy event handler for debugging purposes
  */
 int read_fw1_logfile_failedconn (OpsecEntity * entity, long peer_ip,
-				 int sic_errno, char *sic_errmsg);
+                                 int sic_errno, char *sic_errmsg);
 
 /*
  * dummy event handler for debugging purposes
@@ -608,32 +608,32 @@ int afield_dblength[NUMBER_AIDX_FIELDS];
 #endif
 
 configvalues cfgvalues = {
-  0,				// debug_mode
-  FALSE,			// online_mode
-  TRUE,				// resolve_mode
-  FALSE,			// fw1_2000
-  FALSE,			// audit_mode
-  FALSE,			// showfiles_mode
-  TRUE,				// fieldnames_mode
-  DATETIME_STD,			// dateformat
-  SCREEN,			// log_mode
+  0,                                // debug_mode
+  FALSE,                        // online_mode
+  TRUE,                                // resolve_mode
+  FALSE,                        // fw1_2000
+  FALSE,                        // audit_mode
+  FALSE,                        // showfiles_mode
+  TRUE,                                // fieldnames_mode
+  DATETIME_STD,                        // dateformat
+  SCREEN,                        // log_mode
 #ifndef WIN32
-  LOG_LOCAL1,			// syslog_facility
+  LOG_LOCAL1,                        // syslog_facility
 #endif
-  '|',				// record_separator
-  "fw1-loggrabber.conf",	// config_filename
-  "lea.conf",			// leaconfig_filename
+  '|',                                // record_separator
+  "fw1-loggrabber.conf",        // config_filename
+  "lea.conf",                        // leaconfig_filename
 #ifdef USE_ODBC
-  "FW1-LOGGRABBER",		// odbc_dsn
+  "FW1-LOGGRABBER",                // odbc_dsn
 #endif
-  "fw.log",			// fw1_logfile
-  "fw1-loggrabber",		// output_file_prefix
-  1048576,			// output_file_rotatesize
-  NULL,				// fields
-  0,				// fw1_filter_count
-  NULL,				// fw1_filter_array
-  0,				// audit_filter_count
-  NULL				// audit_filter_array
+  "fw.log",                        // fw1_logfile
+  "fw1-loggrabber",                // output_file_prefix
+  1048576,                        // output_file_rotatesize
+  NULL,                                // fields
+  0,                                // fw1_filter_count
+  NULL,                                // fw1_filter_array
+  0,                                // audit_filter_count
+  NULL                                // audit_filter_array
 };
 
 

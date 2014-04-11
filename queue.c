@@ -55,137 +55,137 @@ int countOfList=0;
 
 /*
 int main() {
-	testLinkedList();
+        testLinkedList();
 }
 */
 
 /* The following method is used solely for purpose of the unit test */
 int testLinkedList() {
 
-	char* message;
-	char* x;
-	char* y;
-	char stringbuffer[1024];
-	int capacity = 100;
-	LinkedList * xyz;
+        char* message;
+        char* x;
+        char* y;
+        char stringbuffer[1024];
+        int capacity = 100;
+        LinkedList * xyz;
 
-	initialize();
+        initialize();
 
-	if(isEmpty()) {
-		printf ("The list is empty.\n");
-	} else	{
-		printf ("The list should be empty but isn't.\n");
-	}
+        if(isEmpty()) {
+                printf ("The list is empty.\n");
+        } else        {
+                printf ("The list should be empty but isn't.\n");
+        }
 
-	sprintf(stringbuffer, "78");
-	message = (char *) malloc(capacity+1);
-	strcpy(message,stringbuffer);
-	add(message);
+        sprintf(stringbuffer, "78");
+        message = (char *) malloc(capacity+1);
+        strcpy(message,stringbuffer);
+        add(message);
 
-	sprintf(stringbuffer, "90");
-	message = (char *) malloc(capacity+1);
-	strcpy(message,stringbuffer);
-	add(message);
+        sprintf(stringbuffer, "90");
+        message = (char *) malloc(capacity+1);
+        strcpy(message,stringbuffer);
+        add(message);
 
-	sprintf(stringbuffer, "56");
-	message = (char *) malloc(capacity+1);
-	strcpy(message,stringbuffer);
-	addFirst(message);
+        sprintf(stringbuffer, "56");
+        message = (char *) malloc(capacity+1);
+        strcpy(message,stringbuffer);
+        addFirst(message);
 
-	sprintf(stringbuffer, "34");
-	message = (char *) malloc(capacity+1);
-	strcpy(message,stringbuffer);
-	addFirst(message);
+        sprintf(stringbuffer, "34");
+        message = (char *) malloc(capacity+1);
+        strcpy(message,stringbuffer);
+        addFirst(message);
 
-	sprintf(stringbuffer, "12");
-	message = (char *) malloc(capacity+1);
-	strcpy(message,stringbuffer);
-	addFirst(message);
+        sprintf(stringbuffer, "12");
+        message = (char *) malloc(capacity+1);
+        strcpy(message,stringbuffer);
+        addFirst(message);
 
-	printf ("display begins\n");
-	printf ("The elements of list are shown as follows:\n");
-	printList();
-	printf ("display ends\n");
+        printf ("display begins\n");
+        printf ("The elements of list are shown as follows:\n");
+        printList();
+        printf ("display ends\n");
 
-	xyz = getFirst();
-	if(xyz != NULL) {
-		x = xyz->listElement;
-		printf ("x is %s\n",x);
-		printf ("display begins\n");
-		printf ("The elements of list are shown as follows:\n");
-		printList();
-		printf ("display ends\n");
-		free(x);
-		free(xyz);
-	}
+        xyz = getFirst();
+        if(xyz != NULL) {
+                x = xyz->listElement;
+                printf ("x is %s\n",x);
+                printf ("display begins\n");
+                printf ("The elements of list are shown as follows:\n");
+                printList();
+                printf ("display ends\n");
+                free(x);
+                free(xyz);
+        }
 
-	xyz = getFirst();
-	if(xyz != NULL) {
-		y = xyz->listElement;
-		printf ("y is %s\n",y);
-		printf ("display begins\n");
-		printf ("The elements of list are shown as follows:\n");
-		printList();
-		printf ("display ends\n");
-		free(y);
-		free(xyz);
-	}
+        xyz = getFirst();
+        if(xyz != NULL) {
+                y = xyz->listElement;
+                printf ("y is %s\n",y);
+                printf ("display begins\n");
+                printf ("The elements of list are shown as follows:\n");
+                printList();
+                printf ("display ends\n");
+                free(y);
+                free(xyz);
+        }
 
-	sprintf(stringbuffer, "88");
-	message = (char *) malloc(capacity+1);
-	strcpy(message,stringbuffer);
-	add(message);
+        sprintf(stringbuffer, "88");
+        message = (char *) malloc(capacity+1);
+        strcpy(message,stringbuffer);
+        add(message);
 
-	printf ("display begins\n");
-	printf ("The elements of list are shown as follows:\n");
-	printList();
-	printf ("display ends\n");
+        printf ("display begins\n");
+        printf ("The elements of list are shown as follows:\n");
+        printList();
+        printf ("display ends\n");
 
-	xyz = getFirst();
-	if(xyz != NULL) {
-		y = xyz->listElement;
-		printf ("y is %s\n",y);
-		free(y);
-		free(xyz);
-	}
+        xyz = getFirst();
+        if(xyz != NULL) {
+                y = xyz->listElement;
+                printf ("y is %s\n",y);
+                free(y);
+                free(xyz);
+        }
 
-	xyz = getFirst();
-	if(xyz != NULL) {
-		y = xyz->listElement;
-		printf ("y is %s\n",y);
-		free(y);
-		free(xyz);
-	}
+        xyz = getFirst();
+        if(xyz != NULL) {
+                y = xyz->listElement;
+                printf ("y is %s\n",y);
+                free(y);
+                free(xyz);
+        }
 
-	xyz = getFirst();
-	if(xyz != NULL) {
-		y = xyz->listElement;
-		printf ("y is %s\n",y);
-		free(y);
-		free(xyz);
-	}
+        xyz = getFirst();
+        if(xyz != NULL) {
+                y = xyz->listElement;
+                printf ("y is %s\n",y);
+                free(y);
+                free(xyz);
+        }
 
-	xyz = getFirst();
-	if(xyz != NULL) {
-		y = xyz->listElement;
-		printf ("y is %s\n",y);
-		free(y);
-		free(xyz);
-	}
+        xyz = getFirst();
+        if(xyz != NULL) {
+                y = xyz->listElement;
+                printf ("y is %s\n",y);
+                free(y);
+                free(xyz);
+        }
 
-	sprintf(stringbuffer, "12");
-	message = (char *) malloc(capacity+1);
-	strcpy(message,stringbuffer);
-	add(message);
+        sprintf(stringbuffer, "12");
+        message = (char *) malloc(capacity+1);
+        strcpy(message,stringbuffer);
+        add(message);
 
-	sprintf(stringbuffer, "34");
-	message = (char *) malloc(capacity+1);
-	strcpy(message,stringbuffer);
-	add(message);
+        sprintf(stringbuffer, "34");
+        message = (char *) malloc(capacity+1);
+        strcpy(message,stringbuffer);
+        add(message);
 
     clearList();
 
-	return 0;
+        return 0;
 
 }/* main */
 
@@ -197,125 +197,125 @@ void initialize(){
 
 //Set the queue length limitation
 void setThreshold(int thresh) {
-	threadhold = thresh;
+        threadhold = thresh;
 }
 
 //Return the queue length limitation
 int getThreshold(){
-	return threadhold;
+        return threadhold;
 }
 
 //Append the specified element to the end of this list.
 Bool add(char* data) {
 
-	if(head == NULL) {
-		head = (LinkedList *) malloc (sizeof (struct LinkedListElement));
-		head -> listElement = data;
-		head -> next = NULL;
-		tail = head;
-	} else {
-		tail -> next = (LinkedList *) malloc (sizeof (struct LinkedListElement));
-		tail = tail -> next;
-		tail -> next = NULL;
-		tail -> listElement = data;
-	}
-	countOfList++;
-	return TRUE;
+        if(head == NULL) {
+                head = (LinkedList *) malloc (sizeof (struct LinkedListElement));
+                head -> listElement = data;
+                head -> next = NULL;
+                tail = head;
+        } else {
+                tail -> next = (LinkedList *) malloc (sizeof (struct LinkedListElement));
+                tail = tail -> next;
+                tail -> next = NULL;
+                tail -> listElement = data;
+        }
+        countOfList++;
+        return TRUE;
 }
 
 //Insert the given element at the beginning of this list.
 Bool addFirst(char* data){
-	LinkedList * listPointer;
+        LinkedList * listPointer;
 
-	if(head == NULL) {
-		head = (LinkedList *) malloc (sizeof (struct LinkedListElement));
-		head -> listElement = data;
-		head -> next = NULL;
-		tail = head;
-	} else {
-		listPointer = (LinkedList *) malloc (sizeof (struct LinkedListElement));
-		listPointer -> next = head;
-		head = listPointer;
-		head -> listElement = data;
-	}
-	countOfList++;
-	return TRUE;
+        if(head == NULL) {
+                head = (LinkedList *) malloc (sizeof (struct LinkedListElement));
+                head -> listElement = data;
+                head -> next = NULL;
+                tail = head;
+        } else {
+                listPointer = (LinkedList *) malloc (sizeof (struct LinkedListElement));
+                listPointer -> next = head;
+                head = listPointer;
+                head -> listElement = data;
+        }
+        countOfList++;
+        return TRUE;
 }
 
 //Remove all of the elements from this list.
 void clearList(){
 
-	LinkedList * listPointer;
+        LinkedList * listPointer;
     if (head == NULL) {
-		//printf ("The queue is empty!\n");
+                //printf ("The queue is empty!\n");
     } else {
-		listPointer = head;
-		while (listPointer != NULL) {
-			head = head -> next;
-			free(listPointer->listElement);
-	    	free(listPointer);
-	    	listPointer = head;
-		}//end of while
-		countOfList=0;
-	}//end of if
+                listPointer = head;
+                while (listPointer != NULL) {
+                        head = head -> next;
+                        free(listPointer->listElement);
+                    free(listPointer);
+                    listPointer = head;
+                }//end of while
+                countOfList=0;
+        }//end of if
 
 }
 
 //Dsiplay all of the elements from this list.
 void printList(){
 
-	LinkedList * listPointer;
+        LinkedList * listPointer;
 
     if (head == NULL) {
-		//printf ("The queue is empty!\n");
+                //printf ("The queue is empty!\n");
     } else {
-		listPointer = head;
-		while (listPointer != NULL) {
-	    	printf ("Element = %s\n\r", listPointer -> listElement);
-	    	listPointer = listPointer -> next;
-		}//end of while
-	}//end of if
+                listPointer = head;
+                while (listPointer != NULL) {
+                    printf ("Element = %s\n\r", listPointer -> listElement);
+                    listPointer = listPointer -> next;
+                }//end of while
+        }//end of if
     printf ("\n\r");
 
 }
 
 //Return count of elements in queue
 int sizeofList(){
-	return countOfList;
+        return countOfList;
 }
 
 //Are there any elements on this list? true if nobody's home
 Bool isEmpty(){
     if (head == NULL) {
-		//The list is empty.
-		return TRUE;
+                //The list is empty.
+                return TRUE;
     } else {
-		return FALSE;
-	}
+                return FALSE;
+        }
 }
 
 //Does this list reach its limitation? true if so
 Bool isFull() {
-	if(countOfList >= threadhold) {
-		return TRUE;
-	} else {
-		return FALSE;
-	}
+        if(countOfList >= threadhold) {
+                return TRUE;
+        } else {
+                return FALSE;
+        }
 }
 
 //Return the first element in this list.
 LinkedList *getFirst(){
 
-	LinkedList * tp;
-	if(head==NULL) {
-		//The list is empty, and no element will be returned
-		return NULL;
-	}
+        LinkedList * tp;
+        if(head==NULL) {
+                //The list is empty, and no element will be returned
+                return NULL;
+        }
     tp = head;
     head = head -> next;
     if(head==NULL) {
-		tail = NULL;
-	}
+                tail = NULL;
+        }
     countOfList--;
     return tp;
 
