@@ -6380,12 +6380,12 @@ submit_logfile (char *message)
 
   time_t time_date;
   struct tm *current_date;
-  int month;                        // 1 through 12
+  int month;                      // 1 through 12
   int day;                        // 1 through max_days
-  int year;                        // 1500 through 2200
-  int hour;                        // 0 through 23
-  int minute;                        // 0 through 59
-  int second;                        // 0 through 59
+  int year;                       // 1500 through 2200
+  int hour;                       // 0 through 23
+  int minute;                     // 0 through 59
+  int second;                     // 0 through 59
 
   if (cfgvalues.debug_mode >= 2)
     {
