@@ -576,7 +576,6 @@ void free_afield_arrays (char ***);
  * function to show help about this tool
  */
 void usage (char *);
-void show_supported_fields ();
 
 /*
  * cleanup functions

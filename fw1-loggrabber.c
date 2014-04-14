@@ -91,11 +91,6 @@ main (int argc, char *argv[])
           usage (argv[0]);
           exit_loggrabber (1);
         }
-      else if (strcmp (argv[i], "--help-fields") == 0)
-        {
-          show_supported_fields ();
-          exit_loggrabber (1);
-        }
       else if (strcmp (argv[i], "--resolve") == 0)
         {
           resolve_mode = 1;
@@ -2005,34 +2000,6 @@ cleanup_fw1_environment (OpsecEnv * env, OpsecEntity * client,
     opsec_destroy_entity (server);
   if (env)
     opsec_env_destroy (env);
-}
-
-/*
- * function show_supported_fields
- */
-void
-show_supported_fields ()
-{
-  int i;
-
-  if (cfgvalues.debug_mode >= 2)
-    {
-      fprintf (stderr, "DEBUG: function show_supported_fields\n");
-    }
-
-  fprintf (stderr,
-           "\nFW1-Loggrabber v%s, (C)2004, Torsten Fellhauer, Xiaodong Lin\n",
-           VERSION);
-  fprintf (stderr, "Supported Fields for normal logs:\n");
-  for (i = 0; i < NUMBER_LIDX_FIELDS; i++)
-    {
-      fprintf (stderr, "  - %s\n", *lfield_headers[i]);
-    }
-  fprintf (stderr, "Supported Fields for audit logs:\n");
-  for (i = 0; i < NUMBER_AIDX_FIELDS; i++)
-    {
-      fprintf (stderr, "  - %s\n", *afield_headers[i]);
-    }
 }
 
 /*
