@@ -27,18 +27,7 @@
 /* SUCH DAMAGE.                                                               */
 /*                                                                            */
 /******************************************************************************/
-/* Description:                                                               */
-/*                                                                            */
-/* This is a  cross-platform thread implementation,  which is used to achieve */
-/* the producer/consumer (sometimes called pipelining) model. In our applica- */
-/* tion, the  program main thread running  opsec_mainloop()  is our producer, */
-/* which produces data that is received from Check LEA server. Another thread,*/
-/* which processing these datas, such as store into database, store into log  */
-/* file, etc., is our consumer.                                               */
-/* Note that for any *Nix, POSIX threads, or Pthreads has been used.Therefore,*/
-/* it should link with -lpthread.                                             */
-/*                                                                            */
-/******************************************************************************/
+
 #ifndef THREAD_H
 #define THREAD_H
 

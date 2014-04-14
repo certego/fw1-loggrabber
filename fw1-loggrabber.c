@@ -27,19 +27,6 @@
 /* SUCH DAMAGE.                                                               */
 /*                                                                            */
 /******************************************************************************/
-/* Description:                                                               */
-/*                                                                            */
-/* fw1-loggrabber is a simple LEA-Client which utilizes Checkpoints' OPSEC    */
-/* SDK. It get any kind of Checkpoint FW-1 Log information from the Fire-     */
-/* wall using the LEA-protocol.                                               */
-/*                                                                            */
-/* In order to use this program, you have to enable unauthorized connections  */
-/* to your firewall within fwopsec.conf. Since Version 1.2 you can also use   */
-/* authenticated and 3DES-encrypted connections.                              */
-/* The current version also enables the usage of filter rule and an online    */
-/* mode.                                                                      */
-/*                                                                            */
-/******************************************************************************/
 
 #include "fw1-loggrabber.h"
 

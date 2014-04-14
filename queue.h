@@ -27,21 +27,7 @@
 /* SUCH DAMAGE.                                                               */
 /*                                                                            */
 /******************************************************************************/
-/* Description:                                                               */
-/*                                                                            */
-/* LinkedList is an implementation of a dynamic data structure, which is used */
-/* to store incoming Check Point LEA, i.e Linked List. It consists of records */
-/* (called nodes)  that hold data and  are linked to each other.The following */
-/* is an implementation of a singly linked list in c.                         */
-/* Note that  this implementation  is not synchronized.  If  multiple threads */
-/* access a list  concurrently,  and at least one of the threads modifies the */
-/* list structurally,  it  must  be  synchronized externally.   (A structural */
-/* modification is any operation  that adds  or deletes one or more elements; */
-/* merely setting the value of an element is not a structural  modification.) */
-/* This is typically accomplished by synchronizing synchronize threads through*/
-/* mutex.                                                                     */
-/*                                                                            */
-/******************************************************************************/
+
 #ifndef QUEUE_H
 #define QUEUE_H
 
