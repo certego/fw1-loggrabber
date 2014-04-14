@@ -566,8 +566,6 @@ void initialize_lfield_values (char ***);
 void initialize_afield_values (char ***);
 void initialize_lfield_output (int *);
 void initialize_afield_output (int *);
-void initialize_lfield_order (int *);
-void initialize_afield_order (int *);
 void free_lfield_arrays (char ***);
 void free_afield_arrays (char ***);
 
@@ -679,8 +677,6 @@ char **lfields[NUMBER_LIDX_FIELDS];
 char **afields[NUMBER_AIDX_FIELDS];
 int lfield_output[NUMBER_LIDX_FIELDS];
 int afield_output[NUMBER_AIDX_FIELDS];
-int lfield_order[NUMBER_LIDX_FIELDS];
-int afield_order[NUMBER_AIDX_FIELDS];
 
 configvalues cfgvalues = {
   0,                            // debug_mode

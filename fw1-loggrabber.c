@@ -52,8 +52,6 @@ int
 main (int argc, char *argv[])
 {
   int i;
-  int lfield_order_index;
-  int afield_order_index;
   short amatch;
   short lmatch;
   int field_index;
@@ -68,8 +66,6 @@ main (int argc, char *argv[])
   initialize_afield_headers (afield_headers);
   initialize_lfield_output (lfield_output);
   initialize_afield_output (afield_output);
-  initialize_lfield_order (lfield_order);
-  initialize_afield_order (afield_order);
   initialize_lfield_values (lfields);
   initialize_afield_values (afields);
 
@@ -484,7 +480,6 @@ read_fw1_logfile (char **LogfileName)
   int first = TRUE;
 
   char *(**headers);
-  int *order;
   int number_fields;
 
   if (cfgvalues.debug_mode >= 2)
@@ -944,7 +939,6 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
   char *mymsg = NULL;
   char *(**fields);
   char *(**headers);
-  int *order;
   int num;
   int time;
   int number_fields;
@@ -962,7 +956,6 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
       number_fields = NUMBER_AIDX_FIELDS;
       fields = afields;
       headers = afield_headers;
-      order = afield_order;
     }
   else
     {
@@ -971,7 +964,6 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
       number_fields = NUMBER_LIDX_FIELDS;
       fields = lfields;
       headers = lfield_headers;
-      order = lfield_order;
     }
 
   /*
@@ -5110,44 +5102,6 @@ initialize_afield_values (char **values[NUMBER_AIDX_FIELDS])
     {
       values[i] = malloc (sizeof (char *));
       *values[i] = NULL;
-    }
-}
-
-/*
- * BEGIN: function to initialize order values of logfile fields
- */
-void
-initialize_lfield_order (int *order)
-{
-  int i;
-
-  if (cfgvalues.debug_mode >= 2)
-    {
-      fprintf (stderr, "DEBUG: function initialize_lfield_order\n");
-    }
-
-  for (i = 0; i < NUMBER_LIDX_FIELDS; i++)
-    {
-      order[i] = -1;
-    }
-}
-
-/*
- * BEGIN: function to initialize order values of logfile fields
- */
-void
-initialize_afield_order (int *order)
-{
-  int i;
-
-  if (cfgvalues.debug_mode >= 2)
-    {
-      fprintf (stderr, "DEBUG: function initialize_afield_order\n");
-    }
-
-  for (i = 0; i < NUMBER_AIDX_FIELDS; i++)
-    {
-      order[i] = -1;
     }
 }
 
