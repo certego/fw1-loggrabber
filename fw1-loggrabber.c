@@ -56,10 +56,8 @@ main (int argc, char *argv[])
   /*
    * initialize field arrays
    */
-  initialize_lfield_headers (lfield_headers);
-  initialize_afield_headers (afield_headers);
-  initialize_lfield_values (lfield_values);
-  initialize_afield_values (afield_values);
+  init_field_headers (field_headers);
+  init_field_values (field_values);
 
   /* The default settings are shown as follows:
    * FW1_TYPE = NG release
@@ -916,25 +914,12 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
   short first = TRUE;
   char *message = NULL;
   char *mymsg = NULL;
-  char *(**fields);
-  char *(**headers);
   int number_fields;
   unsigned int messagecap = 0;
 
   if (cfgvalues.debug_mode >= 2)
     {
       fprintf (stderr, "DEBUG: function read_fw1_logfile_record\n");
-    }
-
-  if (cfgvalues.audit_mode)
-    {
-      fields = afield_values;
-      headers = afield_headers;
-    }
-  else
-    {
-      fields = lfield_values;
-      headers = lfield_headers;
     }
 
   /*
@@ -989,15 +974,15 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
             }
         }
 
-      *headers[i] = string_duplicate (szAttrib);
+      *field_headers[i] = string_duplicate (szAttrib);
 
       if (tmpdata[0])
         {
-          *fields[i] = string_duplicate (tmpdata);
+          *field_values[i] = string_duplicate (tmpdata);
         }
       else
         {
-          *fields[i] =
+          *field_values[i] =
             string_duplicate (lea_resolve_field
                               (pSession, pRec->fields[i]));
         }
@@ -1008,13 +993,13 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
    */
   for (i = 0; i < number_fields; i++)
     {
-      if (*fields[i])
+      if (*field_values[i])
         {
           tmpstr1 =
-            string_escape (*headers[i],
+            string_escape (*field_headers[i],
                            cfgvalues.record_separator);
           tmpstr2 =
-            string_escape (*fields[i],
+            string_escape (*field_values[i],
                            cfgvalues.record_separator);
           if (first)
             {
@@ -1038,15 +1023,16 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
   // empty string fields
   for (i = 0; i < number_fields; i++)
     {
-      if (*headers[i] != NULL)
+      if (*field_headers[i] != NULL)
         {
-          free (*headers[i]);
-          *headers[i] = NULL;
+          free (*field_headers[i]);
+          *field_headers[i] = NULL;
         }
-      if (*fields[i] != NULL)
+
+      if (*field_values[i] != NULL)
         {
-          free (*fields[i]);
-          *fields[i] = NULL;
+          free (*field_values[i]);
+          *field_values[i] = NULL;
         }
     }
 
@@ -4539,19 +4525,19 @@ read_config_file (char *filename, configvalues * cfgvalues)
 }
 
 /*
- * BEGIN: function to initialize fields headers of logfile fields
+ * BEGIN: function to initialize fields headers
  */
 void
-initialize_lfield_headers (char **headers[NUMBER_LIDX_FIELDS])
+init_field_headers (char **headers[NUMBER_FIELDS])
 {
   int i;
 
   if (cfgvalues.debug_mode >= 2)
     {
-      fprintf (stderr, "DEBUG: function initialize_lfield_headers\n");
+      fprintf (stderr, "DEBUG: function init_field_headers\n");
     }
 
-  for (i = 0; i < NUMBER_LIDX_FIELDS; i++)
+  for (i = 0; i < NUMBER_FIELDS; i++)
     {
       headers[i] = malloc (sizeof (char *));
       *headers[i] = NULL;
@@ -4559,93 +4545,19 @@ initialize_lfield_headers (char **headers[NUMBER_LIDX_FIELDS])
 }
 
 /*
- * BEGIN: function to free pointers in logfile arrays
+ * BEGIN: function to initialize fields values
  */
 void
-free_lfield_arrays (char **headers[NUMBER_LIDX_FIELDS])
+init_field_values (char **values[NUMBER_FIELDS])
 {
   int i;
 
   if (cfgvalues.debug_mode >= 2)
     {
-      fprintf (stderr, "DEBUG: function free_lfield_arrays\n");
+      fprintf (stderr, "DEBUG: function init_field_values\n");
     }
 
-  for (i = 0; i < NUMBER_LIDX_FIELDS; i++)
-    {
-      if (headers[i] != NULL)
-        {
-          if (*headers[i] != NULL)
-            {
-              free (*headers[i]);
-              *headers[i] = NULL;
-            }
-        }
-      free (headers[i]);
-    }
-}
-
-/*
- * BEGIN: function to initialize fields headers of audit fields
- */
-void
-initialize_afield_headers (char **headers[NUMBER_AIDX_FIELDS])
-{
-  int i;
-
-  if (cfgvalues.debug_mode >= 2)
-    {
-      fprintf (stderr, "DEBUG: function initialize_afield_headers\n");
-    }
-
-  for (i = 0; i < NUMBER_AIDX_FIELDS; i++)
-    {
-      headers[i] = malloc (sizeof (char *));
-      *headers[i] = NULL;
-    }
-}
-
-/*
- * BEGIN: function to free pointers in audit arrays
- */
-void
-free_afield_arrays (char **headers[NUMBER_AIDX_FIELDS])
-{
-  int i;
-
-  if (cfgvalues.debug_mode >= 2)
-    {
-      fprintf (stderr, "DEBUG: function free_afield_arrays\n");
-    }
-
-  for (i = 0; i < NUMBER_AIDX_FIELDS; i++)
-    {
-      if (headers[i] != NULL)
-        {
-          if (*headers[i] != NULL)
-            {
-              free (*headers[i]);
-              *headers[i] = NULL;
-            }
-        }
-      free (headers[i]);
-    }
-}
-
-/*
- * BEGIN: function to initialize fields values of logfile fields
- */
-void
-initialize_lfield_values (char **values[NUMBER_LIDX_FIELDS])
-{
-  int i;
-
-  if (cfgvalues.debug_mode >= 2)
-    {
-      fprintf (stderr, "DEBUG: function initialize_lfield_values\n");
-    }
-
-  for (i = 0; i < NUMBER_LIDX_FIELDS; i++)
+  for (i = 0; i < NUMBER_FIELDS; i++)
     {
       values[i] = malloc (sizeof (char *));
       *values[i] = NULL;
@@ -4653,22 +4565,29 @@ initialize_lfield_values (char **values[NUMBER_LIDX_FIELDS])
 }
 
 /*
- * BEGIN: function to initialize fields values of audit fields
+ * BEGIN: function to free field pointers
  */
 void
-initialize_afield_values (char **values[NUMBER_AIDX_FIELDS])
+free_field_arrays (char **array[NUMBER_FIELDS])
 {
   int i;
 
   if (cfgvalues.debug_mode >= 2)
     {
-      fprintf (stderr, "DEBUG: function initialize_afield_values\n");
+      fprintf (stderr, "DEBUG: function free_field_arrays\n");
     }
 
-  for (i = 0; i < NUMBER_AIDX_FIELDS; i++)
+  for (i = 0; i < NUMBER_FIELDS; i++)
     {
-      values[i] = malloc (sizeof (char *));
-      *values[i] = NULL;
+      if (array[i] != NULL)
+        {
+          if (*array[i] != NULL)
+            {
+              free (*array[i]);
+              *array[i] = NULL;
+            }
+        }
+      free (array[i]);
     }
 }
 
@@ -4684,10 +4603,8 @@ exit_loggrabber (int errorcode)
       fprintf (stderr, "DEBUG: function exit_loggrabber\n");
     }
 
-  free_lfield_arrays (lfield_headers);
-  free_afield_arrays (afield_headers);
-  free_lfield_arrays (lfield_values);
-  free_afield_arrays (afield_values);
+  free_field_arrays (field_headers);
+  free_field_arrays (field_values);
 
   if (LogfileName != NULL)
     {

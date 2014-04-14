@@ -60,20 +60,19 @@
 /*
  * Constant definitions
  */
-#define VERSION                 "1.11"
+#define VERSION             "1.11"
 
-#define TRUE                    1
-#define FALSE                   0
+#define TRUE                1
+#define FALSE               0
 
-#define NUMBER_LIDX_FIELDS      256
-#define NUMBER_AIDX_FIELDS      256
+#define NUMBER_FIELDS       128
 
-#define SCREEN                  0
-#define LOGFILE                 1
-#define SYSLOG                  2
+#define SCREEN              0
+#define LOGFILE             1
+#define SYSLOG              2
 
-#define INITIAL_CAPACITY   1024
-#define CAPACITY_INCREMENT 4096
+#define INITIAL_CAPACITY    1024
+#define CAPACITY_INCREMENT  4096
 
 /*
  * Type definitions
@@ -245,12 +244,9 @@ void close_logfile ();
 /*
  * array initializations
  */
-void initialize_lfield_headers (char ***);
-void initialize_afield_headers (char ***);
-void initialize_lfield_values (char ***);
-void initialize_afield_values (char ***);
-void free_lfield_arrays (char ***);
-void free_afield_arrays (char ***);
+void init_field_headers (char ***);
+void init_field_values (char ***);
+void free_field_arrays (char ***);
 
 /*
  * function to show help about this tool
@@ -354,10 +350,8 @@ char headernumber[16384];
 
 char s[1024];
 
-char **lfield_headers[NUMBER_LIDX_FIELDS];
-char **afield_headers[NUMBER_AIDX_FIELDS];
-char **lfield_values[NUMBER_LIDX_FIELDS];
-char **afield_values[NUMBER_AIDX_FIELDS];
+char **field_headers[NUMBER_FIELDS];
+char **field_values[NUMBER_FIELDS];
 
 configvalues cfgvalues = {
   0,                            // debug_mode
