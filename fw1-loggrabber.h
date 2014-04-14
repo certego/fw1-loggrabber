@@ -406,7 +406,6 @@ typedef struct configvalues
   int fw1_2000;
   int audit_mode;
   int showfiles_mode;
-  int fieldnames_mode;
   int dateformat;
   int log_mode;
   int syslog_facility;
@@ -646,7 +645,6 @@ char **filterarray = NULL;
 int filtercount = 0;
 int output_fields = 0;
 int mysql_mode = -1;
-int fieldnames_mode = -1;
 int create_tables = FALSE;
 
 OpsecSession* pSession = NULL;
@@ -692,7 +690,6 @@ configvalues cfgvalues = {
   FALSE,                        // fw1_2000
   FALSE,                        // audit_mode
   FALSE,                        // showfiles_mode
-  TRUE,                         // fieldnames_mode
   DATETIME_STD,                 // dateformat
   SCREEN,                       // log_mode
   LOG_LOCAL1,                   // syslog_facility

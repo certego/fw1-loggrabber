@@ -149,14 +149,6 @@ main (int argc, char *argv[])
         {
           audit_log = 0;
         }
-      else if (strcmp (argv[i], "--fieldnames") == 0)
-        {
-          fieldnames_mode = 1;
-        }
-      else if (strcmp (argv[i], "--nofieldnames") == 0)
-        {
-          fieldnames_mode = 0;
-        }
       else if ((strcmp (argv[i], "-f") == 0)
                || (strcmp (argv[i], "--logfile") == 0))
         {
@@ -271,8 +263,6 @@ main (int argc, char *argv[])
   cfgvalues.showfiles_mode =
     (show_files != -1) ? show_files : cfgvalues.showfiles_mode;
   cfgvalues.audit_mode = (audit_log != -1) ? audit_log : cfgvalues.audit_mode;
-  cfgvalues.fieldnames_mode =
-    (fieldnames_mode != -1) ? fieldnames_mode : cfgvalues.fieldnames_mode;
   cfgvalues.fw1_logfile =
     (LogfileName !=
      NULL) ? string_duplicate (LogfileName) : cfgvalues.fw1_logfile;
@@ -389,8 +379,6 @@ main (int argc, char *argv[])
                (cfgvalues.online_mode ? "Yes" : "No"));
       fprintf (stderr, "DEBUG: Audit-Log        : %s\n",
                (cfgvalues.audit_mode ? "Yes" : "No"));
-      fprintf (stderr, "DEBUG: Show Fieldnames  : %s\n",
-               (cfgvalues.fieldnames_mode ? "Yes" : "No"));
     }
 
   /*
@@ -608,7 +596,7 @@ read_fw1_logfile (char **LogfileName)
                       fprintf (stderr,
                                "DEBUG: OPSEC LEA client DN (sic name) : %s\n",
                                opsec_client_dn);
-                    }                //end of inner if
+                    }            //end of inner if
                 }
             }
           else
@@ -629,7 +617,7 @@ read_fw1_logfile (char **LogfileName)
                            "ERROR: The fw1 server lea service port has not been set.\n");
                   exit_loggrabber (1);
                 }                //end of inner if
-            }                        //end of middle if
+            }                    //end of middle if
         }                        //end of if
 
       /*
@@ -813,61 +801,6 @@ read_fw1_logfile (char **LogfileName)
                 {
                   lea_session_resume (pSession);
                 }
-            }
-        }
-
-      /*
-       * display header line if cfgvalues.fieldnames_mode == 0
-       */
-
-      if (!(cfgvalues.fieldnames_mode))
-        {
-          if (cfgvalues.audit_mode)
-            {
-              number_fields = NUMBER_AIDX_FIELDS;
-              headers = afield_headers;
-              order = afield_order;
-            }
-          else
-            {
-              number_fields = NUMBER_LIDX_FIELDS;
-              headers = lfield_headers;
-              order = lfield_order;
-            }
-
-          for (i = 0; i < number_fields; i++)
-            {
-              if ((!output_fields) || (order[i] >= 0))
-                {
-                  index = (output_fields) ? order[i] : i;
-                  tmpstr1 = (*headers[index] == NULL)
-                    ? string_duplicate ("")
-                    : string_escape (*headers[index],
-                                     cfgvalues.record_separator);
-                  if (first)
-                    {
-                      sprintf (stringnumber, "%s", tmpstr1);
-                      first = FALSE;
-                    }
-                  else
-                    {
-                      sprintf (stringnumber, "%c%s",
-                               cfgvalues.record_separator, tmpstr1);
-                    }
-                  messagecap =
-                    string_cat (&message, stringnumber, messagecap);
-
-                  free (tmpstr1);
-                }
-            }
-
-          if ((message != NULL) && (strlen (message) > 0))
-            {
-              pthread_mutex_lock(&mutex);
-              //enter critical section
-              add(message);
-              pthread_mutex_unlock(&mutex);
-              //end critical section
             }
         }
 
@@ -1069,7 +1002,8 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
               ul = pRec->fields[i].lea_value.ul_value;
               if (BYTE_ORDER == LITTLE_ENDIAN)
                 {
-                  sprintf (tmpdata, "%d.%d.%d.%d", (int) ((ul & 0xff) >> 0),
+                  sprintf (tmpdata, "%d.%d.%d.%d",
+                           (int) ((ul & 0xff) >> 0),
                            (int) ((ul & 0xff00) >> 8),
                            (int) ((ul & 0xff0000) >> 16),
                            (int) ((ul & 0xff000000) >> 24));
@@ -1161,62 +1095,33 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
    */
   for (i = 0; i < number_fields; i++)
     {
-        // fieldname mode -> process only existing fields
-      if (cfgvalues.fieldnames_mode)
+      if ((!output_fields) || (order[i] >= 0))
         {
-          if ((!output_fields) || (order[i] >= 0))
+          index = (output_fields) ? order[i] : i;
+          if (*fields[index])
             {
-              index = (output_fields) ? order[i] : i;
-              if (*fields[index])
-                {
-                  tmpstr1 =
-                    string_escape (*headers[index],
-                                   cfgvalues.record_separator);
-                  tmpstr2 =
-                    string_escape (*fields[index],
-                                   cfgvalues.record_separator);
-                  if (first)
-                    {
-                      sprintf (stringnumber, "%s=%s", tmpstr1, tmpstr2);
-                      first = FALSE;
-                    }
-                  else
-                    {
-                      sprintf (stringnumber, "%c%s=%s",
-                               cfgvalues.record_separator, tmpstr1, tmpstr2);
-                    }
-
-                  messagecap =
-                    string_cat (&message, stringnumber, messagecap);
-
-                  free (tmpstr1);
-                  free (tmpstr2);
-                }
-            }
-        }
-      // no fieldname mode -> process all fields
-      else
-        {
-          if ((!output_fields) || (order[i] >= 0))
-            {
-              index = (output_fields) ? order[i] : i;
-              tmpstr1 = (*fields[index] == NULL)
-                ? string_duplicate ("")
-                : string_escape (*fields[index], cfgvalues.record_separator);
+              tmpstr1 =
+                string_escape (*headers[index],
+                               cfgvalues.record_separator);
+              tmpstr2 =
+                string_escape (*fields[index],
+                               cfgvalues.record_separator);
               if (first)
                 {
-                  sprintf (stringnumber, "%s", tmpstr1);
+                  sprintf (stringnumber, "%s=%s", tmpstr1, tmpstr2);
                   first = FALSE;
                 }
               else
                 {
-                  sprintf (stringnumber, "%c%s",
-                           cfgvalues.record_separator, tmpstr1);
+                  sprintf (stringnumber, "%c%s=%s",
+                           cfgvalues.record_separator, tmpstr1, tmpstr2);
                 }
 
-              messagecap = string_cat (&message, stringnumber, messagecap);
+              messagecap =
+                string_cat (&message, stringnumber, messagecap);
 
               free (tmpstr1);
+              free (tmpstr2);
             }
         }
     }
@@ -1959,8 +1864,6 @@ usage (char *szProgName)
            "  --online|--no-online       : Enable Online mode (default: no-online)\n");
   fprintf (stderr,
            "  --auditlog|--normallog     : Get data of audit-logfile (fw.adtlog)(default: normallog)\n");
-  fprintf (stderr,
-           "  --fieldnames|--nofieldnames: Print fieldnames in each line or once at beginning\n");
   fprintf (stderr,
            "  --debug-level <level>      : Specify Debuglevel (default: 0 - no debugging)\n");
   fprintf (stderr,
@@ -4502,26 +4405,6 @@ read_config_file (char *filename, configvalues * cfgvalues)
           else if (strcmp (configparameter, "DEBUG_LEVEL") == 0)
             {
               cfgvalues->debug_mode = atoi (string_trim (configvalue, '"'));
-            }
-          else if (strcmp (configparameter, "SHOW_FIELDNAMES") == 0)
-            {
-              configvalue = string_duplicate (string_trim (configvalue, '"'));
-              if (string_icmp (configvalue, "no") == 0)
-                {
-                  cfgvalues->fieldnames_mode = 0;
-                }
-              else if (string_icmp (configvalue, "yes") == 0)
-                {
-                  cfgvalues->fieldnames_mode = 1;
-                }
-              else
-                {
-                  fprintf (stderr,
-                           "WARNING: Illegal entry in configuration file: %s=%s\n",
-                           configparameter, configvalue);
-                  exit_loggrabber (1);
-                }
-              free (configvalue);
             }
           else if (strcmp (configparameter, "ONLINE_MODE") == 0)
             {
