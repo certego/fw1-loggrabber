@@ -60,7 +60,6 @@ main (int argc, char *argv[])
   stringlist *lstptr;
   char *foundstring;
   char *field;
-  char *fieldstring = NULL;
 
   /*
    * initialize field arrays
@@ -241,24 +240,6 @@ main (int argc, char *argv[])
             }
           filterarray[filtercount - 1] = string_duplicate (argv[i]);
         }
-      else if (strcmp (argv[i], "--fields") == 0)
-        {
-          i++;
-          if (argv[i] == NULL)
-            {
-              fprintf (stderr, "ERROR: Invalid argument: %s\n", argv[i - 1]);
-              usage (argv[0]);
-              exit_loggrabber (1);
-            }
-          if (argv[i][0] == '-')
-            {
-              fprintf (stderr, "ERROR: Value expected for argument %s\n",
-                       argv[i - 1]);
-              usage (argv[0]);
-              exit_loggrabber (1);
-            }
-          fieldstring = string_duplicate (argv[i]);
-        }
       else
         {
           fprintf (stderr, "ERROR: Invalid argument: %s\n", argv[i]);
@@ -301,65 +282,6 @@ main (int argc, char *argv[])
       cfgvalues.fw1_filter_array = filterarray;
       cfgvalues.audit_filter_count = filtercount;
       cfgvalues.audit_filter_array = filterarray;
-    }
-  if ((!fieldstring) && (cfgvalues.fields))
-    {
-      fieldstring = string_duplicate (cfgvalues.fields);
-    }
-
-  // if fieldstring is NOT NULL, process this string
-  if (fieldstring)
-    {
-      lfield_order_index = 0;
-      afield_order_index = 0;
-
-      while (fieldstring)
-        {
-          output_fields = TRUE;
-          lmatch = FALSE;
-          amatch = FALSE;
-
-          field = string_trim (string_get_token (&fieldstring, ';'), ' ');
-
-          field_index = 0;
-          while (!lmatch && (field_index < NUMBER_LIDX_FIELDS))
-            {
-              if (string_icmp (field, *lfield_headers[field_index]) == 0)
-                {
-                  if (!lfield_output[field_index])
-                    {
-                      lfield_output[field_index] = TRUE;
-                      lfield_order[lfield_order_index] = field_index;
-                      lfield_order_index++;
-                    }
-                  lmatch = TRUE;
-                }
-              field_index++;
-            }
-
-          field_index = 0;
-          while (!amatch && (field_index < NUMBER_AIDX_FIELDS))
-            {
-              if (string_icmp (field, *afield_headers[field_index]) == 0)
-                {
-                  if (!afield_output[field_index])
-                    {
-                      afield_output[field_index] = TRUE;
-                      afield_order[afield_order_index] = field_index;
-                      afield_order_index++;
-                    }
-                  lmatch = TRUE;
-                }
-              field_index++;
-            }
-
-          if ((!lmatch) && (!amatch))
-            {
-              printf ("ERROR: Unsupported value for output fields: %s\n",
-                      field);
-              exit_loggrabber (1);
-            }
-        }
     }
 
   /*
