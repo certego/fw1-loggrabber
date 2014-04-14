@@ -87,12 +87,8 @@ int testThread() {
 * A cover for thread creation function
 */
 void createThread (ThreadIDType *threadID, ThreadFuncType thread_func, void * data) {
-        #ifdef WIN32
-                CreateThread(NULL, 0, thread_func, data, 0, threadID);
-        #else
-                if (pthread_create(threadID, NULL, thread_func, data) != 0) {
-                        fprintf(stderr, "failed to create thread ...\n");
-                        exit(2);
-                }
-        #endif
+        if (pthread_create(threadID, NULL, thread_func, data) != 0) {
+                fprintf(stderr, "failed to create thread ...\n");
+                exit(2);
+        }
 }

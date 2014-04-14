@@ -37,31 +37,12 @@
 #include <ctype.h>
 #include <time.h>
 
-#ifdef SOLARIS2
-#        define  BIG_ENDIAN    4321
-#        define  LITTLE_ENDIAN 1234
-#        define  BYTE_ORDER BIG_ENDIAN
-#        define  SLEEP(sec) sleep(sec)
-#        include <netinet/in.h>
-#        include <arpa/inet.h>
-#        include <syslog.h>
-#        include <unistd.h>
-#elif WIN32
-#        define  BIG_ENDIAN    4321
-#        define  LITTLE_ENDIAN 1234
-#        define  BYTE_ORDER LITTLE_ENDIAN
-#        define  BUFSIZE MAX_PATH
-#        define  SLEEP(sec) Sleep(1000*sec)
-#        include <windows.h>
-#        include <winsock.h>
-#else
-#        define  SLEEP(sec) sleep(sec)
-#        include <netinet/in.h>
-#        include <arpa/inet.h>
-#        include <unistd.h>
-#        include <endian.h>
-#        include <syslog.h>
-#endif
+#define  SLEEP(sec) sleep(sec)
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <endian.h>
+#include <syslog.h>
 
 /*
  * OPSEC SDK related header files
@@ -428,9 +409,7 @@ typedef struct configvalues
   int fieldnames_mode;
   int dateformat;
   int log_mode;
-#ifndef WIN32
   int syslog_facility;
-#endif
   char record_separator;
   char *config_filename;
   char *leaconfig_filename;
@@ -558,14 +537,12 @@ void read_config_file (char *, struct configvalues *);
  */
 void logging_init_env (int);
 
-#ifndef WIN32
 /*
  * syslog initializations
  */
 void open_syslog ();
 void submit_syslog (char *);
 void close_syslog ();
-#endif
 
 /*
  * screen initializations
@@ -682,11 +659,7 @@ OpsecEnv*     pEnv     = NULL;
 long initent, resumeent, shutdownent;
 
 //A mutex for multithread thread synchronization
-#ifdef WIN32
-      HANDLE mutex;
-#else
-      pthread_mutex_t mutex;
-#endif
+pthread_mutex_t mutex;
 
 //LEA record worker thread id
 ThreadIDType threadid;
@@ -723,9 +696,7 @@ configvalues cfgvalues = {
   TRUE,                         // fieldnames_mode
   DATETIME_STD,                 // dateformat
   SCREEN,                       // log_mode
-#ifndef WIN32
   LOG_LOCAL1,                   // syslog_facility
-#endif
   '|',                          // record_separator
   "fw1-loggrabber.conf",        // config_filename
   "lea.conf",                   // leaconfig_filename

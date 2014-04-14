@@ -387,15 +387,6 @@ main (int argc, char *argv[])
   /*
    * perform validity check of given command line arguments
    */
-
-#ifdef WIN32
-  if (cfgvalues.log_mode == SYSLOG)
-    {
-      //So far syslog is treated as the screen mode
-      cfgvalues.log_mode = SCREEN;
-    }
-#endif
-
   if (cfgvalues.fw1_2000)
     {
       if (cfgvalues.showfiles_mode)
@@ -449,16 +440,7 @@ main (int argc, char *argv[])
     }
 
 /* A mutex object to provide safe manipulation of Check Point FW-1 event queue across multiple threads.  */
-#ifdef WIN32
-  mutex = CreateMutex(NULL,FALSE,NULL);
-
-  if (mutex == NULL) {
-    fprintf (stderr, "ERROR: Error: Windows internal error while creating a mutex.\n");
-    exit_loggrabber (1);
-  }
-#else
   pthread_mutex_init(&mutex, NULL);
-#endif
 
   /*
    * set logging envionment
@@ -964,24 +946,11 @@ read_fw1_logfile (char **LogfileName)
 
           if ((message != NULL) && (strlen (message) > 0))
             {
-#ifdef WIN32
-              if (WaitForSingleObject(mutex,INFINITE) == WAIT_FAILED)
-                {
-                  fprintf (stderr, "Error: OPSEC LEA thread.\n");
-                  ReleaseMutex (mutex);
-                  exit_loggrabber (1);
-                }
-              //enter critical section
-              add(message);
-              ReleaseMutex(mutex);
-              //end critical section
-#else
               pthread_mutex_lock(&mutex);
               //enter critical section
               add(message);
               pthread_mutex_unlock(&mutex);
               //end critical section
-#endif
             }
         }
 
@@ -1350,26 +1319,6 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
       mymsg = string_mask_newlines (message);
       free (message);
 
-#ifdef WIN32
-      if (WaitForSingleObject(mutex,INFINITE) == WAIT_FAILED)
-        {
-          fprintf (stderr, "Error: OPSEC LEA thread.\n");
-          ReleaseMutex (mutex);
-          exit_loggrabber (1);
-        }
-      //enter critical section
-      add(mymsg);
-      ReleaseMutex(mutex);
-      //end critical section
-      if (!(cfgvalues.fw1_2000))
-        {
-          if(isFull())
-            {
-              lea_session_suspend(pSession);
-              suspended = TRUE;
-            }
-        }
-#else
       pthread_mutex_lock(&mutex);
       //enter critical section
       add(mymsg);
@@ -1383,7 +1332,6 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
               suspended = TRUE;
             }
         }
-#endif
     }
 
   return OPSEC_SESSION_OK;
@@ -4817,7 +4765,6 @@ read_config_file (char *filename, configvalues * cfgvalues)
             {
               cfgvalues->output_file_rotatesize =
                 atol (string_trim (configvalue, '"'));
-#ifndef WIN32
             }
           else if (strcmp (configparameter, "SYSLOG_FACILITY") == 0)
             {
@@ -4865,7 +4812,6 @@ read_config_file (char *filename, configvalues * cfgvalues)
                            configparameter, configvalue);
                 }
               free (configvalue);
-#endif
             }
           else if (strcmp (configparameter, "FW1_OUTPUT") == 0)
             {
@@ -5548,13 +5494,11 @@ logging_init_env (int logging)
       submit_log = &submit_logfile;
       close_log = &close_logfile;
       break;
-#ifndef WIN32
     case SYSLOG:
       open_log = &open_syslog;
       submit_log = &submit_syslog;
       close_log = &close_syslog;
       break;
-#endif
     default:
       open_log = &open_screen;
       submit_log = &submit_screen;
@@ -5564,7 +5508,6 @@ logging_init_env (int logging)
   return;
 }
 
-#ifndef WIN32
 /*
  * syslog initializations
  */
@@ -5616,7 +5559,6 @@ close_syslog ()
   closelog ();
   return;
 }
-#endif
 
 /*
  * screen initializations
@@ -5895,12 +5837,7 @@ check_config_files (char *loggrabberconf, char *leaconf)
 
   FILE *filetest;
 
-#ifdef WIN32
-  TCHAR buff[BUFSIZE];
-  DWORD dwRet;
-#else
   long size;
-#endif
 
   if (cfgvalues.debug_mode >= 2)
     {
@@ -5911,54 +5848,6 @@ check_config_files (char *loggrabberconf, char *leaconf)
   tempdir = getenv ("LOGGRABBER_TEMP_PATH");
   opsecdir = getenv ("OPSECDIR");
 
-#ifdef WIN32
-  dwRet = GetCurrentDirectory (BUFSIZE, buff);
-
-  if (dwRet == 0)
-    {
-      fprintf (stderr,
-               "ERROR: Cannot get current working directory (error code: %d)\n",
-               GetLastError ());
-      exit_loggrabber (1);
-    }
-  if (dwRet > BUFSIZE)
-    {
-      fprintf (stderr,
-               "ERROR: Getting the current working directory failed failed since buffer too small, and it needs %d chars\n",
-               dwRet);
-      exit_loggrabber (1);
-    }
-
-  if ((tmploggrabberconf = (char *) malloc (BUFSIZE)) == NULL)
-    {
-      fprintf (stderr, "ERROR: Out of memory\n");
-      exit_loggrabber (1);
-    }
-
-  // no fw1-loggrabber.conf specified via function parameter, default to 'fw1-loggrabber.conf' in cwd
-  if (loggrabberconf == NULL)
-    {
-      strcpy (tmploggrabberconf, buff);
-      strcat (tmploggrabberconf, "\\fw1-loggrabber.conf");
-    }
-  // fw1-loggrabber.conf specified via function parameter
-  else
-    {
-      // first characters of fw1-loggrabber.conf filename are '\' or '.:\' -> absolute path
-      if ((loggrabberconf[0] == '\\') ||
-          ((loggrabberconf[1] == ':') && (loggrabberconf[2] == '\\')))
-        {
-          strcpy (tmploggrabberconf, loggrabberconf);
-        }
-      // otherwise append the relative path to cwd
-      else
-        {
-          strcpy (tmploggrabberconf, buff);
-          strcat (tmploggrabberconf, "\\");
-          strcat (tmploggrabberconf, loggrabberconf);
-        }
-    }
-#else
   size = pathconf (".", _PC_PATH_MAX);
   if ((tmploggrabberconf = (char *) malloc ((size_t) size)) == NULL)
     {
@@ -5997,7 +5886,6 @@ check_config_files (char *loggrabberconf, char *leaconf)
           strcat (tmploggrabberconf, loggrabberconf);
         }
     }
-#endif
 
   // cannot read loggrabber.conf, so try to look into LOGGRABBER_CONFIG_PATH
   if ((filetest = fopen (tmploggrabberconf, "r")) == NULL)
@@ -6005,11 +5893,7 @@ check_config_files (char *loggrabberconf, char *leaconf)
       if (configdir != NULL)
         {
           strcpy (tmploggrabberconf, configdir);
-#ifdef WIN32
-          strcat (tmploggrabberconf, "\\");
-#else
           strcat (tmploggrabberconf, "/");
-#endif
           strcat (tmploggrabberconf, loggrabberconf);
 
           // also cannot read fw1-loggrabber.conf in LOGGRABBER_CONFIG_PATH
@@ -6049,54 +5933,6 @@ check_config_files (char *loggrabberconf, char *leaconf)
       fclose (filetest);
     }
 
-#ifdef WIN32
-  dwRet = GetCurrentDirectory (BUFSIZE, buff);
-
-  if (dwRet == 0)
-    {
-      fprintf (stderr,
-               "ERROR: Cannot get current working directory (error code: %d)\n",
-               GetLastError ());
-      exit_loggrabber (1);
-    }
-  if (dwRet > BUFSIZE)
-    {
-      fprintf (stderr,
-               "ERROR: Getting the current working directory failed failed since buffer too small, and it needs %d chars\n",
-               dwRet);
-      exit_loggrabber (1);
-    }
-
-  if ((tmpleaconf = (char *) malloc (BUFSIZE)) == NULL)
-    {
-      fprintf (stderr, "ERROR: Out of memory\n");
-      exit_loggrabber (1);
-    }
-
-  // no lea.conf specified via function parameter, default to 'lea.conf' in cwd
-  if (leaconf == NULL)
-    {
-      strcpy (tmpleaconf, buff);
-      strcat (tmpleaconf, "\\lea.conf");
-    }
-  // lea.conf specified via function parameter
-  else
-    {
-      // first characters of lea.conf filename are '\' or '.:\' -> absolute path
-      if ((leaconf[0] == '\\') ||
-          ((leaconf[1] == ':') && (leaconf[2] == '\\')))
-        {
-          strcpy (tmpleaconf, leaconf);
-        }
-      // otherwise append the relative path to cwd
-      else
-        {
-          strcpy (tmpleaconf, buff);
-          strcat (tmpleaconf, "\\");
-          strcat (tmpleaconf, leaconf);
-        }
-    }
-#else
   size = pathconf (".", _PC_PATH_MAX);
   if ((tmpleaconf = (char *) malloc ((size_t) size)) == NULL)
     {
@@ -6135,7 +5971,6 @@ check_config_files (char *loggrabberconf, char *leaconf)
           strcat (tmpleaconf, leaconf);
         }
     }
-#endif
 
   // cannot read lea.conf, so try to look into LOGGRABBER_CONFIG_PATH
   if ((filetest = fopen (tmpleaconf, "r")) == NULL)
@@ -6143,11 +5978,7 @@ check_config_files (char *loggrabberconf, char *leaconf)
       if (configdir != NULL)
         {
           strcpy (tmpleaconf, configdir);
-#ifdef WIN32
-          strcat (tmpleaconf, "\\");
-#else
           strcat (tmpleaconf, "/");
-#endif
           strcat (tmpleaconf, leaconf);
 
           // also cannot read lea.conf in LOGGRABBER_CONFIG_PATH
@@ -6213,22 +6044,6 @@ check_config_files (char *loggrabberconf, char *leaconf)
   // no opsec_sslca_file specified in lea.conf, so we probably don't need one...
   if (opsecfile != NULL)
     {
-#ifdef WIN32
-      // first characters of opsec_sslca_file filename are '\' or '.:\' -> absolute path
-      if (!((opsecfile[0] == '\\') ||
-            ((opsecfile[1] == ':') && (opsecfile[2] == '\\'))))
-        {
-          fprintf (stderr,
-                   "WARNING: You specified a relative path for opsec_sslca_file in\n");
-          fprintf (stderr, "         %s. When not using an\n", tmpleaconf);
-          fprintf (stderr,
-                   "         absolute path, the certificate will be searched in\n");
-          fprintf (stderr,
-                   "         $LOGGRABBER_TEMP_PATH or in current working.\n");
-          fprintf (stderr,
-                   "         directory if $LOGGRABBER_TEMP_PATH is not set.\n");
-        }
-#else
       // first character of opsec_sslca_file filename is '/' -> absolute path
       if (!(opsecfile[0] == '/'))
         {
@@ -6242,7 +6057,6 @@ check_config_files (char *loggrabberconf, char *leaconf)
           fprintf (stderr,
                    "         directory if $LOGGRABBER_TEMP_PATH is not set.\n");
         }
-#endif
     }
 
   cfgvalues.leaconfig_filename = string_duplicate (tmpleaconf);
@@ -6285,32 +6099,20 @@ check_config_files (char *loggrabberconf, char *leaconf)
 /* Function prototypes for thread routines */
 ThreadFuncReturnType leaRecordProcessor( void *data ){
 
-        LinkedList * records;
-        char* message;
+    LinkedList * records;
+    char* message;
 
-        alive = TRUE;
+    alive = TRUE;
 
     while(alive)
         {
 
-                #ifdef WIN32
-                        if (WaitForSingleObject(mutex,INFINITE) == WAIT_FAILED){
-                                fprintf(stderr,"Error: OPSEC LEA Record Worker Thread.");
-                                ReleaseMutex (mutex);
-                                exit_loggrabber(1);
-                        }
-                #else
-                        pthread_mutex_lock(&mutex);
-                #endif
+                pthread_mutex_lock(&mutex);
 
                 //Enter critical section
                 if(isEmpty()) {
                         // end critical section
-                        #ifdef WIN32
-                                ReleaseMutex(hMutex);
-                        #else
-                                pthread_mutex_unlock(&mutex);
-                        #endif
+                        pthread_mutex_unlock(&mutex);
                         if (!(cfgvalues.fw1_2000)) {
                                 if(suspended) {
                                         /* trig resume event */
@@ -6324,11 +6126,7 @@ ThreadFuncReturnType leaRecordProcessor( void *data ){
                 } else {
                         records = getFirst();
                         // end critical section
-                        #ifdef WIN32
-                                ReleaseMutex(hMutex);
-                        #else
-                                pthread_mutex_unlock(&mutex);
-                        #endif
+                        pthread_mutex_unlock(&mutex);
                         if(records != NULL) {
                                 message = records->listElement;
 
