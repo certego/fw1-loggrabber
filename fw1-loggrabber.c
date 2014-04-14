@@ -1038,6 +1038,11 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
   // empty string fields
   for (i = 0; i < number_fields; i++)
     {
+      if (*headers[i] != NULL)
+        {
+          free (*headers[i]);
+          *headers[i] = NULL;
+        }
       if (*fields[i] != NULL)
         {
           free (*fields[i]);
