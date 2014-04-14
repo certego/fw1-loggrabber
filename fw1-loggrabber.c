@@ -58,10 +58,8 @@ main (int argc, char *argv[])
    */
   initialize_lfield_headers (lfield_headers);
   initialize_afield_headers (afield_headers);
-  initialize_lfield_output (lfield_output);
-  initialize_afield_output (afield_output);
-  initialize_lfield_values (lfields);
-  initialize_afield_values (afields);
+  initialize_lfield_values (lfield_values);
+  initialize_afield_values (afield_values);
 
   /* The default settings are shown as follows:
    * FW1_TYPE = NG release
@@ -911,7 +909,7 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
 {
   char *szAttrib;
   char szNum[20];
-  int i, j, match;
+  int i;
   unsigned long ul;
   unsigned short us;
   char tmpdata[16];
@@ -939,32 +937,29 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
     {
       num = AIDX_NUM;
       time = AIDX_TIME;
-      number_fields = NUMBER_AIDX_FIELDS;
-      fields = afields;
+      fields = afield_values;
       headers = afield_headers;
     }
   else
     {
       num = LIDX_NUM;
       time = LIDX_TIME;
-      number_fields = NUMBER_LIDX_FIELDS;
-      fields = lfields;
+      fields = lfield_values;
       headers = lfield_headers;
     }
 
   /*
    * get record position
    */
-  sprintf (szNum, "%d", lea_get_record_pos (pSession) - 1);
-  *fields[num] = string_duplicate (szNum);
+  //sprintf (szNum, "%d", lea_get_record_pos (pSession) - 1);
+  //*fields[num] = string_duplicate (szNum);
 
   /*
    * process all fields of logentry
    */
-  for (i = 0; i < pRec->n_fields; i++)
+  number_fields = pRec->n_fields;
+  for (i = 0; i < number_fields; i++)
     {
-      j = 0;
-      match = FALSE;
       strcpy (tmpdata, "\0");
       szAttrib = lea_attr_name (pSession, pRec->fields[i].lea_attr_id);
 
@@ -1012,59 +1007,44 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
         }
 
       /*
-       * transfer values to array
-       */
-      while (!match && (j < number_fields))
+      if (strcmp (szAttrib, *headers[time]) == 0)
         {
-          if (strcmp (szAttrib, *headers[time]) == 0)
+          switch (cfgvalues.dateformat)
             {
-              switch (cfgvalues.dateformat)
-                {
-                case DATETIME_CP:
-                  *fields[time] =
-                    string_duplicate (lea_resolve_field
-                                      (pSession, pRec->fields[i]));
-                  break;
-                case DATETIME_UNIX:
-                  sprintf (timestring, "%u",
-                           pRec->fields[i].lea_value.ul_value);
-                  *fields[time] = string_duplicate (timestring);
-                  break;
-                case DATETIME_STD:
-                  logtime = (time_t) pRec->fields[i].lea_value.ul_value;
-                  datetime = localtime (&logtime);
-                  strftime (timestring, 20, "%Y-%m-%d %H:%M:%S", datetime);
-                  *fields[time] = string_duplicate (timestring);
-                  break;
-                default:
-                  fprintf (stderr, "ERROR: Unsupported dateformat chosen\n");
-                  exit_loggrabber (1);
-                }
-              match = TRUE;
+            case DATETIME_CP:
+              *fields[time] =
+                string_duplicate (lea_resolve_field
+                                  (pSession, pRec->fields[i]));
+              break;
+            case DATETIME_UNIX:
+              sprintf (timestring, "%u",
+                       pRec->fields[i].lea_value.ul_value);
+              *fields[time] = string_duplicate (timestring);
+              break;
+            case DATETIME_STD:
+              logtime = (time_t) pRec->fields[i].lea_value.ul_value;
+              datetime = localtime (&logtime);
+              strftime (timestring, 20, "%Y-%m-%d %H:%M:%S", datetime);
+              *fields[time] = string_duplicate (timestring);
+              break;
+            default:
+              fprintf (stderr, "ERROR: Unsupported dateformat chosen\n");
+              exit_loggrabber (1);
             }
-          else if (strcmp (szAttrib, *headers[j]) == 0)
-            {
-              if (tmpdata[0])
-                {
-                  *fields[j] = string_duplicate (tmpdata);
-                }
-              else
-                {
-                  *fields[j] =
-                    string_duplicate (lea_resolve_field
-                                      (pSession, pRec->fields[i]));
-                }
-              match = TRUE;
-            }
-          j++;
         }
+      */
 
-      if (cfgvalues.debug_mode && (!match))
+      *headers[i] = string_duplicate (szAttrib);
+
+      if (tmpdata[0])
         {
-          fprintf (stderr,
-                   "DEBUG: Unsupported field found (Position %d): %s=%s\n",
-                   i - 1, szAttrib, lea_resolve_field (pSession,
-                                                       pRec->fields[i]));
+          *fields[i] = string_duplicate (tmpdata);
+        }
+      else
+        {
+          *fields[i] =
+            string_duplicate (lea_resolve_field
+                              (pSession, pRec->fields[i]));
         }
     }
 
@@ -4643,127 +4623,6 @@ initialize_lfield_headers (char **headers[NUMBER_LIDX_FIELDS])
 
   *headers[LIDX_NUM] = string_duplicate ("loc");
   *headers[LIDX_TIME] = string_duplicate ("time");
-  *headers[LIDX_ACTION] = string_duplicate ("action");
-  *headers[LIDX_ORIG] = string_duplicate ("orig");
-  *headers[LIDX_ALERT] = string_duplicate ("alert");
-  *headers[LIDX_IF_DIR] = string_duplicate ("i/f_dir");
-  *headers[LIDX_IF_NAME] = string_duplicate ("i/f_name");
-  *headers[LIDX_HAS_ACCOUNTING] = string_duplicate ("has_accounting");
-  *headers[LIDX_UUID] = string_duplicate ("uuid");
-  *headers[LIDX_PRODUCT] = string_duplicate ("product");
-  *headers[LIDX_POLICY_ID_TAG] = string_duplicate ("__policy_id_tag");
-  *headers[LIDX_SRC] = string_duplicate ("src");
-  *headers[LIDX_S_PORT] = string_duplicate ("s_port");
-  *headers[LIDX_DST] = string_duplicate ("dst");
-  *headers[LIDX_SERVICE] = string_duplicate ("service");
-  *headers[LIDX_TCP_FLAGS] = string_duplicate ("tcp_flags");
-  *headers[LIDX_PROTO] = string_duplicate ("proto");
-  *headers[LIDX_RULE] = string_duplicate ("rule");
-  *headers[LIDX_XLATESRC] = string_duplicate ("xlatesrc");
-  *headers[LIDX_XLATEDST] = string_duplicate ("xlatedst");
-  *headers[LIDX_XLATESPORT] = string_duplicate ("xlatesport");
-  *headers[LIDX_XLATEDPORT] = string_duplicate ("xlatedport");
-  *headers[LIDX_NAT_RULENUM] = string_duplicate ("NAT_rulenum");
-  *headers[LIDX_NAT_ADDRULENUM] = string_duplicate ("NAT_addtnl_rulenum");
-  *headers[LIDX_RESOURCE] = string_duplicate ("resource");
-  *headers[LIDX_ELAPSED] = string_duplicate ("elapsed");
-  *headers[LIDX_PACKETS] = string_duplicate ("packets");
-  *headers[LIDX_BYTES] = string_duplicate ("bytes");
-  *headers[LIDX_REASON] = string_duplicate ("reason");
-  *headers[LIDX_SERVICE_NAME] = string_duplicate ("service_name");
-  *headers[LIDX_AGENT] = string_duplicate ("agent");
-  *headers[LIDX_FROM] = string_duplicate ("from");
-  *headers[LIDX_TO] = string_duplicate ("to");
-  *headers[LIDX_SYS_MSGS] = string_duplicate ("sys_msgs");
-  *headers[LIDX_FW_MESSAGE] = string_duplicate ("fw_message");
-  *headers[LIDX_INTERNAL_CA] = string_duplicate ("Internal_CA:");
-  *headers[LIDX_SERIAL_NUM] = string_duplicate ("serial_num:");
-  *headers[LIDX_DN] = string_duplicate ("dn:");
-  *headers[LIDX_ICMP] = string_duplicate ("ICMP");
-  *headers[LIDX_ICMP_TYPE] = string_duplicate ("icmp-type");
-  *headers[LIDX_ICMP_TYPE2] = string_duplicate ("ICMP Type");
-  *headers[LIDX_ICMP_CODE] = string_duplicate ("icmp-code");
-  *headers[LIDX_ICMP_CODE2] = string_duplicate ("ICMP Code");
-  *headers[LIDX_MSGID] = string_duplicate ("msgid");
-  *headers[LIDX_MESSAGE_INFO] = string_duplicate ("message_info");
-  *headers[LIDX_LOG_SYS_MESSAGE] = string_duplicate ("log_sys_message");
-  *headers[LIDX_SESSION_ID] = string_duplicate ("session_id:");
-  *headers[LIDX_DNS_QUERY] = string_duplicate ("dns_query");
-  *headers[LIDX_DNS_TYPE] = string_duplicate ("dns_type");
-  *headers[LIDX_SCHEME] = string_duplicate ("scheme:");
-  *headers[LIDX_SRCKEYID] = string_duplicate ("srckeyid");
-  *headers[LIDX_DSTKEYID] = string_duplicate ("dstkeyid");
-  *headers[LIDX_METHODS] = string_duplicate ("methods:");
-  *headers[LIDX_PEER_GATEWAY] = string_duplicate ("peer gateway");
-  *headers[LIDX_IKE] = string_duplicate ("IKE:");
-  *headers[LIDX_IKE_IDS] = string_duplicate ("IKE IDs:");
-  *headers[LIDX_ENCRYPTION_FAILURE] =
-    string_duplicate ("encryption failure:");
-  *headers[LIDX_ENCRYPTION_FAIL_R] =
-    string_duplicate ("encryption fail reason:");
-  *headers[LIDX_COOKIEI] = string_duplicate ("CookieI");
-  *headers[LIDX_COOKIER] = string_duplicate ("CookieR");
-  *headers[LIDX_START_TIME] = string_duplicate ("start_time");
-  *headers[LIDX_SEGMENT_TIME] = string_duplicate ("segment_time");
-  *headers[LIDX_CLIENT_IN_PACKETS] =
-    string_duplicate ("client_inbound_packets");
-  *headers[LIDX_CLIENT_OUT_PACKETS] =
-    string_duplicate ("client_outbound_packets");
-  *headers[LIDX_CLIENT_IN_BYTES] = string_duplicate ("client_inbound_bytes");
-  *headers[LIDX_CLIENT_OUT_BYTES] =
-    string_duplicate ("client_outbound_bytes");
-  *headers[LIDX_CLIENT_IN_IF] = string_duplicate ("client_inbound_interface");
-  *headers[LIDX_CLIENT_OUT_IF] =
-    string_duplicate ("client_outbound_interface");
-  *headers[LIDX_SERVER_IN_PACKETS] =
-    string_duplicate ("server_inbound_packets");
-  *headers[LIDX_SERVER_OUT_PACKETS] =
-    string_duplicate ("server_outbound_packets");
-  *headers[LIDX_SERVER_IN_BYTES] = string_duplicate ("server_inbound_bytes");
-  *headers[LIDX_SERVER_OUT_BYTES] =
-    string_duplicate ("server_outbound_bytes");
-  *headers[LIDX_SERVER_IN_IF] = string_duplicate ("server_inbound_interface");
-  *headers[LIDX_SERVER_OUT_IF] =
-    string_duplicate ("server_outbound_interface");
-  *headers[LIDX_MESSAGE] = string_duplicate ("message");
-  *headers[LIDX_USER] = string_duplicate ("user");
-  *headers[LIDX_SRCNAME] = string_duplicate ("srcname");
-  *headers[LIDX_OM] = string_duplicate ("OM:");
-  *headers[LIDX_OM_METHOD] = string_duplicate ("om_method:");
-  *headers[LIDX_ASSIGNED_IP] = string_duplicate ("assigned_IP:");
-  *headers[LIDX_VPN_USER] = string_duplicate ("vpn_user");
-  *headers[LIDX_MAC] = string_duplicate ("MAC:");
-  *headers[LIDX_ATTACK] = string_duplicate ("attack");
-  *headers[LIDX_ATTACK_INFO] = string_duplicate ("Attack Info");
-  *headers[LIDX_CLUSTER_INFO] = string_duplicate ("Cluster_Info");
-  *headers[LIDX_DCE_RPC_UUID] = string_duplicate ("DCE-RPC Interface UUID");
-  *headers[LIDX_DCE_RPC_UUID_1] =
-    string_duplicate ("DCE-RPC Interface UUID-1");
-  *headers[LIDX_DCE_RPC_UUID_2] =
-    string_duplicate ("DCE-RPC Interface UUID-2");
-  *headers[LIDX_DCE_RPC_UUID_3] =
-    string_duplicate ("DCE-RPC Interface UUID-3");
-  *headers[LIDX_DURING_SEC] = string_duplicate ("during_sec");
-  *headers[LIDX_FRAGMENTS_DROPPED] = string_duplicate ("fragments_dropped");
-  *headers[LIDX_IP_ID] = string_duplicate ("ip_id");
-  *headers[LIDX_IP_LEN] = string_duplicate ("ip_len");
-  *headers[LIDX_IP_OFFSET] = string_duplicate ("ip_offset");
-  *headers[LIDX_TCP_FLAGS2] = string_duplicate ("TCP flags");
-  *headers[LIDX_SYNC_INFO] = string_duplicate ("sync_info:");
-  *headers[LIDX_LOG] = string_duplicate ("log");
-  *headers[LIDX_CPMAD] = string_duplicate ("cpmad");
-  *headers[LIDX_AUTH_METHOD] = string_duplicate ("auth_method");
-  *headers[LIDX_TCP_PACKET_OOS] =
-    string_duplicate ("TCP packet out of state");
-  *headers[LIDX_RPC_PROG] = string_duplicate ("rpc_prog");
-  *headers[LIDX_TH_FLAGS] = string_duplicate ("th_flags");
-  *headers[LIDX_CP_MESSAGE] = string_duplicate ("cp_message:");
-  *headers[LIDX_REJECT_CATEGORY] = string_duplicate ("reject_category");
-  *headers[LIDX_IKE_LOG] = string_duplicate ("IKE Log:");
-  *headers[LIDX_NEGOTIATION_ID] = string_duplicate ("Negotiation Id:");
-  *headers[LIDX_DECRYPTION_FAILURE] =
-    string_duplicate ("decryption failure:");
-  *headers[LIDX_LEN] = string_duplicate ("len");
 }
 
 /*
@@ -4814,25 +4673,6 @@ initialize_afield_headers (char **headers[NUMBER_AIDX_FIELDS])
 
   *headers[AIDX_NUM] = string_duplicate ("loc");
   *headers[AIDX_TIME] = string_duplicate ("time");
-  *headers[AIDX_ACTION] = string_duplicate ("action");
-  *headers[AIDX_ORIG] = string_duplicate ("orig");
-  *headers[AIDX_IF_DIR] = string_duplicate ("i/f_dir");
-  *headers[AIDX_IF_NAME] = string_duplicate ("i/f_name");
-  *headers[AIDX_HAS_ACCOUNTING] = string_duplicate ("has_accounting");
-  *headers[AIDX_UUID] = string_duplicate ("uuid");
-  *headers[AIDX_PRODUCT] = string_duplicate ("product");
-  *headers[AIDX_OBJECTNAME] = string_duplicate ("ObjectName");
-  *headers[AIDX_OBJECTTYPE] = string_duplicate ("ObjectType");
-  *headers[AIDX_OBJECTTABLE] = string_duplicate ("ObjectTable");
-  *headers[AIDX_OPERATION] = string_duplicate ("Operation");
-  *headers[AIDX_UID] = string_duplicate ("Uid");
-  *headers[AIDX_ADMINISTRATOR] = string_duplicate ("Administrator");
-  *headers[AIDX_MACHINE] = string_duplicate ("Machine");
-  *headers[AIDX_SUBJECT] = string_duplicate ("Subject");
-  *headers[AIDX_AUDIT_STATUS] = string_duplicate ("Audit Status");
-  *headers[AIDX_ADDITIONAL_INFO] = string_duplicate ("Additional Info");
-  *headers[AIDX_OPERATION_NUMBER] = string_duplicate ("Operation Number");
-  *headers[AIDX_FIELDSCHANGES] = string_duplicate ("FieldsChanges");
 }
 
 /*
@@ -4903,44 +4743,6 @@ initialize_afield_values (char **values[NUMBER_AIDX_FIELDS])
 }
 
 /*
- * BEGIN: function to initialize output values of logfile fields
- */
-void
-initialize_lfield_output (int *output)
-{
-  int i;
-
-  if (cfgvalues.debug_mode >= 2)
-    {
-      fprintf (stderr, "DEBUG: function initialize_lfield_output\n");
-    }
-
-  for (i = 0; i < NUMBER_LIDX_FIELDS; i++)
-    {
-      output[i] = 0;
-    }
-}
-
-/*
- * BEGIN: function to initialize output values of audit fields
- */
-void
-initialize_afield_output (int *output)
-{
-  int i;
-
-  if (cfgvalues.debug_mode >= 2)
-    {
-      fprintf (stderr, "DEBUG: function initialize_afield_output\n");
-    }
-
-  for (i = 0; i < NUMBER_AIDX_FIELDS; i++)
-    {
-      output[i] = 0;
-    }
-}
-
-/*
  * BEGIN: function to cleanup environment and exit fw1-loggrabber
  */
 void
@@ -4954,8 +4756,8 @@ exit_loggrabber (int errorcode)
 
   free_lfield_arrays (lfield_headers);
   free_afield_arrays (afield_headers);
-  free_lfield_arrays (lfields);
-  free_afield_arrays (afields);
+  free_lfield_arrays (lfield_values);
+  free_afield_arrays (afield_values);
 
   if (LogfileName != NULL)
     {
