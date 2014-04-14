@@ -930,7 +930,7 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
 {
   char *szAttrib;
   char szNum[20];
-  int i, j, match, index;
+  int i, j, match;
   unsigned long ul;
   unsigned short us;
   char tmpdata[16];
@@ -1095,34 +1095,30 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
    */
   for (i = 0; i < number_fields; i++)
     {
-      if ((!output_fields) || (order[i] >= 0))
+      if (*fields[i])
         {
-          index = (output_fields) ? order[i] : i;
-          if (*fields[index])
+          tmpstr1 =
+            string_escape (*headers[i],
+                           cfgvalues.record_separator);
+          tmpstr2 =
+            string_escape (*fields[i],
+                           cfgvalues.record_separator);
+          if (first)
             {
-              tmpstr1 =
-                string_escape (*headers[index],
-                               cfgvalues.record_separator);
-              tmpstr2 =
-                string_escape (*fields[index],
-                               cfgvalues.record_separator);
-              if (first)
-                {
-                  sprintf (stringnumber, "%s=%s", tmpstr1, tmpstr2);
-                  first = FALSE;
-                }
-              else
-                {
-                  sprintf (stringnumber, "%c%s=%s",
-                           cfgvalues.record_separator, tmpstr1, tmpstr2);
-                }
-
-              messagecap =
-                string_cat (&message, stringnumber, messagecap);
-
-              free (tmpstr1);
-              free (tmpstr2);
+              sprintf (stringnumber, "%s=%s", tmpstr1, tmpstr2);
+              first = FALSE;
             }
+          else
+            {
+              sprintf (stringnumber, "%c%s=%s",
+                       cfgvalues.record_separator, tmpstr1, tmpstr2);
+            }
+
+          messagecap =
+            string_cat (&message, stringnumber, messagecap);
+
+          free (tmpstr1);
+          free (tmpstr2);
         }
     }
 

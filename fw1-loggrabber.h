@@ -643,7 +643,6 @@ int audit_log = -1;
 stringlist *sl = NULL;
 char **filterarray = NULL;
 int filtercount = 0;
-int output_fields = 0;
 int mysql_mode = -1;
 int create_tables = FALSE;
 
