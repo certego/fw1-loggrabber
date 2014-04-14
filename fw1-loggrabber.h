@@ -65,18 +65,7 @@
 #define TRUE                    1
 #define FALSE                   0
 
-#define DATETIME_CP             0
-#define DATETIME_UNIX           1
-#define DATETIME_STD            2
-
-#define LIDX_NUM                0
-#define LIDX_TIME               1
-
 #define NUMBER_LIDX_FIELDS      256
-
-#define AIDX_NUM                0
-#define AIDX_TIME               1
-
 #define NUMBER_AIDX_FIELDS      256
 
 #define SCREEN                  0
@@ -104,7 +93,6 @@ typedef struct configvalues
   int fw1_2000;
   int audit_mode;
   int showfiles_mode;
-  int dateformat;
   int log_mode;
   int syslog_facility;
   char record_separator;
@@ -378,7 +366,6 @@ configvalues cfgvalues = {
   FALSE,                        // fw1_2000
   FALSE,                        // audit_mode
   FALSE,                        // showfiles_mode
-  DATETIME_STD,                 // dateformat
   SCREEN,                       // log_mode
   LOG_LOCAL1,                   // syslog_facility
   '|',                          // record_separator

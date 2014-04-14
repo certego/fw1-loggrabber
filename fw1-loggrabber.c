@@ -457,7 +457,6 @@ read_fw1_logfile (char **LogfileName)
   LeaFilterRulebase *rb;
   int rbid = 1;
   int i;
-  int opsecAlive;
 
   char *auth_type;
   char *fw1_server;
@@ -783,7 +782,7 @@ read_fw1_logfile (char **LogfileName)
             }
         }
 
-      opsecAlive = opsec_start_keep_alive (pSession, 0);
+      opsec_start_keep_alive (pSession, 0);
 
       /*
        * start the opsec loop
@@ -908,14 +907,10 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
                          int pnAttribPerm[])
 {
   char *szAttrib;
-  char szNum[20];
   int i;
   unsigned long ul;
   unsigned short us;
   char tmpdata[16];
-  time_t logtime;
-  struct tm *datetime;
-  char timestring[21];
   char *tmpstr1;
   char *tmpstr2;
   short first = TRUE;
@@ -923,8 +918,6 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
   char *mymsg = NULL;
   char *(**fields);
   char *(**headers);
-  int num;
-  int time;
   int number_fields;
   unsigned int messagecap = 0;
 
@@ -935,24 +928,14 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
 
   if (cfgvalues.audit_mode)
     {
-      num = AIDX_NUM;
-      time = AIDX_TIME;
       fields = afield_values;
       headers = afield_headers;
     }
   else
     {
-      num = LIDX_NUM;
-      time = LIDX_TIME;
       fields = lfield_values;
       headers = lfield_headers;
     }
-
-  /*
-   * get record position
-   */
-  //sprintf (szNum, "%d", lea_get_record_pos (pSession) - 1);
-  //*fields[num] = string_duplicate (szNum);
 
   /*
    * process all fields of logentry
@@ -1005,34 +988,6 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
               break;
             }
         }
-
-      /*
-      if (strcmp (szAttrib, *headers[time]) == 0)
-        {
-          switch (cfgvalues.dateformat)
-            {
-            case DATETIME_CP:
-              *fields[time] =
-                string_duplicate (lea_resolve_field
-                                  (pSession, pRec->fields[i]));
-              break;
-            case DATETIME_UNIX:
-              sprintf (timestring, "%u",
-                       pRec->fields[i].lea_value.ul_value);
-              *fields[time] = string_duplicate (timestring);
-              break;
-            case DATETIME_STD:
-              logtime = (time_t) pRec->fields[i].lea_value.ul_value;
-              datetime = localtime (&logtime);
-              strftime (timestring, 20, "%Y-%m-%d %H:%M:%S", datetime);
-              *fields[time] = string_duplicate (timestring);
-              break;
-            default:
-              fprintf (stderr, "ERROR: Unsupported dateformat chosen\n");
-              exit_loggrabber (1);
-            }
-        }
-      */
 
       *headers[i] = string_duplicate (szAttrib);
 
@@ -1565,7 +1520,6 @@ get_fw1_logfiles ()
   OpsecEntity *pServer = NULL;
   //OpsecSession *pSession = NULL;
   //OpsecEnv *pEnv = NULL;
-  int opsecAlive;
 
   char *auth_type;
   char *fw1_server;
@@ -1695,7 +1649,7 @@ get_fw1_logfiles ()
       exit_loggrabber (1);
     }
 
-  opsecAlive = opsec_start_keep_alive (pSession, 0);
+  opsec_start_keep_alive (pSession, 0);
 
   /*
    * start the opsec loop
@@ -4432,29 +4386,6 @@ read_config_file (char *filename, configvalues * cfgvalues)
                 }
               free (configvalue);
             }
-          else if (strcmp (configparameter, "DATEFORMAT") == 0)
-            {
-              configvalue = string_duplicate (string_trim (configvalue, '"'));
-              if (string_icmp (configvalue, "cp") == 0)
-                {
-                  cfgvalues->dateformat = DATETIME_CP;
-                }
-              else if (string_icmp (configvalue, "unix") == 0)
-                {
-                  cfgvalues->dateformat = DATETIME_UNIX;
-                }
-              else if (string_icmp (configvalue, "std") == 0)
-                {
-                  cfgvalues->dateformat = DATETIME_STD;
-                }
-              else
-                {
-                  fprintf (stderr,
-                           "WARNING: Illegal entry in configuration file: %s=%s\n",
-                           configparameter, configvalue);
-                }
-              free (configvalue);
-            }
           else if (strcmp (configparameter, "LOGGING_CONFIGURATION") == 0)
             {
               configvalue = string_duplicate (string_trim (configvalue, '"'));
@@ -4620,9 +4551,6 @@ initialize_lfield_headers (char **headers[NUMBER_LIDX_FIELDS])
       headers[i] = malloc (sizeof (char *));
       *headers[i] = NULL;
     }
-
-  *headers[LIDX_NUM] = string_duplicate ("loc");
-  *headers[LIDX_TIME] = string_duplicate ("time");
 }
 
 /*
@@ -4670,9 +4598,6 @@ initialize_afield_headers (char **headers[NUMBER_AIDX_FIELDS])
       headers[i] = malloc (sizeof (char *));
       *headers[i] = NULL;
     }
-
-  *headers[AIDX_NUM] = string_duplicate ("loc");
-  *headers[AIDX_TIME] = string_duplicate ("time");
 }
 
 /*
