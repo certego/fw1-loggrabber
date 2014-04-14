@@ -49,9 +49,9 @@ install:
 	install -v -d -o root -g root -m 755 ${BINDIR}
 	install -v -d -o root -g root -m 755 ${SYSCONFDIR}
 	install -v -d -o root -g root -m 755 ${MANDIR}/man1
-	install -v -o root -g root -m 755 -p fw1-loggrabber ${BINDIR}/fw1-loggrabber 
-	install -v -o root -g root -m 644 -p fw1-loggrabber.conf ${SYSCONFDIR}/fw1-loggrabber.conf 
-	install -v -o root -g root -m 644 -p lea.conf ${SYSCONFDIR}/lea.conf 
+	install -v -o root -g root -m 755 -p fw1-loggrabber ${BINDIR}/fw1-loggrabber
+	install -v -o root -g root -m 644 -p fw1-loggrabber.conf ${SYSCONFDIR}/fw1-loggrabber.conf-sample
+	install -v -o root -g root -m 644 -p lea.conf ${SYSCONFDIR}/lea.conf-sample
 	install -v -o root -g root -m 644 -p fw1-loggrabber.1 ${MANDIR}/man1/fw1-loggrabber.1
 	@echo
 	@echo "Installation complete! Please declare the following environment variables in your shell configuration file:"
