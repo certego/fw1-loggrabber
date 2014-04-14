@@ -10,8 +10,6 @@ FW1-LogGrabber uses API-functions from Checkpoint's [OPSEC SDK 6.0 linux30](http
 
 Edit ``Makefile`` and change the variables CC, LD and PKG_DIR according to your environment.
 
-To enable ODBC support (still untested), uncomment and modify lines concerning ODBC (requires iODBC or unixODBC).
-
 Then run ``make`` to build and ``sudo make install`` to install.
 
 ## License

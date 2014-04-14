@@ -7,22 +7,6 @@ LD = $(GCC_PREFIX)/bin/$(LD_CMD)
 PKG_DIR = ../OPSEC_SDK_6_0.linux30
 INSTALL_PREFIX = /usr/local/fw1-loggrabber
 
-# uncomment the following setings for dynamic unixodbc support
-#ODBC_CFLAGS = -DDYNAMIC_UNIXODBC -DODBCVER=0x0350 -DUSE_ODBC -I/usr/local/unixodbc/include
-#ODBC_LIBS   = /usr/local/unixodbc/lib/libodbc.so /usr/local/unixodbc/lib/libodbcinst.so
-
-# uncomment the following setings for static unixodbc support
-#ODBC_CFLAGS = -DSTATIC_UNIXODBC -DODBCVER=0x0350 -DUSE_ODBC -I/usr/local/unixodbc/include
-#ODBC_LIBS   = /usr/local/unixodbc/lib/libodbc.a /usr/local/unixodbc/lib/libodbcinst.a
-
-# uncomment the following setings for dynamic iodbc support
-#ODBC_CFLAGS = -DDYNAMIC_IODBC -DODBCVER=0x0350 -DUSE_ODBC -I/usr/local/include
-#ODBC_LIBS   = /usr/local/lib/libiodbc.so /usr/local/lib/libiodbcinst.so
-
-# uncomment the following setings for static iodbc support
-#ODBC_CFLAGS = -DSTATIC_IODBC -DODBCVER=0x0350 -DUSE_ODBC -I/usr/local/include
-#ODBC_LIBS   = /usr/local/lib/libiodbc.a /usr/local/lib/libiodbcinst.a
-
 EXE_NAME = fw1-loggrabber
 OBJ_FILES = thread.o queue.o fw1-loggrabber.o
 
@@ -80,4 +64,3 @@ install:
 
 clean:
 	rm -f *.o $(EXE_NAME)
-
