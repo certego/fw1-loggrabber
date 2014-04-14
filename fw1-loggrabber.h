@@ -1,8 +1,6 @@
 /******************************************************************************/
 /* fw1-loggrabber - (C)2005 Torsten Fellhauer, Xiaodong Lin                   */
 /******************************************************************************/
-/* Version: 1.11                                                              */
-/******************************************************************************/
 /*                                                                            */
 /* Copyright (c) 2005 Torsten Fellhauer, Xiaodong Lin                         */
 /* All rights reserved.                                                       */
@@ -62,7 +60,7 @@
 /*
  * Constant definitions
  */
-#define VERSION                        "1.11"
+#define VERSION                 "1.11"
 
 #define TRUE                    1
 #define FALSE                   0
@@ -415,7 +413,6 @@ typedef struct configvalues
   char *fw1_logfile;
   char *output_file_prefix;
   long output_file_rotatesize;
-  char *fields;
   int fw1_filter_count;
   char **fw1_filter_array;
   int audit_filter_count;
@@ -694,7 +691,6 @@ configvalues cfgvalues = {
   "fw.log",                     // fw1_logfile
   "fw1-loggrabber",             // output_file_prefix
   1048576,                      // output_file_rotatesize
-  NULL,                         // fields
   0,                            // fw1_filter_count
   NULL,                         // fw1_filter_array
   0,                            // audit_filter_count

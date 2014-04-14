@@ -1,8 +1,6 @@
 /******************************************************************************/
 /* fw1-loggrabber - (C)2005 Torsten Fellhauer, Xiaodong Lin                   */
 /******************************************************************************/
-/* Version: 1.11                                                              */
-/******************************************************************************/
 /*                                                                            */
 /* Copyright (c) 2005 Torsten Fellhauer, Xiaodong Lin                         */
 /* All rights reserved.                                                       */
@@ -52,12 +50,8 @@ int
 main (int argc, char *argv[])
 {
   int i;
-  short amatch;
-  short lmatch;
-  int field_index;
   stringlist *lstptr;
   char *foundstring;
-  char *field;
 
   /*
    * initialize field arrays
@@ -464,12 +458,8 @@ read_fw1_logfile (char **LogfileName)
   OpsecEntity *pServer = NULL;
   LeaFilterRulebase *rb;
   int rbid = 1;
-  int i, index;
+  int i;
   int opsecAlive;
-
-  char *tmpstr1;
-  char *message = NULL;
-  unsigned int messagecap = 0;
 
   char *auth_type;
   char *fw1_server;
@@ -477,10 +467,6 @@ read_fw1_logfile (char **LogfileName)
   char *opsec_certificate;
   char *opsec_client_dn;
   char *opsec_server_dn;
-  int first = TRUE;
-
-  char *(**headers);
-  int number_fields;
 
   if (cfgvalues.debug_mode >= 2)
     {
@@ -1847,8 +1833,6 @@ usage (char *szProgName)
   fprintf (stderr,
            "  --filter \"...\"             : Specify filters to be applied\n");
   fprintf (stderr,
-           "  --fields \"...\"             : Specify fields to be printed\n");
-  fprintf (stderr,
            "  --online|--no-online       : Enable Online mode (default: no-online)\n");
   fprintf (stderr,
            "  --auditlog|--normallog     : Get data of audit-logfile (fw.adtlog)(default: normallog)\n");
@@ -1856,8 +1840,6 @@ usage (char *szProgName)
            "  --debug-level <level>      : Specify Debuglevel (default: 0 - no debugging)\n");
   fprintf (stderr,
            "  --help                     : Show usage informations\n");
-  fprintf (stderr,
-           "  --help-fields              : Show supported log fields\n");
 }
 
 /*
@@ -4597,18 +4579,6 @@ read_config_file (char *filename, configvalues * cfgvalues)
               cfgvalues->fw1_logfile =
                 string_duplicate (string_trim (configvalue, '"'));
             }
-          else if (strcmp (configparameter, "FIELDS") == 0)
-            {
-              if (cfgvalues->fields != NULL)
-                {
-                  fprintf (stderr,
-                           "ERROR: multiple FIELDS definitions in configuration file: %s=%s\n",
-                           configparameter, configvalue);
-                  exit_loggrabber (1);
-                }
-              cfgvalues->fields =
-                string_duplicate (string_trim (configvalue, '"'));
-            }
           else if (strcmp (configparameter, "FW1_FILTER_RULE") == 0)
             {
               cfgvalues->fw1_filter_count++;
@@ -5550,7 +5520,6 @@ check_config_files (char *loggrabberconf, char *leaconf)
 {
   char *configdir;
   char *tempdir;
-  char *opsecdir;
   char *opsecfile = NULL;
   char *tmpleaconf = NULL;
   char *tmploggrabberconf = NULL;
@@ -5568,7 +5537,6 @@ check_config_files (char *loggrabberconf, char *leaconf)
 
   configdir = getenv ("LOGGRABBER_CONFIG_PATH");
   tempdir = getenv ("LOGGRABBER_TEMP_PATH");
-  opsecdir = getenv ("OPSECDIR");
 
   size = pathconf (".", _PC_PATH_MAX);
   if ((tmploggrabberconf = (char *) malloc ((size_t) size)) == NULL)
