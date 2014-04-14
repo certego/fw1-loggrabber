@@ -1,8 +1,9 @@
 /******************************************************************************/
-/* fw1-loggrabber - (C)2004 Torsten Fellhauer, Xiaodong Lin                   */
+/* fw1-loggrabber                                                             */
 /******************************************************************************/
 /*                                                                            */
-/* Copyright (c) 2004 Torsten Fellhauer, Xiaodong Lin                         */
+/* Copyright (c) 2003-2005 Torsten Fellhauer, Xiaodong Lin                    */
+/* Copyright (c) 2014 CERTEGO s.r.l.                                          */
 /* All rights reserved.                                                       */
 /*                                                                            */
 /* Redistribution and use in source and binary forms, with or without         */

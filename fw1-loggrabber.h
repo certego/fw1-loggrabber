@@ -1,8 +1,9 @@
 /******************************************************************************/
-/* fw1-loggrabber - (C)2005 Torsten Fellhauer, Xiaodong Lin                   */
+/* fw1-loggrabber                                                             */
 /******************************************************************************/
 /*                                                                            */
-/* Copyright (c) 2005 Torsten Fellhauer, Xiaodong Lin                         */
+/* Copyright (c) 2003-2005 Torsten Fellhauer, Xiaodong Lin                    */
+/* Copyright (c) 2014 CERTEGO s.r.l.                                          */
 /* All rights reserved.                                                       */
 /*                                                                            */
 /* Redistribution and use in source and binary forms, with or without         */
@@ -60,7 +61,7 @@
 /*
  * Constant definitions
  */
-#define VERSION             "1.11"
+#define VERSION             "2.0"
 
 #define TRUE                1
 #define FALSE               0

@@ -4,7 +4,9 @@ FW1-LogGrabber is a command-line tool to grab logfiles from Checkpoint FW-1 remo
 
 ## Installation
 
-Currently building FW1-LogGrabber is supported only for the Linux platform, and has been tested with both gcc-2.95 and gcc-4.8.2.
+Building FW1-LogGrabber is supported for the Linux platform only, and has been tested with:
+* Ubuntu 12.04, GNU GCC 4.6.3
+* Gentoo ~amd64, GNU GCC 4.8.2
 
 FW1-LogGrabber uses API-functions from Checkpoint's [OPSEC SDK 6.0 linux30](http://supportcontent.checkpoint.com/file_download?id=7385).
 
@@ -18,7 +20,9 @@ This program is released under the GNU General Public License version 2 (GPLv2).
 
 ## Authors
 
-Copyright (c) 2004 Torsten Fellhauer, Xiaodong Lin.
+Copyright (c) 2003-2005 Torsten Fellhauer, Xiaodong Lin
+
+Copyright (c) 2014 CERTEGO s.r.l.
 
 All rights reserved.
 
@@ -30,6 +34,14 @@ Redistribution and use in source and binary forms, with or without modification,
 THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## Changelog
+
+* 2.0 - retrieval of all fields (2014/04/14)
+    * all fields are retrieved, hardcoded header list is not needed anymore
+    * INSTALL.sh script moved to "make install"
+    * removed output of field headers (kept "key=value" only)
+    * removed datetime format parsing (kept Checkpoint format only)
+    * dropped all ODBC- and database-related code
+    * building on WIN32 or SOLARIS is no longer supported
 
 * 1.11 - some new features (2005/01/02)
     * separated connection configuration into lea.conf

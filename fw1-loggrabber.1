@@ -1,7 +1,7 @@
 .\" Process this file with
 .\" groff -man -Tascii fw1-loggrabber.1
 .\"
-.TH FW1-LOGGRABBER "January 2005" Unix "User Manuals"
+.TH FW1-LOGGRABBER "April 2014" Unix "User Manuals"
 .SH NAME
 fw1-loggrabber \- a command line LEA-client for Checkpoint Firewall-1
 .SH SYNOPSIS
@@ -11,66 +11,19 @@ fw1-loggrabber \- a command line LEA-client for Checkpoint Firewall-1
 is a commandline LEA client is a command-line LEA-client for Checkpoint FW-1. 
 Using this tool, it's possible to get FW-1 logging data from remote using
 Checkpoints proprietary LEA protocol, which is a part of their OPSEC API. 
-The idea for \fBfw1-loggrabber\fR was born due to the need of analysing 
-Checkpoint FW-1 log data using LIRE (http://www.logreport.org). Meanwhile
-their are a lot of additional features, which hopefully ease daily work
-of many firewall administrators.
-.SH AVAILABLE VERSIONS
-The following versions of \fBfw1-loggrabber\fR are available on http://sourceforge.net/projects/fw1-loggrabber:
+.SH SOURCE CODE
+The source code of \fBfw1-loggrabber\fR is available on both:
 .RS
-
-- Sourcecode distribution
+https://github.com/certego/fw1-loggrabber      (v2.0)
 .RE
 .RS
-
-- Linux-binary (x86) distribution without ODBC-support
-.RE
-.RS
-
-- Linux-binary (x86) distribution with ODBC-support using statically linked iODBC-libraries
-.RE
-.RS
-
-- Linux-binary (x86) distribution with ODBC-support using statically linked unixODBC-libraries
-.RE
-.RS
-
-- Solaris-binary (SPARC) distribution without ODBC-support
-.RE
-.RS
-
-- Solaris-binary (SPARC) distribution with ODBC-support using statically linked iODBC-libraries
-.RE
-.RS
-
-- Solaris-binary (SPARC) distribution with ODBC-support using statically linked unixODBC-libraries
-.RE
-.RS
-
-- Windows-binary distribution with ODBC-support using Microsoft ODBC-libraries
-.RE
-.SH PREREQUISITES
-\fBfw1-loggrabber\fR is statically linked and runs on the following platforms. If you run \fBfw1-loggrabber\fR on another distribution, version or kernel version, please send me a mail describing your environment.
-.RS
-
-- Linux - tested distributions are Red Hat, SuSE and Debian with Kernel 2.2.x and 2.4.x. For database support,
-also either iODBC or unixODBC have to be installed.
-.RE
-.RS
-
-- Solaris SPARC - tested versions are Solaris 2.7, 8 and 9. For database support, also either iODBC or unixODBC
-have to be installed
-.RE
-.RS
-
-- Windows NT/2000/XP - tested versions are currently only Windows 2000
+http://sourceforge.net/projects/fw1-loggrabber (v1.11)
 .RE
 .SH INSTALLATION
-Beginning with v1.11, \fBfw1-loggrabber\fR includes a very basic installer script
-for Linux and Solaris distributions as well as a self-extracting installer for the
-Windows distribution. If you want to use the installer script \fBINSTALL.sh\fR, you 
-should first modify the PATH-settings in INSTALL.sh according to your environment.
-On default, the script installs \fBfw1-loggrabber\fR to /usr/local/fw1-loggrabber.
+Beginning with v2.0, \fBfw1-loggrabber\fR includes a Makefile in order to build and 
+install from source code on the Linux platform. You should first modify the 
+settings inside Makefile according to your environment.  By default, the script 
+installs \fBfw1-loggrabber\fR to /usr/local/fw1-loggrabber.
 The install script also prompts you for adding two environment variables to your
 shell configuration file which will be explained in the following section.
 .SH ENVIRONMENT VARIABLES
@@ -78,13 +31,13 @@ shell configuration file which will be explained in the following section.
 in the shell configuration file:
 .RS
 
-- LOGGRABBER_CONFIG_PATH - this variable defines a directory where \fBfw1-loggrabber\fR 
+LOGGRABBER_CONFIG_PATH: this variable defines a directory where \fBfw1-loggrabber\fR 
 searches its configuration files (fw1-loggrabber.conf, lea.conf). If this variable is not
 defined, \fBfw1-loggrabber\fR looks in the current directory for these configuration files.
 .RE
 .RS
 
-- LOGGRABBER_TEMP_PATH - this variable defines a directory where \fBfw1-loggrabber\fR stores 
+LOGGRABBER_TEMP_PATH: this variable defines a directory where \fBfw1-loggrabber\fR stores 
 temporary files. If this variable is not defined, \fBfw1-loggrabber\fR stores these files
 in the current directory.
 .RE
@@ -96,16 +49,6 @@ options is as follows: commandline, configuration file, default value. E.g. if y
 resolve-mode to be used in the configuration file, this can be overwritten by 
 commandline option \fB--noresolve\fR. Only if an option isn't set neither on commandline nor in
 the configuration file, the default value will be used.
-.TP 
-.B -p <portnumber>, --port <portnumber> [OBSOLETE]
-This option is obsolete starting from version 1.11. The connection configuration
-has to be done using the LEA configuration file. Please read the paragraph 
-\fBLEA CONFIGURATION FILE\fR for further description of available parameters.
-.TP
-.B -s <servername>, --server <servername> [OBSOLETE]
-This option is obsolete starting from version 1.11. The connection configuration
-has to be done using the LEA configuration file. Please read the paragraph 
-\fBLEA CONFIGURATION FILE\fR for further description of available parameters.
 .TP 
 .B -f <logfilename|pattern|ALL>, --logfile <logfilename|pattern>
 With these parameters, the name of the FW-1 logfile to be read, can be specified. This
@@ -164,16 +107,6 @@ The default behaviour of \fBfw1-loggrabber\fR is to
 display the content of the logfiles and not just their names. This can be explicitely
 specified using the \fB--showlogs\fR option.
 .TP
-.B --auth [OBSOLETE]   
-This option is obsolete starting from version 1.11. The connection configuration
-has to be done using the LEA configuration file. Please read the paragraph 
-\fBLEA CONFIGURATION FILE\fR for further description of available parameters.
-.TP
-.B --no-auth [OBSOLETE]
-This option is obsolete starting from version 1.11. The connection configuration
-has to be done using the LEA configuration file. Please read the paragraph 
-\fBLEA CONFIGURATION FILE\fR for further description of available parameters.
-.TP
 .B --2000
 The option \fB--2000\fR has to be used if you want to connect to CP FW-1 4.1 (2000) 
 firewalls. You have to consider, that some options are not available for non-NG 
@@ -216,53 +149,6 @@ arguments are related by AND, i.e. a single filter rule only matches a given log
 if the log entry is matched by all arguments. A more detailed description of filter rules
 you can find below in a separate chapter about filtering which also provides various examples.
 .TP
-.B --fields \*(lq<field1>[;<field2>]\*(rq
-The \fB--fields\fR option can be used to display only a given set of fields
-instead of displaying all available fields. The order of the fields being displayed is
-the same as specified within the \fB--fields\fR option. E.g.
-.RS
-
---fields "loc;src;dst"
-.RE
-.RS
-
-You can display the currently supported fields with the \fB--help-fields\fR option.
-If you are missing some fields, please run \fBfw1-loggrabber\fR with \fB--debug-level 1\fR 
-and check for debug output containing \fI"Unsupported field found: fieldname=fieldvalue"\fR.
-If you send me these lines I will implement the missing fields in the next release.
-.RE
-.TP
-.B --fieldnames
-Using the \fB--fieldnames\fR option the name of each field will be prepended to
-each value in each line of \fBfw1-loggrabber\fR output. E.g.  
-.RS
- 
-loc=42|src=1.2.3.4|dst=4.3.2.1 
-.RE
-.TP
-.B --nofieldnames
-In contrast to the \fB--fieldnames\fR option, the usage of this option will cause
-fieldnames to be displayed in the first line of output only. All the following output
-lines contain only the fieldvalues separated by '|' or by a user defined separator. E.g.
-.RS
-
-loc|src|dst
-.RE
-.RS
-42|1.2.3.4|4.3.2.1
-.RE
-.TP
-.B --create-tables
-This option just creates the \fBfw1-loggrabber\fR tables in the database referenced
-by configuration file parameter \fBODBC_DSN\fR. If one or more of the tables already
-exist, \fBfw1-loggrabber\fR prompts for dropping and recreating the tables. 
-\fBfw1-loggrabber\fR only creates tables and no additional indexes on certain columns.
-If you need these, please create the indexes by yourself using your DBMS management
-software.
-At the moment, the following DBMS are supported and tested: MySQL (v4.0), PostgreSQL (v7.3), 
-IBM DB2 (v8.1), Oracle (v8) and MS SQL Server (v2000). If you can verify \fBfw1-loggrabber\fR
-to be working with other versions of these DBMS, please tell me about this.
-.TP
 .B --debuglevel <0-3>
 Sets the debuglevel to the specified value. A debuglevel of 0 means no output of
 debug informations. Further debuglevels will cause output of program specific as well
@@ -271,10 +157,6 @@ as OPSEC specific debug informations.
 .B --help
 Use \fB--help\fR to display basic help and usage information. For further help, please
 refer to the man page.
-.TP
-.B --help-fields
-This option just displays all fieldnames which are currently supported by 
-\fBfw1-loggrabber\fR for both normal logfiles and audit logfiles.
 .SH LEA CONFIGURATION FILE
 Starting with version 1.11, \fBfw1-loggrabber\fR uses the default connection configuration 
 procedure for OPSEC applications. This includes server, port and authentication settings.
@@ -330,16 +212,6 @@ debug informations. Further debuglevels will cause output of program specific as
 as OPSEC specific debug informations. This parameter can be overwritten by 
 \fB--debug-level\fR command-line option.
 .TP
-.B FW1_SERVER=<IP address of FW1-Management Station> [OBSOLETE]
-This option is obsolete starting from version 1.11. The connection configuration
-has to be done using the LEA configuration file. Please read the paragraph 
-\fBLEA CONFIGURATION FILE\fR for further description of available parameters.
-.TP
-.B FW1_PORT=<Port number for LEA connections> [OBSOLETE]
-This option is obsolete starting from version 1.11. The connection configuration
-has to be done using the LEA configuration file. Please read the paragraph 
-\fBLEA CONFIGURATION FILE\fR for further description of available parameters.
-.TP
 .B FW1_LOGFILE=<Name of FW1-Logfilename>
 With this parameter, the name of the FW-1 logfile to be read, can be specified. This
 can be either done exactly or using only a part of the filename. If no exact match can
@@ -385,30 +257,17 @@ If you disable resolving mode this will cause IP addresses
 to be displayed in log output instead of names.
 The correspondent command-line parameters are \fB--resolve\fR and \fB--no-resolve\fR.
 .TP
-.B SHOW_FIELDNAMES=<yes|no>
-Using this option can be chosen, whether the name of each field should be displayed i
-in each line of log output (YES) of just in the first line of output.
-The correspondent command-line parameters are \fB--fieldnames\fR and \fB--nofieldnames\fR.
-.TP
 .B RECORD_SEPARATOR=<char>
 This parameter can be used to change the default record separator (|) into another character.
 If you choose a character which is contained in some log data, the occurrence within the 
 logdata will be escaped by a backslash.
 .TP
-.B DATEFORMAT=<CP|UNIX|STD>
-Using the \fBDATEFORMAT\fR option, you can choose between three different date formats 
-for output of date fields. The value \fBCP\fR provides the standard Checkpoing date
-format ( 3Feb2004 14:15:16). Using the values \fBUNIX\fR or \fBSTD\fR you can change 
-this into standard Unix time format (1051655431) or into a standardized human-readable
-format (2004-02-03 14:15:16).
-.TP
-.B LOGGING_CONFIGURATION=<screen|file|syslog|odbc>
+.B LOGGING_CONFIGURATION=<screen|file|syslog>
 The \fBLOGGING_CONFIGURATION\fR parameter can be used for redirection of logging output to
 other destinations than the default destination STDOUT, i.e. screen. Currently it's possible
 to redirect output to a file or to syslog daemon (Unix only). Using the parametes 
 \fBOUTPUT_FILE_PREFIX\fR and \fBOUTPUT_FILE_ROTATESIZE\fR, you can specify more details,
-if you choose to redirect the output to a file. If you have chosen \fBODBC\fR, you have to
-specify the DSN in the parameter \fBODBC_DSN\fR.
+if you choose to redirect the output to a file.
 .TP
 .B OUTPUT_FILE_PREFIX=<prefix of output file>
 This parameter can be used to define a prefix for the output filename. Eventually the output 
@@ -422,10 +281,6 @@ be rotated. If the size of the output file exceeds the given value, the logfile 
 to <OUTPUT_FILE_PREFIX>-YYYY-MM-DD-hhmmss[-x].log. The default value is 1048576 bytes, 
 which equals 1 megabyte. It should be obvious
 that this parameter will only be used if \fBLOGGING_CONFIGURATION\fR is set to \fBfile\fR.
-.TP
-.B ODBC_DSN=<ODBC Database DSN>
-This parameter has to be used to specify the ODBC-DSN of your database. The DSN will only 
-be used when \fBLOGGING_CONFIGURATION\fR is set to \fBODBC\fR.
 .TP
 .B SYSLOG_FACILITY=<USER|LOCAL0|...|LOCAL7>
 This parameter can be used to set the syslog facility to be used (Unix only). 
@@ -445,49 +300,6 @@ you can find below in a separate chapter about filtering which also provides var
 .B AUDIT_FILTER_RULE=\*(lq<filterexpression1>[;<filterexpression2>]\*(rq
 In contrast to \fBFW1_FILTER_RULE\fR, \fBAUDIT_FILTER_RULE\fR allows definitions of filters
 for auditlog-mode within the configuration file.
-.TP
-.B FIELDS=\*(lq<field1>[;<field2>]\*(rq
-The FIELDS configuration file option can be used to display only a given set of fields
-instead of displaying all available fields. The order of the fields being displayed is
-the same as specified within the \fBFIELDS\fR option. E.g.
-.RS
-
-FIELDS="loc;src;dst"
-.RE
-.RS
-
-If there are more than one FIELDS-lines in the configuration file or unknown fieldnames
-are used in the FIELDS-line, \fBfw1-loggrabber\fR will abort with an error message.
-You can display the currently supported fields with the \fB--help-fields\fR option.
-If you are missing some fields, please run \fBfw1-loggrabber\fR with \fB--debug-level 1\fR 
-and check for debug output containing \fI"Unsupported field found: fieldname=fieldvalue"\fR.
-If you send me these lines I will implement the missing fields in the next release.
-.RE
-.TP
-.B AUTHENTICATED=<yes|no> [OBSOLETE]
-This option is obsolete starting from version 1.11. The connection configuration
-has to be done using the LEA configuration file. Please read the paragraph 
-\fBLEA CONFIGURATION FILE\fR for further description of available parameters.
-.TP
-.B AUTHENTICATION_TYPE=<authtype value> [OBSOLETE]
-This option is obsolete starting from version 1.11. The connection configuration
-has to be done using the LEA configuration file. Please read the paragraph 
-\fBLEA CONFIGURATION FILE\fR for further description of available parameters.
-.TP
-.B OPSEC_CERTIFICATE=<Path and Name of Opsec Certificate> [OBSOLETE]
-This option is obsolete starting from version 1.11. The connection configuration
-has to be done using the LEA configuration file. Please read the paragraph 
-\fBLEA CONFIGURATION FILE\fR for further description of available parameters.
-.TP
-.B OPSEC_CLIENT_DN=<DN of Opsec-Client> [OBSOLETE]
-This option is obsolete starting from version 1.11. The connection configuration
-has to be done using the LEA configuration file. Please read the paragraph 
-\fBLEA CONFIGURATION FILE\fR for further description of available parameters.
-.TP
-.B OPSEC_SERVER_DN=<DN of Opsec-Server> [OBSOLETE]
-This option is obsolete starting from version 1.11. The connection configuration
-has to be done using the LEA configuration file. Please read the paragraph 
-\fBLEA CONFIGURATION FILE\fR for further description of available parameters.
 .SH CONFIGURE FW-1
 For both authenticated and unauthenticated connections of \fBfw1-loggrabber\fR to  
 FW-1 servers there is the need for additional configuration on both the FW-1 side and
@@ -508,7 +320,7 @@ lea connections (e.g. 50001):
 lea_server    port      50001
 .RE
 .RS
-lea server    auth_port 0
+lea_server    auth_port 0
 .RE
 .RE
 .RS
@@ -550,7 +362,7 @@ machine to the FW-1 management server.
 lea_server    ip        10.1.1.1
 .RE
 .RS
-lea server    port      50001
+lea_server    port      50001
 .RE
 .RE
 .TP
@@ -568,10 +380,10 @@ lea connections (e.g. 18184):
 lea_server    port      0
 .RE
 .RS
-lea server    auth_port 18184
+lea_server    auth_port 18184
 .RE
 .RS
-lea server    auth_type auth_opsec
+lea_server    auth_type auth_opsec
 .RE
 .RE
 .RS
@@ -650,10 +462,10 @@ lea connections (e.g. 18184):
 lea_server    port      0
 .RE
 .RS
-lea server    auth_port 18184
+lea_server    auth_port 18184
 .RE
 .RS
-lea server    auth_type ssl_opsec
+lea_server    auth_type ssl_opsec
 .RE
 .RE
 .RS
@@ -796,10 +608,10 @@ lea connections (e.g. 18184):
 lea_server    port      0
 .RE
 .RS
-lea server    auth_port 18184
+lea_server    auth_port 18184
 .RE
 .RS
-lea server    auth_type sslca
+lea_server    auth_type sslca
 .RE
 .RE
 .RS
@@ -912,6 +724,8 @@ opsec_pull_cert -h 10.1.1.1 -n myleaclient -p def456
 
 .RE
 .SH FILTERING
+WARNING: if you are using the filtering functionality starting from v2.0
+upwards, beware that it has not been tested extensively yet!
 Filter rules provide the possibility to display only log entries that
 match a given set of rules. There can be specified one or more filter 
 rules using one or multiple \fB--filter\fR arguments on the command 
@@ -1054,16 +868,18 @@ FW1-Loggrabber configuration file
 LEA configuration file
 .RE
 .RE
-.SH AUTHOR
+.SH AUTHORS
 Torsten Fellhauer <torsten at fellhauer dash web dot net>
+Andrea De Pasquale <a dot depasquale at certego dot net>
 .SH BUGS
-Please report bugs using the bug report functionality on the projects 
-website: 
+Please report bugs using the bug report functionality on
 .RS
-\fIhttp://sourceforge.net/projects/fw1-loggrabber\fR
+\fIhttps://github.com/certego/fw1-loggrabber/issues\fR
 .RE
 .SH COPYRIGHT
-Copyright (c) 2003-2004 Torsten Fellhauer, Xiaodong Lin
+Copyright (c) 2003-2005 Torsten Fellhauer, Xiaodong Lin
+.PP
+Copyright (c) 2014 CERTEGO s.r.l.
 .PP
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
