@@ -2098,7 +2098,7 @@ usage (char *szProgName)
       fprintf (stderr, "DEBUG: function usage\n");
     }
 
-  fprintf (stderr, "\nFW1-Loggrabber v%s (%s)\n", VERSION, ODBCVERSION);
+  fprintf (stderr, "\nFW1-Loggrabber v%s\n", VERSION);
   fprintf (stderr, "    (C)2005, Torsten Fellhauer, Xiaodong Lin\n\n");
   fprintf (stderr, "Usage:\n");
   fprintf (stderr, " %s [ options ]\n", szProgName);

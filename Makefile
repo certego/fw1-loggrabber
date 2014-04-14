@@ -34,7 +34,7 @@ STATIC_LIBS = \
 	-lcpprod50 
 
 LIBS = -lpthread -lresolv -ldl -lnsl -lelf -lstdc++
-CFLAGS += -m32 -g -Wall -fpic -I$(PKG_DIR)/include -DLINUX -DUNIXOS=1 -DDEBUG $(ODBC_CFLAGS)
+CFLAGS += -m32 -g -Wall -fpic -I$(PKG_DIR)/include -DLINUX -DUNIXOS=1 -DDEBUG
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $*.c

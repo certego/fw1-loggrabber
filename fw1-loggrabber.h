@@ -63,11 +63,6 @@
 #        include <syslog.h>
 #endif
 
-#ifdef USE_ODBC
-#        include <sql.h>
-#        include <sqlext.h>
-#endif
-
 /*
  * OPSEC SDK related header files
  */
@@ -87,20 +82,6 @@
  * Constant definitions
  */
 #define VERSION                        "1.11"
-
-#ifdef WIN32
-#        define ODBCVERSION        "Windows-ODBC-support"
-#elif STATIC_IODBC
-#        define ODBCVERSION        "static iODBC-support"
-#elif DYNAMIC_IODBC
-#        define ODBCVERSION        "dynamic iODBC-support"
-#elif STATIC_UNIXODBC
-#        define ODBCVERSION        "static unixODBC-support"
-#elif DYNAMIC_UNIXODBC
-#        define ODBCVERSION        "dynamic unixODBC-support"
-#else
-#        define ODBCVERSION        "no ODBC-support"
-#endif
 
 #define TRUE                    1
 #define FALSE                   0
@@ -422,8 +403,6 @@
 #define SCREEN                  0
 #define LOGFILE                 1
 #define SYSLOG                  2
-#define ODBC                    3
-#define SNMP                    4        // For future use
 
 #define INITIAL_CAPACITY   1024
 #define CAPACITY_INCREMENT 4096
@@ -455,9 +434,6 @@ typedef struct configvalues
   char record_separator;
   char *config_filename;
   char *leaconfig_filename;
-#ifdef USE_ODBC
-  char *odbc_dsn;
-#endif
   char *fw1_logfile;
   char *output_file_prefix;
   long output_file_rotatesize;
@@ -605,23 +581,6 @@ void open_logfile ();
 void submit_logfile (char *);
 void close_logfile ();
 
-#ifdef USE_ODBC
-/*
- * odbc initializations
- */
-void open_odbc ();
-void submit_odbc (char *);
-void close_odbc ();
-#endif
-
-#ifdef USE_ODBC
-/*
- * ODBC related functions
- */
-int create_loggrabber_tables ();
-int ODBC_Errors (char *);
-#endif
-
 /*
  * array initializations
  */
@@ -635,12 +594,6 @@ void initialize_lfield_order (int *);
 void initialize_afield_order (int *);
 void free_lfield_arrays (char ***);
 void free_afield_arrays (char ***);
-#ifdef USE_ODBC
-void initialize_lfield_dbheaders (char ***);
-void initialize_afield_dbheaders (char ***);
-void initialize_lfield_dblength (int *);
-void initialize_afield_dblength (int *);
-#endif
 
 /*
  * function to show help about this tool
@@ -720,22 +673,6 @@ int mysql_mode = -1;
 int fieldnames_mode = -1;
 int create_tables = FALSE;
 
-#ifdef USE_ODBC
-/* 
- * global variables for ODBC
- */
-SQLHENV henv;
-SQLHDBC hdbc;
-SQLHSTMT hstmt;
-int connected = 0;
-const char *infotable = "loggrabber";
-const char *logtable = "fw1logs";
-const char *audittable = "auditlogs";
-char *dbms_name = NULL;
-char *dbms_ver = NULL;
-long int tableindex = -1;
-#endif
-
 OpsecSession* pSession = NULL;
 OpsecEnv*     pEnv     = NULL;
 
@@ -775,12 +712,6 @@ int lfield_output[NUMBER_LIDX_FIELDS];
 int afield_output[NUMBER_AIDX_FIELDS];
 int lfield_order[NUMBER_LIDX_FIELDS];
 int afield_order[NUMBER_AIDX_FIELDS];
-#ifdef USE_ODBC
-char **lfield_dbheaders[NUMBER_LIDX_FIELDS];
-char **afield_dbheaders[NUMBER_AIDX_FIELDS];
-int lfield_dblength[NUMBER_LIDX_FIELDS];
-int afield_dblength[NUMBER_AIDX_FIELDS];
-#endif
 
 configvalues cfgvalues = {
   0,                            // debug_mode
@@ -798,9 +729,6 @@ configvalues cfgvalues = {
   '|',                          // record_separator
   "fw1-loggrabber.conf",        // config_filename
   "lea.conf",                   // leaconfig_filename
-#ifdef USE_ODBC
-  "FW1-LOGGRABBER",             // odbc_dsn
-#endif
   "fw.log",                     // fw1_logfile
   "fw1-loggrabber",             // output_file_prefix
   1048576,                      // output_file_rotatesize
