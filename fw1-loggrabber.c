@@ -4841,7 +4841,7 @@ submit_logfile (char *message)
   fseek (logstream, 0, SEEK_CUR);
   fsize = ftell (logstream);
   /* File size check and see whether or not it reaches maximum */
-  if (fsize > cfgvalues.output_file_rotatesize)
+  if (cfgvalues.output_file_rotatesize > 0 && fsize > cfgvalues.output_file_rotatesize)
     {
       //The log file will be refreshed.
       fclose (logstream);
