@@ -745,7 +745,7 @@ read_fw1_logfile (char **LogfileName)
                   for (i = 0; i < cfgvalues.fw1_filter_count; i++)
                     {
                       if ((rb =
-                           create_audit_filter_rule (rb,
+                           create_fw1_filter_rule (rb,
                                                      cfgvalues.
                                                      fw1_filter_array[i])) ==
                           NULL)
