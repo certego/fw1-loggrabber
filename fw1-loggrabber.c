@@ -2001,7 +2001,12 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
                */
               if (!
                   ((strcmp (argumentsinglevalue, "VPN-1 & FireWall-1") == 0)
-                   || (strcmp (argumentsinglevalue, "SmartDefense") == 0)))
+                   || (strcmp (argumentsinglevalue, "SmartDefense") == 0)
+                   || (strcmp (argumentsinglevalue, "URL Filtering") == 0)
+                   || (strcmp (argumentsinglevalue, "Identity Awareness") == 0)
+                   || (strcmp (argumentsinglevalue, "Identity Logging") == 0)
+                   || (strcmp (argumentsinglevalue, "New Anti Virus") == 0)
+                   || (strcmp (argumentsinglevalue, "Anti Malware") == 0)))
                 {
                   fprintf (stderr, "ERROR: invalid value for product: '%s'\n",
                            argumentsinglevalue);
