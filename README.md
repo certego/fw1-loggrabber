@@ -14,6 +14,10 @@ Edit ``Makefile`` and change the variables CC, LD and PKG_DIR according to your 
 
 Then run ``make`` to build and ``sudo make install`` to install.
 
+## Documentation
+
+Documentation is available both as a [wiki page](https://github.com/certego/fw1-loggrabber/wiki/FW1-LOGGRABBER) and as a [man page](https://raw.githubusercontent.com/certego/fw1-loggrabber/master/fw1-loggrabber.1).
+
 ## License
 
 This program is released under the GNU General Public License version 2 (GPLv2).
