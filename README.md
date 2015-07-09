@@ -10,6 +10,8 @@ Building FW1-LogGrabber is supported for the Linux platform only, and has been t
 
 FW1-LogGrabber uses API-functions from Checkpoint's [OPSEC SDK 6.0 linux30](http://supportcontent.checkpoint.com/file_download?id=7385).
 
+If you are using Ubuntu, install required libraries with ``sudo apt-get install gcc-multilib g++-multilib libelf-dev:i386``
+
 Edit ``Makefile`` and change the variables CC, LD and PKG_DIR according to your environment.
 
 Then run ``make`` to build and ``sudo make install`` to install.
