@@ -52,10 +52,10 @@ THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
 * 1.11 - some new features (2005/01/02)
     * separated connection configuration into lea.conf
     * looking for config files in cwd or absolute dir
-    * implemented configureable syslog facility
+    * implemented configurable syslog facility
     * implemented authenticated connections to FW-1 4.1
     * implemented failover/reconnect for LEA connections
-    * implemented configureable field printorder
+    * implemented configurable field printorder
     * replaced MySQL support by ODBC support
     * implemented creation of database tables
     * support for MySQL, PostgreSQL, Oracle, DB2 and MSSQL Server
