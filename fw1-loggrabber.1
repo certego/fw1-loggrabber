@@ -154,6 +154,8 @@ Sets the debuglevel to the specified value. A debuglevel of 0 means no output of
 debug informations. Further debuglevels will cause output of program specific as well
 as OPSEC specific debug informations.
 .TP
+.B --ignore-fields \*(lq<field1>[;<field2>]\*(rq
+A list of one or more field names to skip when outputting the log messages.
 .B --help
 Use \fB--help\fR to display basic help and usage information. For further help, please
 refer to the man page.
@@ -300,6 +302,16 @@ you can find below in a separate chapter about filtering which also provides var
 .B AUDIT_FILTER_RULE=\*(lq<filterexpression1>[;<filterexpression2>]\*(rq
 In contrast to \fBFW1_FILTER_RULE\fR, \fBAUDIT_FILTER_RULE\fR allows definitions of filters
 for auditlog-mode within the configuration file.
+.TP
+.B IGNORE_FIELDS=\*(lq<field1>[;<field2>]\*(rq
+A list of one or more field names to skip when outputting the log messages.
+.TP
+.B DATEFORMAT=<CP|UNIX|STD>
+Using the \fBDATEFORMAT\fR option, you can choose between three different date formats 
+for output of date fields. The value \fBCP\fR provides the standard Checkpoing date
+format ( 3Feb2004 14:15:16). Using the values \fBUNIX\fR or \fBSTD\fR you can change 
+this into standard Unix time format (1051655431) or into a standardized human-readable
+format (2004-02-03 14:15:16).
 .SH CONFIGURE FW-1
 For both authenticated and unauthenticated connections of \fBfw1-loggrabber\fR to  
 FW-1 servers there is the need for additional configuration on both the FW-1 side and
