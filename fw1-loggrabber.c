@@ -40,6 +40,7 @@ main (int argc, char *argv[])
   int i;
   stringlist *lstptr;
   char *foundstring;
+  char *field;
 
   /*
    * initialize field arrays
@@ -206,6 +207,24 @@ main (int argc, char *argv[])
             }
           filterarray[filtercount - 1] = string_duplicate (argv[i]);
         }
+      else if (strcmp (argv[i], "--ignore-fields") == 0)
+        {
+          i++;
+          if (argv[i] == NULL)
+            {
+              fprintf (stderr, "ERROR: Invalid argument: %s\n", argv[i - 1]);
+              usage (argv[0]);
+              exit_loggrabber (1);
+            }
+          if (argv[i][0] == '-')
+            {
+              fprintf (stderr, "ERROR: Value expected for argument %s\n",
+                       argv[i - 1]);
+              usage (argv[0]);
+              exit_loggrabber (1);
+            }
+          cfgvalues.ignore_fields = string_duplicate (argv[i]);
+        }
       else
         {
           fprintf (stderr, "ERROR: Invalid argument: %s\n", argv[i]);
@@ -318,6 +337,26 @@ main (int argc, char *argv[])
       fprintf (stderr,
                "ERROR: use --auditlog option to get data of fw.adtlog\n");
       exit_loggrabber (1);
+    }
+
+  // Process the ignore_fields string if it exists
+  if (cfgvalues.ignore_fields)
+    {
+	  ignore_fields = string_duplicate (cfgvalues.ignore_fields);
+	  field = strtok (ignore_fields, ";");
+	  while (field != NULL)
+	    {
+		  ignore_fields_count++;
+		  ignore_fields_array =
+            (char **) realloc (ignore_fields_array, ignore_fields_count * sizeof (char *));
+          if (ignore_fields_array == NULL)
+            {
+              fprintf (stderr, "ERROR: Out of memory\n");
+              exit_loggrabber (1);
+            }
+          ignore_fields_array[ignore_fields_count - 1] = string_duplicate (field);
+          field = strtok (NULL, ";");
+	    }
     }
 
 /* A mutex object to provide safe manipulation of Check Point FW-1 event queue across multiple threads.  */
@@ -894,6 +933,7 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
 {
   char *szAttrib;
   int i;
+  int x;
   unsigned long ul;
   unsigned short us;
   char tmpdata[16];
@@ -903,6 +943,7 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
   char *message = NULL;
   char *mymsg = NULL;
   int number_fields;
+  short ignore;
   unsigned int messagecap = 0;
 
   if (cfgvalues.debug_mode >= 2)
@@ -916,8 +957,27 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
   number_fields = pRec->n_fields;
   for (i = 0; i < number_fields; i++)
     {
+	  ignore = FALSE;
       strcpy (tmpdata, "\0");
       szAttrib = lea_attr_name (pSession, pRec->fields[i].lea_attr_id);
+
+      /*
+       * Compare the field name with the list of ignored fields.
+       * If the names match, then skip over processing this field.
+       */
+      for (x = 0; x < ignore_fields_count; x++)
+        {
+    	  if (string_icmp(ignore_fields_array[x], szAttrib)==0)
+    	    {
+    		  ignore = TRUE;
+    		  break;
+    	    }
+        }
+
+      if (ignore)
+        {
+    	  continue;
+        }
 
       if (!(cfgvalues.resolve_mode))
         {
@@ -1744,7 +1804,9 @@ usage (char *szProgName)
   fprintf (stderr,
            "  --2000|--ng                : Connect to a CP FW-1 4.1 (2000) (default is ng)\n");
   fprintf (stderr,
-           "  --filter \"...\"             : Specify filters to be applied\n");
+           "  --filter \"...\"           : Specify filters to be applied\n");
+  fprintf (stderr,
+           "  --ignore-fields \"...\"    : Specify ; separated list of field names to not output to the log\n");
   fprintf (stderr,
            "  --online|--no-online       : Enable Online mode (default: no-online)\n");
   fprintf (stderr,
@@ -4503,6 +4565,11 @@ read_config_file (char *filename, configvalues * cfgvalues)
                 }
               cfgvalues->audit_filter_array[cfgvalues->audit_filter_count -
                                             1] =
+                string_duplicate (string_trim (configvalue, '"'));
+            }
+          else if (strcmp (configparameter, "IGNORE_FIELDS") == 0)
+            {
+              cfgvalues->ignore_fields =
                 string_duplicate (string_trim (configvalue, '"'));
             }
           else

@@ -101,6 +101,7 @@ typedef struct configvalues
   char *fw1_logfile;
   char *output_file_prefix;
   long output_file_rotatesize;
+  char *ignore_fields;
   int fw1_filter_count;
   char **fw1_filter_array;
   int audit_filter_count;
@@ -323,6 +324,9 @@ char **filterarray = NULL;
 int filtercount = 0;
 int mysql_mode = -1;
 int create_tables = FALSE;
+char *ignore_fields = NULL;
+int ignore_fields_count = 0;
+char **ignore_fields_array = NULL;
 
 OpsecSession* pSession = NULL;
 OpsecEnv*     pEnv     = NULL;
