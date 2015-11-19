@@ -1029,13 +1029,10 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
           switch (cfgvalues.dateformat)
             {
             case DATETIME_CP:
-              tmpdata =
-                string_duplicate (lea_resolve_field
-                          (pSession, pRec->fields[i]));
               break;
             case DATETIME_UNIX:
               sprintf (tmpdata, "%lu",
-                   pRec->fields[i].lea_value.ul_value);
+                   (long unsigned int) pRec->fields[i].lea_value.ul_value);
               break;
             case DATETIME_STD:
               logtime = (time_t) pRec->fields[i].lea_value.ul_value;
@@ -1046,7 +1043,6 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
               fprintf (stderr, "ERROR: Unsupported dateformat chosen\n");
               exit_loggrabber (1);
             }
-          match = TRUE;
         }
 
       *field_headers[i] = string_duplicate (szAttrib);
