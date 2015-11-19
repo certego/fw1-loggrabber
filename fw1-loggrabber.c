@@ -342,12 +342,12 @@ main (int argc, char *argv[])
   // Process the ignore_fields string if it exists
   if (cfgvalues.ignore_fields)
     {
-	  ignore_fields = string_duplicate (cfgvalues.ignore_fields);
-	  field = strtok (ignore_fields, ";");
-	  while (field != NULL)
-	    {
-		  ignore_fields_count++;
-		  ignore_fields_array =
+      ignore_fields = string_duplicate (cfgvalues.ignore_fields);
+      field = strtok (ignore_fields, ";");
+      while (field != NULL)
+        {
+          ignore_fields_count++;
+          ignore_fields_array =
             (char **) realloc (ignore_fields_array, ignore_fields_count * sizeof (char *));
           if (ignore_fields_array == NULL)
             {
@@ -356,7 +356,7 @@ main (int argc, char *argv[])
             }
           ignore_fields_array[ignore_fields_count - 1] = string_duplicate (field);
           field = strtok (NULL, ";");
-	    }
+        }
     }
 
 /* A mutex object to provide safe manipulation of Check Point FW-1 event queue across multiple threads.  */
@@ -936,7 +936,7 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
   int x;
   unsigned long ul;
   unsigned short us;
-  char tmpdata[16];
+  char tmpdata[21];
   char *tmpstr1;
   char *tmpstr2;
   short first = TRUE;
@@ -945,6 +945,8 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
   int number_fields;
   short ignore;
   unsigned int messagecap = 0;
+  time_t logtime;
+  struct tm *datetime;
 
   if (cfgvalues.debug_mode >= 2)
     {
@@ -957,7 +959,7 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
   number_fields = pRec->n_fields;
   for (i = 0; i < number_fields; i++)
     {
-	  ignore = FALSE;
+      ignore = FALSE;
       strcpy (tmpdata, "\0");
       szAttrib = lea_attr_name (pSession, pRec->fields[i].lea_attr_id);
 
@@ -967,16 +969,16 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
        */
       for (x = 0; x < ignore_fields_count; x++)
         {
-    	  if (string_icmp(ignore_fields_array[x], szAttrib)==0)
-    	    {
-    		  ignore = TRUE;
-    		  break;
-    	    }
+          if (string_icmp(ignore_fields_array[x], szAttrib)==0)
+            {
+              ignore = TRUE;
+              break;
+            }
         }
 
       if (ignore)
         {
-    	  continue;
+          continue;
         }
 
       if (!(cfgvalues.resolve_mode))
@@ -1020,6 +1022,31 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
               sprintf (tmpdata, "%d", us);
               break;
             }
+        }
+
+      if (strcmp (szAttrib, "time") == 0)
+        {
+          switch (cfgvalues.dateformat)
+            {
+            case DATETIME_CP:
+              tmpdata =
+                string_duplicate (lea_resolve_field
+                          (pSession, pRec->fields[i]));
+              break;
+            case DATETIME_UNIX:
+              sprintf (tmpdata, "%lu",
+                   pRec->fields[i].lea_value.ul_value);
+              break;
+            case DATETIME_STD:
+              logtime = (time_t) pRec->fields[i].lea_value.ul_value;
+              datetime = localtime (&logtime);
+              strftime (tmpdata, 20, "%Y-%m-%d %H:%M:%S", datetime);
+              break;
+            default:
+              fprintf (stderr, "ERROR: Unsupported dateformat chosen\n");
+              exit_loggrabber (1);
+            }
+          match = TRUE;
         }
 
       *field_headers[i] = string_duplicate (szAttrib);
@@ -4571,6 +4598,29 @@ read_config_file (char *filename, configvalues * cfgvalues)
             {
               cfgvalues->ignore_fields =
                 string_duplicate (string_trim (configvalue, '"'));
+            }
+          else if (strcmp (configparameter, "DATEFORMAT") == 0)
+            {
+              configvalue = string_duplicate (string_trim (configvalue, '"'));
+              if (string_icmp (configvalue, "cp") == 0)
+                {
+                  cfgvalues->dateformat = DATETIME_CP;
+                }
+              else if (string_icmp (configvalue, "unix") == 0)
+                {
+                  cfgvalues->dateformat = DATETIME_UNIX;
+                }
+              else if (string_icmp (configvalue, "std") == 0)
+                {
+                  cfgvalues->dateformat = DATETIME_STD;
+                }
+              else
+                {
+                  fprintf (stderr,
+                       "WARNING: Illegal entry in configuration file: %s=%s\n",
+                       configparameter, configvalue);
+                }
+              free (configvalue);
             }
           else
             {

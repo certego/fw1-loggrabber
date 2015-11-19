@@ -66,6 +66,10 @@
 #define TRUE                1
 #define FALSE               0
 
+#define DATETIME_CP         0
+#define DATETIME_UNIX       1
+#define DATETIME_STD        2
+
 #define NUMBER_FIELDS       128
 
 #define SCREEN              0
@@ -102,6 +106,7 @@ typedef struct configvalues
   char *output_file_prefix;
   long output_file_rotatesize;
   char *ignore_fields;
+  int dateformat;
   int fw1_filter_count;
   char **fw1_filter_array;
   int audit_filter_count;
@@ -373,12 +378,13 @@ configvalues cfgvalues = {
   "fw.log",                     // fw1_logfile
   "fw1-loggrabber",             // output_file_prefix
   1048576,                      // output_file_rotatesize
+  NULL,                         // ignore_fields
+  DATETIME_STD,                 // dateformat
   0,                            // fw1_filter_count
   NULL,                         // fw1_filter_array
   0,                            // audit_filter_count
   NULL                          // audit_filter_array
 };
-
 
 /**
  * The current log file descriptor
