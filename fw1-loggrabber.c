@@ -1827,9 +1827,9 @@ usage (char *szProgName)
   fprintf (stderr,
            "  --2000|--ng                : Connect to a CP FW-1 4.1 (2000) (default is ng)\n");
   fprintf (stderr,
-           "  --filter \"...\"           : Specify filters to be applied\n");
+           "  --filter \"...\"             : Specify filters to be applied\n");
   fprintf (stderr,
-           "  --ignore-fields \"...\"    : Specify ; separated list of field names to not output to the log\n");
+           "  --ignore-fields \"...\"      : Specify ; separated list of field names to not output to the log\n");
   fprintf (stderr,
            "  --online|--no-online       : Enable Online mode (default: no-online)\n");
   fprintf (stderr,
