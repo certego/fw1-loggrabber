@@ -2091,6 +2091,7 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
                    || (strcmp (argumentsinglevalue, "Identity Awareness") == 0)
                    || (strcmp (argumentsinglevalue, "Identity Logging") == 0)
                    || (strcmp (argumentsinglevalue, "New Anti Virus") == 0)
+                   || (strcmp (argumentsinglevalue, "FDE") == 0)
                    || (strcmp (argumentsinglevalue, "Anti Malware") == 0)))
                 {
                   fprintf (stderr, "ERROR: invalid value for product: '%s'\n",
