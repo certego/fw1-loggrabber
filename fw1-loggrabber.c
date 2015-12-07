@@ -347,6 +347,11 @@ main (int argc, char *argv[])
       while (field != NULL)
         {
           ignore_fields_count++;
+          if (ignore_fields_count >= NUMBER_FIELDS)
+            {
+              break;
+            }
+
           ignore_fields_array =
             (char **) realloc (ignore_fields_array, ignore_fields_count * sizeof (char *));
           if (ignore_fields_array == NULL)
@@ -969,7 +974,7 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
        */
       for (x = 0; x < ignore_fields_count; x++)
         {
-          if (string_icmp(ignore_fields_array[x], szAttrib)==0)
+          if (ignore_attr_id_array[x] == pRec->fields[i].lea_attr_id)
             {
               ignore = TRUE;
               break;
@@ -1137,6 +1142,8 @@ int
 read_fw1_logfile_dict (OpsecSession * psession, int dict_id, LEA_VT val_type,
                        int n_d_entries)
 {
+  lea_value_t d_value;
+
   if (cfgvalues.debug_mode >= 2)
     {
       fprintf (stderr, "DEBUG: function read_fw1_logfile_dict\n");
@@ -1146,6 +1153,23 @@ read_fw1_logfile_dict (OpsecSession * psession, int dict_id, LEA_VT val_type,
     {
       fprintf (stderr, "DEBUG: LEA logfile dict handler was invoked\n");
     }
+
+  if (ignore_fields_count && dict_id == LEA_ATTRIB_ID)
+    {
+      for (x = 0; x < ignore_fields_count; x++)
+        {
+          if ((lea_reverse_dictionary_lookup(psession, LEA_ATTRIB_ID, ignore_fields_array[x],
+                                             &d_value)) != LEA_NOT_FOUND)
+            {
+              ignore_attr_id_array[x] = d_value.i_value;
+            }
+          else
+            {
+              ignore_attr_id_array[x] = -1;
+            }
+        }
+    }
+
   return OPSEC_SESSION_OK;
 }
 
