@@ -1159,13 +1159,25 @@ read_fw1_logfile_dict (OpsecSession * psession, int dict_id, LEA_VT val_type,
     {
       for (x = 0; x < ignore_fields_count; x++)
         {
+          if (cfgvalues.debug_mode)
+            {
+              fprintf (stderr, "DEBUG: Checking attribute id for %s\n", ignore_fields_array[x]);
+            }
           if ((lea_reverse_dictionary_lookup(psession, LEA_ATTRIB_ID, ignore_fields_array[x],
                                              &d_value)) != LEA_NOT_FOUND)
             {
+              if (cfgvalues.debug_mode)
+                {
+                  fprintf (stderr, "DEBUG: Got attribute id %i\n", d_value.i_value);
+                }
               ignore_attr_id_array[x] = d_value.i_value;
             }
           else
             {
+            if (cfgvalues.debug_mode)
+              {
+                fprintf (stderr, "DEBUG: No attribute id found\n");
+              }
               ignore_attr_id_array[x] = -1;
             }
         }
