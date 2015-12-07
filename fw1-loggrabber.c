@@ -1143,6 +1143,7 @@ read_fw1_logfile_dict (OpsecSession * psession, int dict_id, LEA_VT val_type,
                        int n_d_entries)
 {
   lea_value_t d_value;
+  int x;
 
   if (cfgvalues.debug_mode >= 2)
     {
