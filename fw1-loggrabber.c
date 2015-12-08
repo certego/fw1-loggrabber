@@ -938,7 +938,6 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
 {
   char *szAttrib;
   int i;
-  int x;
   unsigned long ul;
   unsigned short us;
   char tmpdata[21];
@@ -973,7 +972,7 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
        */
       if (ignore_attr_id_count)
         {
-          ignore = find_in_int_array(ignore_attr_id_array, ignore_attr_id_count, pRec->fields[i].lea_attr_id)
+          ignore = find_in_int_array(ignore_attr_id_array, ignore_attr_id_count, pRec->fields[i].lea_attr_id);
 
           if (ignore)
             {
