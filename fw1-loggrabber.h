@@ -289,6 +289,8 @@ int string_icmp (const char *, const char *);
 int string_incmp (const char *, const char *, size_t);
 char *string_toupper (const char *);
 char getschar ();
+int integer_cmp (const void *, const void *);
+int find_in_int_array (int *, int, int);
 
 /*
  * file operation functions
@@ -332,7 +334,15 @@ int create_tables = FALSE;
 char *ignore_fields = NULL;
 int ignore_fields_count = 0;
 char **ignore_fields_array = NULL;
+
+int ignore_attr_id_count = 0;
 int ignore_attr_id_array[NUMBER_FIELDS] = { 0 };
+
+/*
+ * Holds the attribute ID for the "time" field from the ATTRIB_ID databases.
+ * The value is set in the read_fw1_logfile_dict function
+ */
+int time_attr_id = -1;
 
 OpsecSession* pSession = NULL;
 OpsecEnv*     pEnv     = NULL;
