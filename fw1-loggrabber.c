@@ -1174,10 +1174,10 @@ read_fw1_logfile_dict (OpsecSession * psession, int dict_id, LEA_VT val_type,
             }
           else
             {
-            if (cfgvalues.debug_mode)
-              {
-                fprintf (stderr, "DEBUG: No attribute id found\n");
-              }
+              if (cfgvalues.debug_mode)
+                {
+                  fprintf (stderr, "DEBUG: No attribute id found\n");
+                }
               ignore_attr_id_array[x] = -1;
             }
         }
