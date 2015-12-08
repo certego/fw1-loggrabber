@@ -332,6 +332,7 @@ int create_tables = FALSE;
 char *ignore_fields = NULL;
 int ignore_fields_count = 0;
 char **ignore_fields_array = NULL;
+int ignore_attr_id_array[NUMBER_FIELDS] = { 0 };
 
 OpsecSession* pSession = NULL;
 OpsecEnv*     pEnv     = NULL;
