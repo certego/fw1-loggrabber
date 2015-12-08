@@ -966,24 +966,19 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
     {
       ignore = FALSE;
       strcpy (tmpdata, "\0");
-      szAttrib = lea_attr_name (pSession, pRec->fields[i].lea_attr_id);
 
       /*
-       * Compare the field name with the list of ignored fields.
-       * If the names match, then skip over processing this field.
+       * Compare the field attribute id with the list of ignored fields.
+       * If the IDs match, then skip over processing this field.
        */
-      for (x = 0; x < ignore_fields_count; x++)
+      if (ignore_attr_id_count)
         {
-          if (ignore_attr_id_array[x] == pRec->fields[i].lea_attr_id)
-            {
-              ignore = TRUE;
-              break;
-            }
-        }
+          ignore = find_in_int_array(ignore_attr_id_array, ignore_attr_id_count, pRec->fields[i].lea_attr_id)
 
-      if (ignore)
-        {
-          continue;
+          if (ignore)
+            {
+              continue;
+            }
         }
 
       if (!(cfgvalues.resolve_mode))
@@ -1029,26 +1024,32 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
             }
         }
 
-      if (strcmp (szAttrib, "time") == 0)
+      /*
+       * Check if the current field is the 'time' field based
+       * on its lea_attr_id value
+       */
+      if (time_attr_id == pRec->fields[i].lea_attr_id)
         {
           switch (cfgvalues.dateformat)
             {
-            case DATETIME_CP:
-              break;
-            case DATETIME_UNIX:
-              sprintf (tmpdata, "%lu",
-                   (long unsigned int) pRec->fields[i].lea_value.ul_value);
-              break;
-            case DATETIME_STD:
-              logtime = (time_t) pRec->fields[i].lea_value.ul_value;
-              datetime = localtime (&logtime);
-              strftime (tmpdata, 20, "%Y-%m-%d %H:%M:%S", datetime);
-              break;
-            default:
-              fprintf (stderr, "ERROR: Unsupported dateformat chosen\n");
-              exit_loggrabber (1);
+              case DATETIME_CP:
+                break;
+              case DATETIME_UNIX:
+                sprintf (tmpdata, "%lu",
+                     (long unsigned int) pRec->fields[i].lea_value.ul_value);
+                break;
+              case DATETIME_STD:
+                logtime = (time_t) pRec->fields[i].lea_value.ul_value;
+                datetime = localtime (&logtime);
+                strftime (tmpdata, 20, "%Y-%m-%d %H:%M:%S", datetime);
+                break;
+              default:
+                fprintf (stderr, "ERROR: Unsupported dateformat chosen\n");
+                exit_loggrabber (1);
             }
         }
+
+      szAttrib = lea_attr_name (pSession, pRec->fields[i].lea_attr_id);
 
       *field_headers[i] = string_duplicate (szAttrib);
 
@@ -1143,6 +1144,7 @@ read_fw1_logfile_dict (OpsecSession * psession, int dict_id, LEA_VT val_type,
                        int n_d_entries)
 {
   lea_value_t d_value;
+  int i;
   int x;
 
   if (cfgvalues.debug_mode >= 2)
@@ -1155,8 +1157,32 @@ read_fw1_logfile_dict (OpsecSession * psession, int dict_id, LEA_VT val_type,
       fprintf (stderr, "DEBUG: LEA logfile dict handler was invoked\n");
     }
 
-  if (ignore_fields_count && dict_id == LEA_ATTRIB_ID)
+  if (dict_id == LEA_ATTRIB_ID)
     {
+      i = 0;
+
+      if (cfgvalues.debug_mode)
+        {
+          fprintf (stderr, "DEBUG: Checking attribute id for time\n");
+        }
+      if ((lea_reverse_dictionary_lookup(psession, LEA_ATTRIB_ID, "time",
+                                         &d_value)) != LEA_NOT_FOUND)
+        {
+          if (cfgvalues.debug_mode)
+            {
+              fprintf (stderr, "DEBUG: Got attribute id %i\n", d_value.i_value);
+            }
+          time_attr_id = d_value.i_value;
+        }
+      else
+        {
+          if (cfgvalues.debug_mode)
+            {
+              fprintf (stderr, "DEBUG: No attribute id found\n");
+            }
+          time_attr_id = -1;
+        }
+
       for (x = 0; x < ignore_fields_count; x++)
         {
           if (cfgvalues.debug_mode)
@@ -1170,7 +1196,8 @@ read_fw1_logfile_dict (OpsecSession * psession, int dict_id, LEA_VT val_type,
                 {
                   fprintf (stderr, "DEBUG: Got attribute id %i\n", d_value.i_value);
                 }
-              ignore_attr_id_array[x] = d_value.i_value;
+              ignore_attr_id_array[i] = d_value.i_value;
+              i++;
             }
           else
             {
@@ -1178,8 +1205,15 @@ read_fw1_logfile_dict (OpsecSession * psession, int dict_id, LEA_VT val_type,
                 {
                   fprintf (stderr, "DEBUG: No attribute id found\n");
                 }
-              ignore_attr_id_array[x] = -1;
             }
+        }
+
+      if (i)
+        {
+          ignore_attr_id_count = i;
+
+          // sorting the array allows faster value lookups in O(log n) time
+          qsort(ignore_attr_id_array, ignore_attr_id_count, sizeof(int), integer_cmp);
         }
     }
 
@@ -5133,6 +5167,44 @@ getschar ()
   ch = getchar ();
   while ((c = getchar ()) != '\n' && c != EOF);
   return ch;
+}
+
+int
+integer_cmp (const void * a, const void * b)
+{
+  return ( *(int*)a - *(int*)b );
+}
+
+int
+find_in_int_array (int * a, int len, int val)
+{
+  int left = 0;
+  int right = len - 1;
+
+  // Fast return if the value is less than the min or greater than the max
+  if (len == 0 || val < a[left] || val > a[right])
+    {
+      return FALSE;
+    }
+
+  while (right > left + 1)
+    {
+      int middle = (right+left) / 2;
+      if (a[middle] == val)
+        {
+          return TRUE;
+        }
+      else if (a[middle] > val)
+        {
+          right = middle;
+        }
+      else
+        {
+          left = middle;
+        }
+    }
+
+  return FALSE;
 }
 
 void
