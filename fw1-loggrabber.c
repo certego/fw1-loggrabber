@@ -5186,20 +5186,20 @@ find_in_int_array (int * a, int len, int val)
       return FALSE;
     }
 
-  while (right > left + 1)
+  while (right >= left)
     {
       int middle = (right+left) / 2;
-      if (a[middle] == val)
+      if (val == a[middle])
         {
           return TRUE;
         }
-      else if (a[middle] > val)
+      else if (val > a[middle])
         {
-          right = middle;
+          left = middle + 1;
         }
       else
         {
-          left = middle;
+          right = middle - 1;
         }
     }
 
