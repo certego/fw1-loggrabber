@@ -5,14 +5,11 @@ FW1-LogGrabber is a command-line tool to grab logfiles from Checkpoint FW-1 remo
 ## Installation
 
 Building FW1-LogGrabber is supported for the Linux platform only, and has been tested with:
-* Ubuntu 12.04, GNU GCC 4.6.3
-* Gentoo ~amd64, GNU GCC 4.8.2
+* Gentoo ~amd64, GNU GCC 5.3.0
 
-FW1-LogGrabber uses API-functions from Checkpoint's [OPSEC SDK 6.0 linux30](http://supportcontent.checkpoint.com/file_download?id=7385).
+FW1-LogGrabber uses API-functions from Checkpoint's [OPSEC SDK 6.0 for Linux 50](http://supportcontent.checkpoint.com/file_download?id=48148). You must take care of downloading the Checkpoint OPSEC SDK and extracting it inside the ``OPSEC_SDK`` folder.
 
-If you are using Ubuntu, install required libraries with ``sudo apt-get install gcc-multilib g++-multilib libelf-dev:i386``
-
-Edit ``Makefile`` and change the variables CC, LD and PKG_DIR according to your environment.
+If you are using Ubuntu, install required libraries with ``sudo apt-get install gcc-multilib g++-multilib libelf-dev:i386``. You might also need to tweak some ``Makefile`` variables (e.g. ``CC``, ``LD`` and ``OPSEC_PKG_DIR``) according to your environment.
 
 Then run ``make`` to build and ``sudo make install`` to install.
 
@@ -28,7 +25,7 @@ This program is released under the GNU General Public License version 2 (GPLv2).
 
 Copyright (c) 2003-2005 Torsten Fellhauer, Xiaodong Lin
 
-Copyright (c) 2014 CERTEGO s.r.l.
+Copyright (c) 2014-2016 CERTEGO s.r.l.
 
 All rights reserved.
 
