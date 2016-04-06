@@ -4885,7 +4885,7 @@ submit_syslog (char *message)
     {
       fprintf (stderr, "DEBUG: Submit message to Syslog.\n");
     }
-  syslog (LOG_NOTICE, message);
+  syslog (LOG_NOTICE, "%s", message);
   return;
 }
 
