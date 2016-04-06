@@ -38,11 +38,12 @@ OPSEC_LIBS = \
 	-lDataStruct \
 	-lOS
 
-INSTALL_PREFIX = /usr/local/fw1-loggrabber
-SYSCONFDIR=${INSTALL_PREFIX}/etc
-BINDIR=${INSTALL_PREFIX}/bin
-MANDIR=${INSTALL_PREFIX}/man
-TEMPDIR=/tmp
+INSTALL_DIR = /usr/local/fw1-loggrabber
+INSTALL_BIN_DIR=${INSTALL_DIR}/bin
+INSTALL_ETC_DIR=${INSTALL_DIR}/etc
+INSTALL_LIB_DIR=${INSTALL_DIR}/lib
+INSTALL_MAN_DIR=${INSTALL_DIR}/man
+TEMP_DIR=/tmp
 
 %.o: %.c
 	$(CC) $(CFLAGS) -I$(OPSEC_INC_DIR) -c -o $@ $*.c
@@ -52,21 +53,25 @@ $(EXE_NAME): $(OBJ_FILES)
 
 install:
 	@echo
-	@echo "Installing FW1-Loggrabber to ${INSTALL_PREFIX}:"
+	@echo "Installing FW1-Loggrabber to ${INSTALL_DIR}:"
 	@echo
-	install -v -d -o root -g root -m 755 ${BINDIR}
-	install -v -d -o root -g root -m 755 ${SYSCONFDIR}
-	install -v -d -o root -g root -m 755 ${MANDIR}/man1
-	install -v -o root -g root -m 755 -p fw1-loggrabber ${BINDIR}/fw1-loggrabber
-	install -v -o root -g root -m 644 -p fw1-loggrabber.conf ${SYSCONFDIR}/fw1-loggrabber.conf-sample
-	install -v -o root -g root -m 644 -p lea.conf ${SYSCONFDIR}/lea.conf-sample
-	install -v -o root -g root -m 644 -p fw1-loggrabber.1 ${MANDIR}/man1/fw1-loggrabber.1
+	@install -v -o root -g root -m 755 -d ${INSTALL_BIN_DIR}
+	@install -v -o root -g root -m 755 -d ${INSTALL_ETC_DIR}
+	@install -v -o root -g root -m 755 -d ${INSTALL_LIB_DIR}
+	@install -v -o root -g root -m 755 -d ${INSTALL_MAN_DIR}/man1
+	@install -v -o root -g root -m 755 -p fw1-loggrabber ${INSTALL_BIN_DIR}/fw1-loggrabber
+	@install -v -o root -g root -m 644 -p fw1-loggrabber.conf ${INSTALL_ETC_DIR}/fw1-loggrabber.conf-sample
+	@install -v -o root -g root -m 644 -p lea.conf ${INSTALL_ETC_DIR}/lea.conf-sample
+	@install -v -o root -g root -m 644 -t ${INSTALL_LIB_DIR} ${OPSEC_LIB_DIR}/*.so
+	@install -v -o root -g root -m 644 -p fw1-loggrabber.1 ${INSTALL_MAN_DIR}/man1/fw1-loggrabber.1
 	@echo
 	@echo "Installation complete! Please declare the following environment variables in your shell configuration file:"
 	@echo
-	@echo "  LOGGRABBER_CONFIG_PATH=${SYSCONFDIR}"
+	@echo "  LD_LIBRARY_PATH=\$$LD_LIBRARY_PATH:${INSTALL_LIB_DIR}"
+	@echo "  export LD_LIBRARY_PATH"
+	@echo "  LOGGRABBER_CONFIG_PATH=${INSTALL_ETC_DIR}"
 	@echo "  export LOGGRABBER_CONFIG_PATH"
-	@echo "  LOGGRABBER_TEMP_PATH=${TEMPDIR}"
+	@echo "  LOGGRABBER_TEMP_PATH=${TEMP_DIR}"
 	@echo "  export LOGGRABBER_TEMP_PATH"
 	@echo
 

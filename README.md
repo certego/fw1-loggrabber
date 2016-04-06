@@ -1,6 +1,6 @@
 # FW1-LogGrabber
 
-FW1-LogGrabber is a command-line tool to grab logfiles from Checkpoint FW-1 remotely using Checkpoints LEA (Log Export Api), which is one part of Checkpoints OPSEC API.
+FW1-Loggrabber is a command-line tool to grab logfiles from remote Checkpoint devices using OPSEC LEA (Log Export API).
 
 ## Installation
 
@@ -11,7 +11,7 @@ FW1-LogGrabber uses API-functions from Checkpoint's [OPSEC SDK 6.0 for Linux 50]
 
 If you are using Ubuntu, install required libraries with ``sudo apt-get install gcc-multilib g++-multilib libelf-dev:i386``. You might also need to tweak some ``Makefile`` variables (e.g. ``CC``, ``LD`` and ``OPSEC_PKG_DIR``) according to your environment.
 
-Then run ``make`` to build and ``sudo make install`` to install.
+Then run ``make`` to build and ``sudo make install`` to install into default location ``/usr/local/fw1-loggrabber`` (defined by ``INSTALL_DIR`` variable). Since the binary is dynamically linked, please add ``/usr/local/fw1-loggrabber/lib`` to your ``LD_LIBRARY_PATH``.
 
 ## Documentation
 
