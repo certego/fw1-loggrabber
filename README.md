@@ -15,7 +15,7 @@ Then run ``make`` to build and ``sudo make install`` to install into default loc
 
 ## Documentation
 
-Documentation is available both as a [wiki page](https://github.com/certego/fw1-loggrabber/wiki/FW1-LOGGRABBER) and as a [man page](https://raw.githubusercontent.com/certego/fw1-loggrabber/master/fw1-loggrabber.1).
+Documentation is available as a [GitHub wiki page](https://github.com/certego/fw1-loggrabber/wiki/FW1-LOGGRABBER).
 
 ## License
 

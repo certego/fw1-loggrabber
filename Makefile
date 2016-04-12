@@ -42,7 +42,6 @@ INSTALL_DIR = /usr/local/fw1-loggrabber
 INSTALL_BIN_DIR=${INSTALL_DIR}/bin
 INSTALL_ETC_DIR=${INSTALL_DIR}/etc
 INSTALL_LIB_DIR=${INSTALL_DIR}/lib
-INSTALL_MAN_DIR=${INSTALL_DIR}/man
 TEMP_DIR=/tmp
 
 %.o: %.c
@@ -58,12 +57,10 @@ install:
 	@install -v -o root -g root -m 755 -d ${INSTALL_BIN_DIR}
 	@install -v -o root -g root -m 755 -d ${INSTALL_ETC_DIR}
 	@install -v -o root -g root -m 755 -d ${INSTALL_LIB_DIR}
-	@install -v -o root -g root -m 755 -d ${INSTALL_MAN_DIR}/man1
 	@install -v -o root -g root -m 755 -p fw1-loggrabber ${INSTALL_BIN_DIR}/fw1-loggrabber
 	@install -v -o root -g root -m 644 -p fw1-loggrabber.conf ${INSTALL_ETC_DIR}/fw1-loggrabber.conf-sample
 	@install -v -o root -g root -m 644 -p lea.conf ${INSTALL_ETC_DIR}/lea.conf-sample
 	@install -v -o root -g root -m 644 -t ${INSTALL_LIB_DIR} ${OPSEC_LIB_DIR}/*.so
-	@install -v -o root -g root -m 644 -p fw1-loggrabber.1 ${INSTALL_MAN_DIR}/man1/fw1-loggrabber.1
 	@echo
 	@echo "Installation complete! Please declare the following environment variables in your shell configuration file:"
 	@echo
