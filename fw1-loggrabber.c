@@ -2162,7 +2162,17 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
                    || (strcmp (argumentsinglevalue, "Identity Logging") == 0)
                    || (strcmp (argumentsinglevalue, "New Anti Virus") == 0)
                    || (strcmp (argumentsinglevalue, "FDE") == 0)
-                   || (strcmp (argumentsinglevalue, "Anti Malware") == 0)))
+                   || (strcmp (argumentsinglevalue, "Anti Malware") == 0)
+                   || (strcmp (argumentsinglevalue, "Application Control") == 0)
+                   || (strcmp (argumentsinglevalue, "Application Control(+)URL Filtering") == 0)
+                   || (strcmp (argumentsinglevalue, "Connectra") == 0)
+                   || (strcmp (argumentsinglevalue, "ESOD") == 0)
+                   || (strcmp (argumentsinglevalue, "Linux OS") == 0)
+                   || (strcmp (argumentsinglevalue, "Policy Server") == 0)
+                   || (strcmp (argumentsinglevalue, "Security Gateway/Management") == 0)
+                   || (strcmp (argumentsinglevalue, "Syslog") == 0)
+                   || (strcmp (argumentsinglevalue, "Threat Emulation") == 0)
+                   || (strcmp (argumentsinglevalue, "Threat Extraction") == 0)))
                 {
                   fprintf (stderr, "ERROR: invalid value for product: '%s'\n",
                            argumentsinglevalue);
