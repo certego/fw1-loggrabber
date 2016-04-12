@@ -3,7 +3,7 @@
 /******************************************************************************/
 /*                                                                            */
 /* Copyright (c) 2003-2005 Torsten Fellhauer, Xiaodong Lin                    */
-/* Copyright (c) 2014 CERTEGO s.r.l.                                          */
+/* Copyright (c) 2014-2016 CERTEGO s.r.l.                                     */
 /* All rights reserved.                                                       */
 /*                                                                            */
 /* Redistribution and use in source and binary forms, with or without         */
