@@ -1,27 +1,23 @@
 # FW1-LogGrabber
 
-FW1-Loggrabber is a command-line tool to grab logfiles from remote Checkpoint devices using OPSEC LEA (Log Export API).
-
-## Installation
-
-Building FW1-LogGrabber is supported for the Linux platform only, and has been tested with:
-* Gentoo ~amd64, GNU GCC 5.3.0
-
-FW1-LogGrabber uses API-functions from Checkpoint's [OPSEC SDK 6.0 for Linux 50](http://supportcontent.checkpoint.com/file_download?id=48148). You must take care of downloading the Checkpoint OPSEC SDK and extracting it inside the ``OPSEC_SDK`` folder.
-
-If you are using Ubuntu, install required libraries with ``sudo apt-get install gcc-multilib g++-multilib libelf-dev:i386``. You might also need to tweak some ``Makefile`` variables (e.g. ``CC``, ``LD`` and ``OPSEC_PKG_DIR``) according to your environment.
-
-Then run ``make`` to build and ``sudo make install`` to install into default location ``/usr/local/fw1-loggrabber`` (defined by ``INSTALL_DIR`` variable). Since the binary is dynamically linked, please add ``/usr/local/fw1-loggrabber/lib`` to your ``LD_LIBRARY_PATH``.
+FW1-LogGrabber is a Linux command-line tool to grab logfiles from remote Checkpoint devices. It makes extensive use of OPSEC Log Export APIs (LEA) from Checkpoint's [OPSEC SDK 6.0 for Linux 50](http://supportcontent.checkpoint.com/file_download?id=48148).
 
 ## Documentation
 
-Documentation is available as a [GitHub wiki page](https://github.com/certego/fw1-loggrabber/wiki/FW1-LOGGRABBER).
+[FW1-LogGrabber wiki](https://github.com/certego/fw1-loggrabber/wiki) contains instructions on how to:
+* [build and install FW1-LogGrabber](https://github.com/certego/fw1-loggrabber/wiki/Build-and-install-FW1-LogGrabber);
+* [configure your Checkpoint device](https://github.com/certego/fw1-loggrabber/wiki/Configure-remote-Checkpoint-device);
+* [configure and run FW1-LogGrabber](https://github.com/certego/fw1-loggrabber/wiki/Configure-and-run-FW1-LogGrabber).
 
-## License
+## License and Source Code
 
-This program is released under the GNU General Public License version 2 (GPLv2).
+This program is released under the [GNU General Public License version 2 (GPLv2)](https://github.com/certego/fw1-loggrabber/blob/master/LICENSE).
 
-## Authors
+The source code of FW1-LogGrabber is available on both:
+* https://github.com/certego/fw1-loggrabber for latest v2.0 and above;
+* https://sourceforge.net/projects/fw1-loggrabber for older versions up to v1.11.
+
+## Copyright and Authors
 
 Copyright (c) 2003-2005 Torsten Fellhauer, Xiaodong Lin
 
