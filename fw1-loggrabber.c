@@ -1880,8 +1880,9 @@ usage (char *szProgName)
       fprintf (stderr, "DEBUG: function usage\n");
     }
 
-  fprintf (stderr, "\nFW1-Loggrabber v%s\n", VERSION);
-  fprintf (stderr, "    (C)2005, Torsten Fellhauer, Xiaodong Lin\n\n");
+  fprintf (stderr, "\nFW1-LogGrabber v%s\n", VERSION);
+  fprintf (stderr, "    Copyright (c) 2003-2005 Torsten Fellhauer, Xiaodong Lin\n");
+  fprintf (stderr, "    Copyright (c) 2014-2016 CERTEGO s.r.l.\n\n");
   fprintf (stderr, "Usage:\n");
   fprintf (stderr, " %s [ options ]\n", szProgName);
   fprintf (stderr,
