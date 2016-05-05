@@ -61,7 +61,7 @@
 /*
  * Constant definitions
  */
-#define VERSION             "2.0"
+#define VERSION             "2.1"
 
 #define TRUE                1
 #define FALSE               0
