@@ -951,6 +951,7 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
   unsigned int messagecap = 0;
   time_t logtime;
   struct tm *datetime;
+  char szNum[20];
 
   if (cfgvalues.debug_mode >= 2)
     {
@@ -961,6 +962,7 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
    * process all fields of logentry
    */
   number_fields = pRec->n_fields;
+  int j = 0;
   for (i = 0; i < number_fields; i++)
     {
       ignore = FALSE;
@@ -1048,17 +1050,27 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
             }
         }
 
-      szAttrib = lea_attr_name (pSession, pRec->fields[i].lea_attr_id);
+      if (j == 0)
+        {
+          /*
+          * get record position
+          */
+          sprintf (szNum, "%d", lea_get_record_pos (pSession) - 1);
+          *field_headers[j] = string_duplicate(string_duplicate ("loc"));
+          *field_values[j] = string_duplicate (szNum);
+        }
+      j++; //increase the counter for field_headers and field_values
 
-      *field_headers[i] = string_duplicate (szAttrib);
+      szAttrib = lea_attr_name (pSession, pRec->fields[i].lea_attr_id);
+      *field_headers[j] = string_duplicate (szAttrib);
 
       if (tmpdata[0])
         {
-          *field_values[i] = string_duplicate (tmpdata);
+          *field_values[j] = string_duplicate (tmpdata);
         }
       else
         {
-          *field_values[i] =
+          *field_values[j] =
             string_duplicate (lea_resolve_field
                               (pSession, pRec->fields[i]));
         }
@@ -1067,7 +1079,8 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
   /*
    * print logentry to stdout
    */
-  for (i = 0; i < number_fields; i++)
+  number_fields = j; //get size of field_headers
+  for (i = 0; i <= number_fields; i++)
     {
       if (*field_values[i])
         {
@@ -5535,4 +5548,3 @@ ThreadFuncReturnType leaRecordProcessor( void *data ){
 
         return 0;
 }
-
