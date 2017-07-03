@@ -1429,7 +1429,7 @@ int fc_handler (OpsecEnv *pEnv, long eventid, void *raise_data, void *set_data) 
         if (eventid == initent) {
                 /* init event */
                 if (cfgvalues.debug_mode) {
-                        fprintf (stderr, "Info: User defined event has been initilized.\n");
+                        fprintf (stderr, "Info: User defined event has been initialized.\n");
                 }
                 return 0;
         }
@@ -1921,7 +1921,7 @@ usage (char *szProgName)
   fprintf (stderr,
            "  --debug-level <level>      : Specify Debuglevel (default: 0 - no debugging)\n");
   fprintf (stderr,
-           "  --help                     : Show usage informations\n");
+           "  --help                     : Show usage information\n");
 }
 
 /*
@@ -4840,7 +4840,7 @@ exit_loggrabber (int errorcode)
 }
 
 /*
- * initilization function to define open, submit and close handler
+ * initialization function to define open, submit and close handler
  */
 void
 logging_init_env (int logging)
@@ -4997,7 +4997,7 @@ open_logfile ()
 
   if (cfgvalues.debug_mode)
     {
-      fprintf (stderr, "DEBUG: Initilize log file and open log file.\n");
+      fprintf (stderr, "DEBUG: Initialize log file and open log file.\n");
     }
 
   //create current output filename
