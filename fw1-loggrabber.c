@@ -4423,7 +4423,7 @@ void
 read_config_file (char *filename, configvalues * cfgvalues)
 {
   FILE *configfile;
-  char line[256];
+  char line[4096];
   char *position;
   char *configparameter;
   char *configvalue;
