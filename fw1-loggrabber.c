@@ -1050,19 +1050,41 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
             }
         }
 
+      /*
+       * special case: "loc" is the ordinal number of the log record
+       */
       if (j == 0)
         {
-          /*
-          * get record position
-          */
+          if (*field_headers[0] != NULL)
+            {
+              free(*field_headers[0]);
+            }
+
+          *field_headers[0] = string_duplicate ("loc");
+
+          if (*field_values[0] != NULL)
+            {
+              free(*field_values[0]);
+            }
+
           sprintf (szNum, "%d", lea_get_record_pos (pSession) - 1);
-          *field_headers[j] = string_duplicate(string_duplicate ("loc"));
-          *field_values[j] = string_duplicate (szNum);
+          *field_values[0] = string_duplicate (szNum);
         }
-      j++; //increase the counter for field_headers and field_values
+
+      j++; // increase the counter for field_headers and field_values
+
+      if (*field_headers[j] != NULL)
+        {
+          free(*field_headers[j]);
+        }
 
       szAttrib = lea_attr_name (pSession, pRec->fields[i].lea_attr_id);
       *field_headers[j] = string_duplicate (szAttrib);
+
+      if (*field_values[j] != NULL)
+        {
+          free(*field_values[j]);
+        }
 
       if (tmpdata[0])
         {
