@@ -57,11 +57,12 @@
  */
 #include "queue.h"
 #include "thread.h"
+#include "fw1-cursor.h"
 
 /*
  * Constant definitions
  */
-#define VERSION             "2.1"
+#define VERSION             "2.2"
 
 #define TRUE                1
 #define FALSE               0
@@ -79,6 +80,10 @@
 #define INITIAL_CAPACITY    1024
 #define CAPACITY_INCREMENT  4096
 
+#define OFFLINE             0
+#define ONLINE              1
+#define ONLINE_RESUME       2
+
 /*
  * Type definitions
  */
@@ -92,7 +97,7 @@ stringlist;
 typedef struct configvalues
 {
   int debug_mode;
-  int online_mode;
+  int mode;
   int resolve_mode;
   int fw1_2000;
   int audit_mode;
@@ -303,7 +308,7 @@ int fileExist (const char *fileName);
 
 // Worker thread function
 ThreadFuncReturnType leaRecordProcessor( void *data );
-                                                                                                                         
+
 /*
  * pointers to functions
  */
@@ -321,7 +326,7 @@ void (*close_log) ();
  */
 int debug_mode = -1;
 int show_files = -1;
-int online_mode = -1;
+int mode = -1;
 int resolve_mode = -1;
 char *LogfileName = NULL;
 int fw1_2000 = -1;
@@ -376,7 +381,7 @@ char **field_values[NUMBER_FIELDS];
 
 configvalues cfgvalues = {
   0,                            // debug_mode
-  FALSE,                        // online_mode
+  0,                            // mode
   TRUE,                         // resolve_mode
   FALSE,                        // fw1_2000
   FALSE,                        // audit_mode
@@ -419,4 +424,3 @@ int established = FALSE;
 
 int initialCapacity = 1024;
 int capacityIncrement = 4096;
-
