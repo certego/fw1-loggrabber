@@ -5,7 +5,7 @@ CC = $(GCC_PREFIX)/bin/$(CC_CMD)
 LD = $(GCC_PREFIX)/bin/$(LD_CMD)
 
 EXE_NAME = fw1-loggrabber
-OBJ_FILES = thread.o queue.o fw1-loggrabber.o
+OBJ_FILES = thread.o queue.o fw1-cursor.o fw1-loggrabber.o
 
 CFLAGS += -m32 -g -Wall -fpic -DLINUX -DUNIXOS=1 -DDEBUG
 SYSTEM_LIBS = -lpthread -lresolv -ldl -lnsl -lelf -lstdc++ -lz

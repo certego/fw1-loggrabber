@@ -110,11 +110,15 @@ main (int argc, char *argv[])
         }
       else if (strcmp (argv[i], "--online") == 0)
         {
-          online_mode = 1;
+          mode = ONLINE;
         }
-      else if (strcmp (argv[i], "--no-online") == 0)
+      else if (strcmp (argv[i], "--online-resume") == 0)
         {
-          online_mode = 0;
+          mode = ONLINE_RESUME;
+        }
+      else if (strcmp (argv[i], "--offline") == 0)
+        {
+          mode = OFFLINE;
         }
       else if (strcmp (argv[i], "--auditlog") == 0)
         {
@@ -248,8 +252,8 @@ main (int argc, char *argv[])
    */
   cfgvalues.debug_mode =
     (debug_mode != -1) ? debug_mode : cfgvalues.debug_mode;
-  cfgvalues.online_mode =
-    (online_mode != -1) ? online_mode : cfgvalues.online_mode;
+  cfgvalues.mode =
+    (mode != -1) ? mode : cfgvalues.mode;
   cfgvalues.resolve_mode =
     (resolve_mode != -1) ? resolve_mode : cfgvalues.resolve_mode;
   cfgvalues.fw1_2000 = (fw1_2000 != -1) ? fw1_2000 : cfgvalues.fw1_2000;
@@ -316,18 +320,18 @@ main (int argc, char *argv[])
         }
     }
 
-  if (cfgvalues.online_mode && (!(cfgvalues.audit_mode))
+  if (cfgvalues.mode && (!(cfgvalues.audit_mode))
       && (strcmp (cfgvalues.fw1_logfile, "fw.log") != 0))
     {
       fprintf (stderr,
-               "ERROR: -f <FILENAME> option is not available in online mode. For use with Audit-Logfile, use --auditlog\n");
+               "ERROR: -f <FILENAME> option is not available in online modes. For use with Audit-Logfile, use --auditlog\n");
       exit_loggrabber (1);
     }
 
-  if (cfgvalues.online_mode && cfgvalues.showfiles_mode)
+  if (cfgvalues.mode && cfgvalues.showfiles_mode)
     {
       fprintf (stderr,
-               "ERROR: --showfiles option is not available in online mode.\n");
+               "ERROR: --showfiles option is not available in online modes.\n");
       exit_loggrabber (1);
     }
 
@@ -364,6 +368,17 @@ main (int argc, char *argv[])
         }
     }
 
+  /*
+   * add signal handler to stop the program properly
+   */
+  struct sigaction sa;
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_handler=&signal_handler;
+  sigemptyset(&sa.sa_mask);
+  sigaction(SIGINT,&sa,0);
+  sigaction(SIGQUIT,&sa,0);
+  sigaction(SIGTERM,&sa,0);
+
 /* A mutex object to provide safe manipulation of Check Point FW-1 event queue across multiple threads.  */
   pthread_mutex_init(&mutex, NULL);
 
@@ -373,6 +388,7 @@ main (int argc, char *argv[])
   logging_init_env (cfgvalues.log_mode);
 
   open_log ();
+  open_fw1_cursorfile (cfgvalues.fw1_logfile);
 
   createThread(&threadid, leaRecordProcessor, NULL);
 
@@ -393,8 +409,23 @@ main (int argc, char *argv[])
                (cfgvalues.showfiles_mode ? "Yes" : "No"));
       fprintf (stderr, "DEBUG: FW1-2000         : %s\n",
                (cfgvalues.fw1_2000 ? "Yes" : "No"));
-      fprintf (stderr, "DEBUG: Online-Mode      : %s\n",
-               (cfgvalues.online_mode ? "Yes" : "No"));
+               char* mode_str;
+               switch(cfgvalues.mode){
+                 case ONLINE:
+                   mode_str = "ONLINE";
+                   break;
+                 case OFFLINE:
+                   mode_str = "OFFLINE";
+                   break;
+                 case ONLINE_RESUME:
+                   mode_str = "ONLINE_RESUME";
+                   break;
+                 //default:
+                 //  strcpy (mode_str, (char*)cfgvalues.mode);
+                 //  mode_str =  cfgvalues.mode;
+               }
+      fprintf (stderr, "DEBUG: Mode             : %s\n", mode_str);
+
       fprintf (stderr, "DEBUG: Audit-Log        : %s\n",
                (cfgvalues.audit_mode ? "Yes" : "No"));
     }
@@ -402,19 +433,20 @@ main (int argc, char *argv[])
   /*
    * function call to get available Logfile-Names (not available in FW1-4.1)
    */
-  if (!(cfgvalues.fw1_2000) && !(cfgvalues.online_mode))
+  if (!(cfgvalues.fw1_2000) && !(cfgvalues.mode))
     {
       get_fw1_logfiles ();
     }
 
   if (cfgvalues.showfiles_mode)
     {
-      if ((cfgvalues.fw1_2000) || (cfgvalues.online_mode))
+      if ((cfgvalues.fw1_2000) || (cfgvalues.mode))
         {
           fprintf (stderr,
-                   "ERROR: Option --showfiles is not supported for Checkpoint FW-1 2000 or in online mode.\n");
+                   "ERROR: Option --showfiles is not supported for Checkpoint FW-1 2000 or in online modes.\n");
         }
       close_log ();
+      close_fw1_cursorfile ();
       exit_loggrabber (0);
     }
 
@@ -471,6 +503,7 @@ main (int argc, char *argv[])
     }
 
   close_log ();
+  close_fw1_cursorfile ();
 
   exit_loggrabber (0);
   return (0);
@@ -686,13 +719,20 @@ read_fw1_logfile (char **LogfileName)
       /*
        * create LEA-session. differs for connections to FW-1 4.1 and FW-1 NG
        */
+
       if (cfgvalues.fw1_2000)
         {
-          if (cfgvalues.online_mode)
+          if (cfgvalues.mode == ONLINE)
             {
               pSession =
                 lea_new_session (pClient, pServer, LEA_ONLINE, LEA_FILENAME,
                                  *LogfileName, LEA_AT_END);
+            }
+          else if (cfgvalues.mode == ONLINE_RESUME)
+            {
+              pSession =
+                lea_new_session (pClient, pServer, LEA_ONLINE, LEA_FILENAME,
+                                 *LogfileName, LEA_AT_POS, read_fw1_cursorfile ());
             }
           else
             {
@@ -713,12 +753,19 @@ read_fw1_logfile (char **LogfileName)
           /*
            * create a suspended session, i.e. not log data will be sent to client
            */
-          if (cfgvalues.online_mode)
+          if (cfgvalues.mode == ONLINE)
             {
               pSession =
                 lea_new_suspended_session (pClient, pServer, LEA_ONLINE,
                                            LEA_UNIFIED_SINGLE, *LogfileName,
                                            LEA_AT_END);
+            }
+          else if (cfgvalues.mode == ONLINE_RESUME)
+            {
+              pSession =
+                lea_new_suspended_session (pClient, pServer, LEA_ONLINE,
+                                           LEA_UNIFIED_SINGLE, *LogfileName,
+                                           LEA_AT_POS, read_fw1_cursorfile ());
             }
           else
             {
@@ -1937,7 +1984,7 @@ usage (char *szProgName)
   fprintf (stderr,
            "  --ignore-fields \"...\"      : Specify ; separated list of field names to not output to the log\n");
   fprintf (stderr,
-           "  --online|--no-online       : Enable Online mode (default: no-online)\n");
+           "  --online|--online-resume|--no-online       : Enable Online mode (default: no-online)\n");
   fprintf (stderr,
            "  --auditlog|--normallog     : Get data of audit-logfile (fw.adtlog)(default: normallog)\n");
   fprintf (stderr,
@@ -4496,16 +4543,20 @@ read_config_file (char *filename, configvalues * cfgvalues)
             {
               cfgvalues->debug_mode = atoi (string_trim (configvalue, '"'));
             }
-          else if (strcmp (configparameter, "ONLINE_MODE") == 0)
+          else if (strcmp (configparameter, "MODE") == 0)
             {
               configvalue = string_duplicate (string_trim (configvalue, '"'));
-              if (string_icmp (configvalue, "no") == 0)
+              if (string_icmp (configvalue, "OFFLINE") == 0)
                 {
-                  cfgvalues->online_mode = 0;
+                  cfgvalues->mode = OFFLINE;
                 }
-              else if (string_icmp (configvalue, "yes") == 0)
+              else if (string_icmp (configvalue, "ONLINE") == 0)
                 {
-                  cfgvalues->online_mode = 1;
+                  cfgvalues->mode = ONLINE;
+                }
+              else if (string_icmp (configvalue, "ONLINE-RESUME") == 0)
+                {
+                  cfgvalues->mode = ONLINE_RESUME;
                 }
               else
                 {
@@ -4932,6 +4983,16 @@ submit_syslog (char *message)
       fprintf (stderr, "DEBUG: Submit message to Syslog.\n");
     }
   syslog (LOG_NOTICE, "%s", message);
+
+  // update cursor
+  int nbchar = write_fw1_cursorfile (message, cfgvalues.record_separator);
+  if (nbchar != (POSITION_MAX_SIZE + 1))
+    {
+      fprintf (stderr, "ERROR: Error when updating cursor.\n");
+      fprintf (stderr, "ERROR: %d characters written instead of %d.\n", nbchar, (POSITION_MAX_SIZE + 1));
+      exit_loggrabber (1);
+    }
+
   return;
 }
 
@@ -4984,6 +5045,16 @@ submit_screen (char *message)
     }
   fprintf (stdout, "%s\n", message);
   fflush (NULL);
+
+  // update cursor
+  int nbchar = write_fw1_cursorfile (message, cfgvalues.record_separator);
+  if (nbchar != (POSITION_MAX_SIZE + 1))
+    {
+      fprintf (stderr, "ERROR: Error when updating cursor.\n");
+      fprintf (stderr, "ERROR: %d characters written instead of %d.\n", nbchar, (POSITION_MAX_SIZE + 1));
+      exit_loggrabber (1);
+    }
+
   return;
 }
 
@@ -5071,6 +5142,15 @@ submit_logfile (char *message)
     }
 
   fprintf (logstream, "%s\n", message);
+
+  // update cursor
+  int nbchar = write_fw1_cursorfile (message, cfgvalues.record_separator);
+  if (nbchar != (POSITION_MAX_SIZE + 1))
+    {
+      fprintf (stderr, "ERROR: Error when updating cursor.\n");
+      fprintf (stderr, "ERROR: %d characters written instead of %d.\n", nbchar, (POSITION_MAX_SIZE + 1));
+      exit_loggrabber (1);
+    }
 
   //Check and see if it reaches the log file limitation
   fseek (logstream, 0, SEEK_CUR);
@@ -5569,4 +5649,29 @@ ThreadFuncReturnType leaRecordProcessor( void *data ){
         }//end while
 
         return 0;
+}
+
+/* Function to quit the program properly */
+void signal_handler(int signal)
+{
+  fprintf (stderr, "Signal %d received. The program will stop properly\n", signal);
+
+  if (cfgvalues.debug_mode)
+    {
+      fprintf (stderr, "DEBUG: Stopping the main loop\n");
+    }
+  keepAlive = FALSE;
+
+  if (cfgvalues.debug_mode)
+    {
+      fprintf (stderr, "DEBUG: Stopping the thread reading message from queue\n");
+    }
+  alive = FALSE;
+  SLEEP (1); // Sleep to permit the thread stopping properly before ending OPSEC session
+
+  if (cfgvalues.debug_mode)
+    {
+      fprintf (stderr, "DEBUG: Ending the OPSEC session\n");
+    }
+  opsec_raise_event (pEnv, shutdownent, (void *) 0);
 }
