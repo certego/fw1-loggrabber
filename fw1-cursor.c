@@ -1,50 +1,20 @@
 #include "fw1-cursor.h"
 
-int read_fw1_cursorfile (const char *LogfileName) {
-  FILE *fd;
-  char line[POSITION_MAX_SIZE];
+int read_fw1_cursorfile () {
+   rewind (cursorstream);
+   fgets (cursorline, (POSITION_MAX_SIZE + 1), cursorstream);
 
-  char *current_cursor = get_fw1_cursorname (LogfileName);
-  fd = fopen (current_cursor,"r");
-
-  if (fd == NULL)
-   {
-      fprintf (stderr, "Error while opening the file %s in read mode.\n", current_cursor);
-      fprintf (stderr, "Maybe, it doesn't exist yet.\n");
-      free(current_cursor);
-      return 0;
-   }
-   free(current_cursor);
-
-   fgets (line, POSITION_MAX_SIZE, fd);
-   fclose (fd);
-
-   return atoi (line);
+   return atoi (cursorline);
 }
 
-void write_fw1_cursorfile (const char *LogfileName, const char *message, const char separator) {
-  FILE *fd;
-
-  char *current_cursor = get_fw1_cursorname (LogfileName);
+/* Write next log position
+ * return number of characters written
+ */
+int write_fw1_cursorfile (const char *message, const char separator) {
   char position[POSITION_MAX_SIZE];
   int i, j = 0;
 
-  fd = fopen (current_cursor,"r+");
-
-  if (fd == NULL)
-   {
-      fprintf (stderr, "Error while opening the file %s in r+ mode.\n", current_cursor);
-      fprintf (stderr, "Maybe, it doesn't exist yet. Trying to open it in w mode.\n");
-
-      fd = fopen (current_cursor,"w");
-      if (fd == NULL)
-      {
-          fprintf (stderr, "Error while opening the file %s in w mode also.\n", current_cursor);
-          free(current_cursor);
-          exit (EXIT_FAILURE);
-      }
-   }
-   free(current_cursor);
+  rewind (cursorstream);
 
    // Extract cuurent position from message
    for (i=4; i<strlen (message); i++)
@@ -60,20 +30,48 @@ void write_fw1_cursorfile (const char *LogfileName, const char *message, const c
      }
    }
 
-   fprintf (fd, "%d", atoi (position)+1);
-   fclose (fd);
+   return fprintf (cursorstream, "%0" TOSTRING(POSITION_MAX_SIZE) "d\n", atoi (position)+1);
 }
 
 char* get_fw1_cursorname(const char *LogfileName) {
-  char *cursor_name =
+  char *cursorname =
     (char *) malloc (strlen (LogfileName) + 7);
-  if (cursor_name == NULL)
+  if (cursorname == NULL)
     {
       fprintf (stderr, "ERROR: Out of memory\n");
       exit(EXIT_FAILURE);
     }
-  strcpy (cursor_name, LogfileName);
-  strcat (cursor_name, ".cursor");
+  strcpy (cursorname, LogfileName);
+  strcat (cursorname, ".cursor");
 
-  return cursor_name;
+  return cursorname;
+}
+
+void open_fw1_cursorfile (const char *LogfileName) {
+  char *cursorname = get_fw1_cursorname (LogfileName);
+
+  // Open the file in "a" mode first to create it if it doesn't exist yet
+  cursorstream = fopen (cursorname,"a");
+  if (cursorstream == NULL)
+   {
+      fprintf (stderr, "Error while opening the file %s in a mode.\n", cursorname);
+      free (cursorname);
+      exit(EXIT_FAILURE);
+   }
+   fclose (cursorstream);
+
+  // Open the file in "a" mode first to create it if it doesn't exist yet
+  cursorstream = fopen (cursorname,"r+");
+   if (cursorstream == NULL)
+    {
+       fprintf (stderr, "Error while opening the file %s in r+ mode.\n", cursorname);
+       free (cursorname);
+       exit(EXIT_FAILURE);
+    }
+
+    free (cursorname);
+}
+
+void  close_fw1_cursorfile() {
+  fclose (cursorstream);
 }

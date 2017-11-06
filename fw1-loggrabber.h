@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <time.h>
+#include <signal.h>
 
 #define  SLEEP(sec) sleep(sec)
 #include <netinet/in.h>
@@ -320,6 +321,9 @@ void (*submit_log) (char *message);
 
 //pointer to function close log pipe
 void (*close_log) ();
+
+//handle signal termination properly 
+void signal_handler(int signal);
 
 /*
  * Global definitions

@@ -368,6 +368,17 @@ main (int argc, char *argv[])
         }
     }
 
+  /*
+   * add signal handler to stop the program properly
+   */
+  struct sigaction sa;
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_handler=&signal_handler;
+  sigemptyset(&sa.sa_mask);
+  sigaction(SIGINT,&sa,0);
+  sigaction(SIGQUIT,&sa,0);
+  sigaction(SIGTERM,&sa,0);
+
 /* A mutex object to provide safe manipulation of Check Point FW-1 event queue across multiple threads.  */
   pthread_mutex_init(&mutex, NULL);
 
@@ -377,6 +388,7 @@ main (int argc, char *argv[])
   logging_init_env (cfgvalues.log_mode);
 
   open_log ();
+  open_fw1_cursorfile (cfgvalues.fw1_logfile);
 
   createThread(&threadid, leaRecordProcessor, NULL);
 
@@ -434,6 +446,7 @@ main (int argc, char *argv[])
                    "ERROR: Option --showfiles is not supported for Checkpoint FW-1 2000 or in online modes.\n");
         }
       close_log ();
+      close_fw1_cursorfile ();
       exit_loggrabber (0);
     }
 
@@ -490,6 +503,7 @@ main (int argc, char *argv[])
     }
 
   close_log ();
+  close_fw1_cursorfile ();
 
   exit_loggrabber (0);
   return (0);
@@ -718,7 +732,7 @@ read_fw1_logfile (char **LogfileName)
             {
               pSession =
                 lea_new_session (pClient, pServer, LEA_ONLINE, LEA_FILENAME,
-                                 *LogfileName, LEA_AT_POS, read_fw1_cursorfile (*LogfileName));
+                                 *LogfileName, LEA_AT_POS, read_fw1_cursorfile ());
             }
           else
             {
@@ -751,7 +765,7 @@ read_fw1_logfile (char **LogfileName)
               pSession =
                 lea_new_suspended_session (pClient, pServer, LEA_ONLINE,
                                            LEA_UNIFIED_SINGLE, *LogfileName,
-                                           LEA_AT_POS, read_fw1_cursorfile (*LogfileName));
+                                           LEA_AT_POS, read_fw1_cursorfile ());
             }
           else
             {
@@ -4969,7 +4983,16 @@ submit_syslog (char *message)
       fprintf (stderr, "DEBUG: Submit message to Syslog.\n");
     }
   syslog (LOG_NOTICE, "%s", message);
-  write_fw1_cursorfile ((lea_get_logfile_desc (pSession))->filename, message, cfgvalues.record_separator); // update cursor
+
+  // update cursor
+  int nbchar = write_fw1_cursorfile (message, cfgvalues.record_separator);
+  if (nbchar != (POSITION_MAX_SIZE + 1))
+    {
+      fprintf (stderr, "ERROR: Error when updating cursor.\n");
+      fprintf (stderr, "ERROR: %d characters written instead of %d.\n", nbchar, (POSITION_MAX_SIZE + 1));
+      exit_loggrabber (1);
+    }
+
   return;
 }
 
@@ -5022,7 +5045,16 @@ submit_screen (char *message)
     }
   fprintf (stdout, "%s\n", message);
   fflush (NULL);
-  write_fw1_cursorfile ((lea_get_logfile_desc (pSession))->filename, message, cfgvalues.record_separator); // update cursor
+
+  // update cursor
+  int nbchar = write_fw1_cursorfile (message, cfgvalues.record_separator);
+  if (nbchar != (POSITION_MAX_SIZE + 1))
+    {
+      fprintf (stderr, "ERROR: Error when updating cursor.\n");
+      fprintf (stderr, "ERROR: %d characters written instead of %d.\n", nbchar, (POSITION_MAX_SIZE + 1));
+      exit_loggrabber (1);
+    }
+
   return;
 }
 
@@ -5110,7 +5142,15 @@ submit_logfile (char *message)
     }
 
   fprintf (logstream, "%s\n", message);
-  write_fw1_cursorfile ((lea_get_logfile_desc (pSession))->filename, message, cfgvalues.record_separator); // update cursor
+
+  // update cursor
+  int nbchar = write_fw1_cursorfile (message, cfgvalues.record_separator);
+  if (nbchar != (POSITION_MAX_SIZE + 1))
+    {
+      fprintf (stderr, "ERROR: Error when updating cursor.\n");
+      fprintf (stderr, "ERROR: %d characters written instead of %d.\n", nbchar, (POSITION_MAX_SIZE + 1));
+      exit_loggrabber (1);
+    }
 
   //Check and see if it reaches the log file limitation
   fseek (logstream, 0, SEEK_CUR);
@@ -5609,4 +5649,29 @@ ThreadFuncReturnType leaRecordProcessor( void *data ){
         }//end while
 
         return 0;
+}
+
+/* Function to quit the program properly */
+void signal_handler(int signal)
+{
+  fprintf (stderr, "Signal %d received. The program will stop properly\n", signal);
+
+  if (cfgvalues.debug_mode)
+    {
+      fprintf (stderr, "DEBUG: Stopping the main loop\n");
+    }
+  keepAlive = FALSE;
+
+  if (cfgvalues.debug_mode)
+    {
+      fprintf (stderr, "DEBUG: Stopping the thread reading message from queue\n");
+    }
+  alive = FALSE;
+  SLEEP (1); // Sleep to permit the thread stopping properly before ending OPSEC session
+
+  if (cfgvalues.debug_mode)
+    {
+      fprintf (stderr, "DEBUG: Ending the OPSEC session\n");
+    }
+  opsec_raise_event (pEnv, shutdownent, (void *) 0);
 }
