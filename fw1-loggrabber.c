@@ -30,7 +30,7 @@
 /******************************************************************************/
 
 #include "fw1-loggrabber.h"
-
+int log_file_id=0;
 /*
  * main function
  */
@@ -464,7 +464,7 @@ main (int argc, char *argv[])
               fprintf (stderr, "DEBUG: Processing Logfile: %s\n",
                        lstptr->data);
             }
-          read_fw1_logfile (&(lstptr->data));
+          read_fw1_logfile (&(lstptr->data), lstptr->normalFID);
           lstptr = lstptr->next;
         }
     }
@@ -486,7 +486,7 @@ main (int argc, char *argv[])
               fprintf (stderr, "DEBUG: Processing Logfile: %s\n",
                        cfgvalues.fw1_logfile);
             }
-          read_fw1_logfile (&(cfgvalues.fw1_logfile));
+          read_fw1_logfile (&(cfgvalues.fw1_logfile), LEA_NORMAL_FILEID);
         }
       while (lstptr)
         {
@@ -495,7 +495,7 @@ main (int argc, char *argv[])
               fprintf (stderr, "DEBUG: Processing Logfile: %s\n",
                        foundstring);
             }
-          read_fw1_logfile (&foundstring);
+          read_fw1_logfile (&foundstring, lstptr->normalFID);
           lstptr =
             stringlist_search (&(lstptr->next), cfgvalues.fw1_logfile,
                                &foundstring);
@@ -513,7 +513,7 @@ main (int argc, char *argv[])
  * function read_fw1_logfile
  */
 int
-read_fw1_logfile (char **LogfileName)
+read_fw1_logfile (char **LogfileName, int fileid)
 {
   OpsecEntity *pClient = NULL;
   OpsecEntity *pServer = NULL;
@@ -999,12 +999,25 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
   time_t logtime;
   struct tm *datetime;
   char szNum[20];
+  lea_logdesc *logdesc = NULL;
 
   if (cfgvalues.debug_mode >= 2)
     {
       fprintf (stderr, "DEBUG: function read_fw1_logfile_record\n");
     }
-
+  if (log_file_id == 0)
+  {
+    logdesc = lea_get_logfile_desc(pSession);
+      if (!logdesc)
+      {
+        fprintf (stderr, "Failed to get logfile desc, reason: %s", opsec_errno_str(opsec_errno));
+        exit_loggrabber (1);
+      }
+    log_file_id = logdesc->fileid;
+  }
+  snprintf(szNum,sizeof(szNum),"%d",log_file_id);
+  *field_values[0] = string_duplicate(szNum);
+  *field_headers[0] = string_duplicate("fileid");
   /*
    * process all fields of logentry
    */
@@ -1102,44 +1115,43 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
        */
       if (j == 0)
         {
-          if (*field_headers[0] != NULL)
+          if (*field_headers[1] != NULL)
             {
-              free(*field_headers[0]);
+              free(*field_headers[1]);
             }
 
-          *field_headers[0] = string_duplicate ("loc");
+          *field_headers[1] = string_duplicate ("loc");
 
-          if (*field_values[0] != NULL)
+          if (*field_values[1] != NULL)
             {
-              free(*field_values[0]);
+              free(*field_values[1]);
             }
 
           sprintf (szNum, "%d", lea_get_record_pos (pSession) - 1);
-          *field_values[0] = string_duplicate (szNum);
+          *field_values[1] = string_duplicate (szNum);
         }
 
       j++; // increase the counter for field_headers and field_values
 
-      if (*field_headers[j] != NULL)
+      if (*field_headers[j+1] != NULL)
         {
-          free(*field_headers[j]);
+          free(*field_headers[j+1]);
         }
 
       szAttrib = lea_attr_name (pSession, pRec->fields[i].lea_attr_id);
-      *field_headers[j] = string_duplicate (szAttrib);
-
-      if (*field_values[j] != NULL)
+      *field_headers[j+1] = string_duplicate (szAttrib);
+      if (*field_values[j+1] != NULL)
         {
-          free(*field_values[j]);
+          free(*field_values[j+1]);
         }
 
       if (tmpdata[0])
         {
-          *field_values[j] = string_duplicate (tmpdata);
+          *field_values[j+1] = string_duplicate (tmpdata);
         }
       else
         {
-          *field_values[j] =
+          *field_values[j+1] =
             string_duplicate (lea_resolve_field
                               (pSession, pRec->fields[i]));
         }
@@ -1149,7 +1161,7 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
    * print logentry to stdout
    */
   number_fields = j; //get size of field_headers
-  for (i = 0; i <= number_fields; i++)
+  for (i = 0; i <= number_fields+1; i++)
     {
       if (*field_values[i])
         {
@@ -1179,7 +1191,7 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
     }
 
   // empty string fields
-  for (i = 0; i < number_fields; i++)
+  for (i = 0; i < number_fields+1; i++)
     {
       if (*field_headers[i] != NULL)
         {
@@ -1919,7 +1931,7 @@ get_fw1_logfiles_dict (OpsecSession * pSession, int nDictId, LEA_VT nValType,
         {
           fprintf (stderr, "- %s\n", logfile);
         }
-      stringlist_append (&sl, logfile);
+      stringlist_append (&sl, logfile, nID, aID);
       learesult = lea_get_next_file_info (pSession, &logfile, &nID, &aID);
     }
 
@@ -1997,7 +2009,7 @@ usage (char *szProgName)
  * function stringlist_append
  */
 int
-stringlist_append (stringlist ** lst, char *data)
+stringlist_append (stringlist ** lst, char *data, int normalFID, int accountFID)
 {
   if (cfgvalues.debug_mode >= 2)
     {
@@ -2027,6 +2039,8 @@ stringlist_append (stringlist ** lst, char *data)
    * append new element
    */
   (*lst)->data = string_duplicate (data);
+  (*lst)->normalFID = normalFID;
+  (*lst)->accountFID = accountFID;
   (*lst)->next = NULL;
   return 1;
 }

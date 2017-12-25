@@ -92,6 +92,8 @@ typedef struct stringlist
 {
   char *data;
   struct stringlist *next;
+  int normalFID;
+  int accountFID;
 }
 stringlist;
 
@@ -127,7 +129,7 @@ configvalues;
 /*
  * function to get the content of a given FW-1 Logfile
  */
-int read_fw1_logfile (char **);
+int read_fw1_logfile (char **, int fileid);
 
 /*
  * event handler used by read_fw1_logfile to approve a rulebase
@@ -274,7 +276,7 @@ void exit_loggrabber (int);
 /*
  * helper functions for working with lists
  */
-int stringlist_append (stringlist **, char *);
+int stringlist_append (stringlist **, char *, int, int);
 void stringlist_print (stringlist **);
 stringlist *stringlist_search (stringlist **, char *, char **);
 stringlist *stringlist_delete (stringlist **);
