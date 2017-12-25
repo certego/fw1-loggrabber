@@ -72,7 +72,7 @@
 #define DATETIME_UNIX       1
 #define DATETIME_STD        2
 
-#define NUMBER_FIELDS       128
+#define NUMBER_FIELDS       129
 
 #define SCREEN              0
 #define LOGFILE             1
