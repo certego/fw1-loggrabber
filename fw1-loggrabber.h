@@ -36,6 +36,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <signal.h>
+#include <stdbool.h>
 
 #define  SLEEP(sec) sleep(sec)
 #include <netinet/in.h>
@@ -119,6 +120,7 @@ typedef struct configvalues
   char **fw1_filter_array;
   int audit_filter_count;
   char **audit_filter_array;
+  char *last_record_location;
 }
 configvalues;
 
@@ -206,6 +208,16 @@ int get_fw1_logfiles_dict (OpsecSession *, int, LEA_VT, int);
  * event handler used by get_fw1_logfiles to get session end reason
  */
 int get_fw1_logfiles_end (OpsecSession *);
+
+/*
+ * function to parse the last record location
+ */
+bool process_last_record_location(char *ckptstring);
+
+/*
+ * function to get last record location for specifie file
+ */
+bool getStatus(const int fileId, int *last_record_location);
 
 /*
  * user defined event handle, which is used for flow control
@@ -405,7 +417,8 @@ configvalues cfgvalues = {
   0,                            // fw1_filter_count
   NULL,                         // fw1_filter_array
   0,                            // audit_filter_count
-  NULL                          // audit_filter_array
+  NULL,                          // audit_filter_array
+  ""                            //last_record_location
 };
 
 /**

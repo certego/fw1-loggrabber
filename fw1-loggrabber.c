@@ -30,7 +30,83 @@
 /******************************************************************************/
 
 #include "fw1-loggrabber.h"
+#include <errno.h>
+#include <limits.h>
 int log_file_id=0;
+long fileid_location_map[2];
+bool process_last_record_location(char *ckptstring)
+{
+  char *pair;
+  char *fileid;
+  char *last_record_location;
+  char num_str[30];
+
+    pair = strtok (ckptstring, ";");
+    while (pair!= NULL)
+    {
+        /*
+         * split argument into name and value separated by "="
+         */
+        last_record_location = strchr (pair, ':');
+        if (last_record_location == NULL)
+        {
+            fprintf(stderr, "Syntax error in ckpt argument '%s'.\n"
+                     "       Required syntax: 'fileid:last_last_record_locationation'\n",
+                     ckptstring);
+            return FALSE;
+        }
+        last_record_location++;
+        fileid = pair;
+        fileid[last_record_location - pair - 1] = '\0';
+        last_record_location = string_trim (last_record_location, ' ');
+        fileid = string_trim (fileid, ' ');
+        pair = strtok (NULL, ";");
+        snprintf (num_str, sizeof(num_str), "%d", atoi(last_record_location));
+        if (strcmp(num_str, last_record_location) != 0)
+        {
+          fprintf(stderr, "Invalid arg: --last_record_location <int:int>\n");
+          return FALSE;
+        }
+        fileid_location_map[0] = atoi(fileid);
+        fileid_location_map[1] = atoi(last_record_location);
+  }
+
+  return TRUE;
+}
+
+bool getStatus(const int fileId, int * last_record_location)
+{
+  char *endptr = NULL;
+  *last_record_location = -1;
+
+  errno = 0;
+  // to do : need confirm with ...
+  if (fileid_location_map[0] == fileId)
+    *last_record_location = fileid_location_map[1];
+  else
+  {
+    *last_record_location = -1;
+  }
+  if (*last_record_location < INT_MIN || *last_record_location > INT_MAX)
+  {
+      fprintf(stderr, "Failed to parse last_record_location %d %d\n", errno,
+      *last_record_location);
+      return false;
+  }
+  if (errno == ERANGE && (*last_record_location == LONG_MIN ||
+      *last_record_location == LONG_MAX))
+  {
+      fprintf(stderr, "Failed to parse last_record_location %d %d\n", errno,
+      *last_record_location);
+      return false;
+  }
+  if (endptr && *endptr != '\0')
+  {
+      fprintf(stderr, "%s\n", "Failed to parse last_record_location");
+      return false;
+  }
+  return true;
+}
 /*
  * main function
  */
@@ -229,6 +305,15 @@ main (int argc, char *argv[])
             }
           cfgvalues.ignore_fields = string_duplicate (argv[i]);
         }
+      else if (strcmp(argv[i], "--last_record_location") == 0)
+	      {
+	        i++;
+	        if(!process_last_record_location(argv[i]))
+	        {
+	          fprintf(stderr, "Invalid arg: invalid value for --last_record_location");
+	          exit_loggrabber (1);
+	        }
+	      }
       else
         {
           fprintf (stderr, "ERROR: Invalid argument: %s\n", argv[i]);
@@ -537,6 +622,7 @@ read_fw1_logfile (char **LogfileName, int fileid)
 
   while (keepAlive)
     {
+      int last_record_location = -1;
       /* create opsec environment for the main loop */
       if ((pEnv =
            opsec_init (OPSEC_CONF_FILE, cfgvalues.leaconfig_filename,
@@ -544,6 +630,12 @@ read_fw1_logfile (char **LogfileName, int fileid)
         {
           fprintf (stderr, "ERROR: unable to create environment (%s)\n",
                    opsec_errno_str (opsec_errno));
+          exit_loggrabber (1);
+        }
+      if (!getStatus(fileid, &last_record_location ))
+        {
+          fprintf(stderr, "Failed to get progress (%s)\n",
+          opsec_errno_str (opsec_errno));
           exit_loggrabber (1);
         }
 
@@ -724,21 +816,44 @@ read_fw1_logfile (char **LogfileName, int fileid)
         {
           if (cfgvalues.mode == ONLINE)
             {
-              pSession =
-                lea_new_session (pClient, pServer, LEA_ONLINE, LEA_FILENAME,
-                                 *LogfileName, LEA_AT_END);
+              if (last_record_location > 0)
+              {
+                pSession =lea_new_session (pClient, pServer, LEA_ONLINE, LEA_FILENAME, *LogfileName, LEA_AT_POS, last_record_location);
+              }
+              else if (read_fw1_cursorfile() > 0)
+              {
+                pSession =lea_new_session (pClient, pServer, LEA_ONLINE, LEA_FILENAME, *LogfileName, LEA_AT_POS, read_fw1_cursorfile());
+              }
+              else
+              {
+                 pSession = lea_new_session (pClient, pServer, LEA_ONLINE, LEA_FILENAME, *LogfileName, LEA_AT_END);
+              }
             }
           else if (cfgvalues.mode == ONLINE_RESUME)
             {
-              pSession =
-                lea_new_session (pClient, pServer, LEA_ONLINE, LEA_FILENAME,
-                                 *LogfileName, LEA_AT_POS, read_fw1_cursorfile ());
+              if (last_record_location > 0)
+              {
+                 pSession = lea_new_session (pClient, pServer, LEA_ONLINE, LEA_FILENAME, *LogfileName, LEA_AT_POS, last_record_location);
+              }
+              else
+              {
+                 pSession = lea_new_session (pClient, pServer, LEA_ONLINE, LEA_FILENAME, *LogfileName, LEA_AT_POS, read_fw1_cursorfile ());
+              }
             }
           else
             {
-              pSession =
-                lea_new_session (pClient, pServer, LEA_OFFLINE, LEA_FILENAME,
-                                 *LogfileName, LEA_AT_START);
+              if (last_record_location > 0)
+              {
+                 pSession = lea_new_session (pClient, pServer, LEA_OFFLINE, LEA_FILENAME, *LogfileName, LEA_AT_POS, last_record_location);
+              }
+              else if (read_fw1_cursorfile() > 0)
+              {
+                 pSession = lea_new_session (pClient, pServer, LEA_OFFLINE, LEA_FILENAME, *LogfileName, LEA_AT_POS, read_fw1_cursorfile());
+              }
+              else
+              {
+                 pSession = lea_new_session (pClient, pServer, LEA_OFFLINE, LEA_FILENAME, *LogfileName, LEA_AT_START);
+              }
             }
           if (!pSession)
             {
@@ -755,24 +870,65 @@ read_fw1_logfile (char **LogfileName, int fileid)
            */
           if (cfgvalues.mode == ONLINE)
             {
-              pSession =
-                lea_new_suspended_session (pClient, pServer, LEA_ONLINE,
-                                           LEA_UNIFIED_SINGLE, *LogfileName,
-                                           LEA_AT_END);
+              if (last_record_location > 0)
+              {
+                pSession =lea_new_suspended_session (pClient, pServer, LEA_ONLINE,LEA_UNIFIED_SINGLE, *LogfileName,LEA_AT_POS, last_record_location);
+              }
+              else if (read_fw1_cursorfile() > 0)
+              {
+                pSession =lea_new_suspended_session (pClient, pServer, LEA_ONLINE,LEA_UNIFIED_SINGLE, *LogfileName,LEA_AT_POS, read_fw1_cursorfile());
+              }
+              else
+              {
+                pSession = lea_new_suspended_session (pClient, pServer, LEA_ONLINE, LEA_UNIFIED_SINGLE, *LogfileName, LEA_AT_END);
+              }           
             }
           else if (cfgvalues.mode == ONLINE_RESUME)
             {
-              pSession =
-                lea_new_suspended_session (pClient, pServer, LEA_ONLINE,
-                                           LEA_UNIFIED_SINGLE, *LogfileName,
-                                           LEA_AT_POS, read_fw1_cursorfile ());
+              if (last_record_location > 0)
+              {
+                pSession =lea_new_suspended_session (pClient, pServer, LEA_ONLINE,LEA_UNIFIED_SINGLE, *LogfileName,LEA_AT_POS, last_record_location);
+              }
+              else
+              {
+                pSession =lea_new_suspended_session (pClient, pServer, LEA_ONLINE,LEA_UNIFIED_SINGLE, *LogfileName,LEA_AT_POS, read_fw1_cursorfile());
+              }
             }
           else
             {
-              pSession =
-                lea_new_suspended_session (pClient, pServer, LEA_OFFLINE,
-                                           LEA_UNIFIED_SINGLE, *LogfileName,
-                                           LEA_AT_START);
+              if (last_record_location > 0)
+              {
+                if (cfgvalues.audit_mode)
+                {
+                   pSession =lea_new_suspended_session (pClient, pServer, LEA_OFFLINE, LEA_UNIFIED_SINGLE, *LogfileName,LEA_AT_POS, last_record_location);
+                }
+                else
+                {
+                  pSession =lea_new_suspended_session (pClient, pServer, LEA_OFFLINE, LEA_UNIFIED_FILEID, fileid, LEA_AT_POS, last_record_location);
+                }
+              }
+              else if (read_fw1_cursorfile() > 0)
+              {
+                if (cfgvalues.audit_mode)
+                {
+                   pSession =lea_new_suspended_session (pClient, pServer, LEA_OFFLINE, LEA_UNIFIED_SINGLE, *LogfileName,LEA_AT_POS, read_fw1_cursorfile());
+                }
+                else
+                {
+                  pSession =lea_new_suspended_session (pClient, pServer, LEA_OFFLINE, LEA_UNIFIED_FILEID, fileid, LEA_AT_POS, read_fw1_cursorfile());
+                }
+              }
+              else
+              {
+                if (cfgvalues.audit_mode)
+                {
+                   pSession =lea_new_suspended_session (pClient, pServer, LEA_OFFLINE, LEA_UNIFIED_SINGLE, *LogfileName,LEA_AT_START);
+                }
+                else
+                {
+                   pSession =lea_new_suspended_session (pClient, pServer, LEA_OFFLINE, LEA_UNIFIED_FILEID, fileid, LEA_AT_START);
+                }
+              }
             }
           if (!pSession)
             {
@@ -1000,6 +1156,7 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
   struct tm *datetime;
   char szNum[20];
   lea_logdesc *logdesc = NULL;
+  int last_record_location = -1;
 
   if (cfgvalues.debug_mode >= 2)
     {
@@ -1129,6 +1286,7 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
 
           sprintf (szNum, "%d", lea_get_record_pos (pSession) - 1);
           *field_values[0] = string_duplicate (szNum);
+          fileid_location_map[0] = last_record_location + 1;
         }
 
       j++; // increase the counter for field_headers and field_values
