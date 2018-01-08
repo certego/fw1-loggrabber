@@ -34,6 +34,23 @@
 #include <limits.h>
 int log_file_id=0;
 long fileid_location_map[2];
+
+// Helper function to check the argument values
+void check_argument_value(char *argv[], int i) {
+    // If argument vakue is NULL, then error will be returned
+    if (argv[i] == NULL) {
+        fprintf(stderr, "ERROR: Invalid arg: %s\n", argv[i - 1]);
+        usage(argv[0]);
+        exit_loggrabber(1);
+    }
+
+    if (strlen(argv[i]) <= 0) {
+        fprintf(stderr, "ERROR: Invalid arg: Value expected for argument %s\n", argv[i - 1]);
+        usage(argv[0]);
+        exit_loggrabber(1);
+    }
+}
+
 bool process_last_record_location(char *ckptstring)
 {
   char *pair;
@@ -314,6 +331,46 @@ main (int argc, char *argv[])
 	          exit_loggrabber (1);
 	        }
 	      }
+      else if (strcmp(argv[i], "--lea_server_ip") == 0)
+	      {
+            i++;
+            check_argument_value(argv, i);
+            cfgvalues.lea_server_ip = string_duplicate(argv[i]);
+        }
+      else if (strcmp(argv[i], "--lea_server_auth_port") == 0)
+        {
+            i++;
+            check_argument_value(argv, i);
+            cfgvalues.lea_server_auth_port = string_duplicate(argv[i]);
+        }
+      else if (strcmp(argv[i], "--lea_server_auth_type") == 0)
+        {
+            i++;
+            check_argument_value(argv, i);
+            cfgvalues.lea_server_auth_type = string_duplicate(argv[i]);
+        }
+      else if (strcmp(argv[i], "--opsec_sslca_file") == 0)
+        {
+            i++;
+            check_argument_value(argv, i);
+            cfgvalues.opsec_sslca_file = argv[i];
+            if (!fileExist(argv[i])) {
+                fprintf(stderr, "ERROR: Invalid arg: file %s doesn't exist\n", argv[i]);
+                exit_loggrabber(1);
+            }
+        }
+      else if (strcmp(argv[i], "--opsec_sic_name") == 0)
+        {
+            i++;
+            check_argument_value(argv, i);
+            cfgvalues.opsec_sic_name = string_duplicate(argv[i]);
+        }
+      else if (strcmp(argv[i], "--opsec_entity_sic_name") == 0)
+        {
+            i++;
+            check_argument_value(argv, i);
+            cfgvalues.opsec_entity_sic_name = string_duplicate(argv[i]);
+        }
       else
         {
           fprintf (stderr, "ERROR: Invalid argument: %s\n", argv[i]);
@@ -330,7 +387,7 @@ main (int argc, char *argv[])
   /*
    * load configuration file
    */
-  read_config_file (cfgvalues.config_filename, &cfgvalues);
+  read_config_file(cfgvalues.config_filename, cfgvalues.leaconfig_filename, &cfgvalues);
 
   /*
    * check whether command line options override configfile options
@@ -623,15 +680,22 @@ read_fw1_logfile (char **LogfileName, int fileid)
   while (keepAlive)
     {
       int last_record_location = -1;
-      /* create opsec environment for the main loop */
-      if ((pEnv =
-           opsec_init (OPSEC_CONF_FILE, cfgvalues.leaconfig_filename,
-                       OPSEC_EOL)) == NULL)
-        {
-          fprintf (stderr, "ERROR: unable to create environment (%s)\n",
-                   opsec_errno_str (opsec_errno));
+      int argc = 0;
+      char** argv = NULL;
+      if (!getLeaConfigArgs(&cfgvalues, &argc, &argv))
+      {
+          fprintf(stderr, "ERROR: Failed to get splunk lea config arguments (read_fw1_logfile)\n");
           exit_loggrabber (1);
-        }
+      }
+
+      /* create opsec environment for the main loop */
+      if ((pEnv = opsec_init (OPSEC_CONF_ARGV, &argc, argv, OPSEC_EOL)) == NULL)
+      {
+          fprintf(stderr, "ERROR: Failed to create opsec environment (%s)\n",
+                    opsec_errno_str (opsec_errno));
+          exit_loggrabber (1);
+      }
+
       if (!getStatus(fileid, &last_record_location ))
         {
           fprintf(stderr, "Failed to get progress (%s)\n",
@@ -1917,14 +1981,21 @@ get_fw1_logfiles ()
       fprintf (stderr, "DEBUG: function get_fw1_logfiles\n");
     }
 
-  /* create opsec environment for the main loop */
-  if ((pEnv =
-       opsec_init (OPSEC_CONF_FILE, cfgvalues.leaconfig_filename,
-                   OPSEC_EOL)) == NULL)
+    int argc = 0;
+    char** argv = NULL;
+    if (!getLeaConfigArgs(&cfgvalues, &argc, &argv))
     {
-      fprintf (stderr, "ERROR: unable to create environment (%s)\n",
-               opsec_errno_str (opsec_errno));
-      exit_loggrabber (1);
+        fprintf(stderr, "ERROR: Failed to get splunk lea config arguments(get_fw1_logfiles)\n");
+        exit_loggrabber (1);
+
+    }
+
+    /* create opsec environment for the main loop */
+    if ((pEnv = opsec_init (OPSEC_CONF_ARGV, &argc, argv, OPSEC_EOL)) == NULL)
+    {
+        fprintf(stderr, "ERROR: Failed to create opsec environment (%s)\n",
+                  opsec_errno_str (opsec_errno));
+        exit_loggrabber (1);
     }
 
   if (cfgvalues.debug_mode)
@@ -1940,9 +2011,9 @@ get_fw1_logfiles ()
                    "ERROR: The fw1 server ip address has not been set.\n");
           exit_loggrabber (1);
         }                        //end of if
-      auth_type = opsec_get_conf (pEnv, "lea_server", "auth_type", NULL);
-      if (auth_type != NULL)
-        {
+
+        auth_type = cfgvalues.lea_server_auth_type;
+        if (auth_type != NULL) {
           //Authentication mode
           fw1_port = opsec_get_conf (pEnv, "lea_server", "auth_port", NULL);
           opsec_certificate = opsec_get_conf (pEnv, "opsec_sslca_file", NULL);
@@ -4661,313 +4732,321 @@ string_incmp (const char *str1, const char *str2, size_t count)
  * BEGIN: function to read configuration file
  */
 void
-read_config_file (char *filename, configvalues * cfgvalues)
-{
-  FILE *configfile;
+read_config_file(char *fw1_loggrabber_config_filename, char *lea_config_filename, configvalues *cfgvalues) {
+  FILE *fw1_loggrabber_configfile;
+  FILE *lea_configfile;
   char line[4096];
   char *position;
   char *configparameter;
   char *configvalue;
   char *tmpstr;
 
-  if ((configfile = fopen (filename, "r")) == NULL)
-    {
-      fprintf (stderr, "ERROR: Cannot open configfile (%s)\n", filename);
-      exit_loggrabber (1);
+    if (fileExist(fw1_loggrabber_config_filename) && (fw1_loggrabber_configfile = fopen(fw1_loggrabber_config_filename, "r")) != NULL) {
+
+        while (fgets(line, sizeof line, fw1_loggrabber_configfile)) {
+            position = strchr(line, '\n');
+            if (position) {
+                *position = 0;
+            }
+
+            position = strchr(line, '#');
+            if (position) {
+                *position = 0;
+            }
+
+            configparameter = string_trim(strtok(line, "="), ' ');
+
+            if (configparameter) {
+                configvalue = string_trim(strtok(NULL, ""), ' ');
+            }
+
+            if (configparameter && configvalue) {
+                if (debug_mode == 1) {
+                    fprintf(stderr, "DEBUG: %s=%s\n", configparameter,
+                            configvalue);
+                }
+                if (strcmp(configparameter, "RECORD_SEPARATOR") == 0) {
+                    tmpstr = string_trim(configvalue, '"');
+                    if (tmpstr) {
+                        cfgvalues->record_separator = tmpstr[0];
+                    }
+                }
+                else if (strcmp(configparameter, "DEBUG_LEVEL") == 0) {
+                    cfgvalues->debug_mode = atoi(string_trim(configvalue, '"'));
+                }
+                else if (strcmp (configparameter, "MODE") == 0)
+                {
+                  configvalue = string_duplicate (string_trim (configvalue, '"'));
+                  if (string_icmp (configvalue, "OFFLINE") == 0)
+                    {
+                      cfgvalues->mode = OFFLINE;
+                    }
+                  else if (string_icmp (configvalue, "ONLINE") == 0)
+                    {
+                      cfgvalues->mode = ONLINE;
+                    }
+                  else if (string_icmp (configvalue, "ONLINE-RESUME") == 0)
+                    {
+                      cfgvalues->mode = ONLINE_RESUME;
+                    }
+                  else
+                    {
+                      fprintf (stderr,
+                               "WARNING: Illegal entry in configuration file: %s=%s\n",
+                               configparameter, configvalue);
+                    }
+                  free (configvalue);
+                }
+                else if (strcmp(configparameter, "RESOLVE_MODE") == 0) {
+                    configvalue = string_duplicate(string_trim(configvalue, '"'));
+                    if (string_icmp(configvalue, "no") == 0) {
+                        cfgvalues->resolve_mode = 0;
+                    }
+                    else if (string_icmp(configvalue, "yes") == 0) {
+                        cfgvalues->resolve_mode = 1;
+                    }
+                    else {
+                        fprintf(stderr,
+                            "WARNING: Illegal entry in configuration file: %s=%s\n",
+                            configparameter, configvalue);
+                    }
+                    free(configvalue);
+                }
+                else if (strcmp(configparameter, "FW1_TYPE") == 0) {
+                    configvalue = string_duplicate(string_trim(configvalue, '"'));
+                    if (string_icmp(configvalue, "ng") == 0) {
+                        cfgvalues->fw1_2000 = 0;
+                    }
+                    else if (string_icmp(configvalue, "2000") == 0) {
+                        cfgvalues->fw1_2000 = 1;
+                    }
+                    else {
+                        fprintf(stderr,
+                            "WARNING: Illegal entry in configuration file: %s=%s\n",
+                            configparameter, configvalue);
+                    }
+                    free(configvalue);
+                }
+                else if (strcmp(configparameter, "FW1_MODE") == 0) {
+                    configvalue = string_duplicate(string_trim(configvalue, '"'));
+                    if (string_icmp(configvalue, "normal") == 0) {
+                        cfgvalues->audit_mode = 0;
+                    }
+                    else if (string_icmp(configvalue, "audit") == 0) {
+                        cfgvalues->audit_mode = 1;
+                    }
+                    else {
+                        fprintf(stderr,
+                            "WARNING: Illegal entry in configuration file: %s=%s\n",
+                            configparameter, configvalue);
+                    }
+                    free(configvalue);
+                }
+                else if (strcmp(configparameter, "LOGGING_CONFIGURATION") == 0) {
+                    configvalue = string_duplicate(string_trim(configvalue, '"'));
+                    if (string_icmp(configvalue, "screen") == 0) {
+                        cfgvalues->log_mode = SCREEN;
+                    }
+                    else if (string_icmp(configvalue, "file") == 0) {
+                        cfgvalues->log_mode = LOGFILE;
+                    }
+                    else if (string_icmp(configvalue, "syslog") == 0) {
+                        cfgvalues->log_mode = SYSLOG;
+                    }
+                    else {
+                        fprintf(stderr,
+                                "WARNING: Illegal entry in configuration file: %s=%s\n",
+                                configparameter, configvalue);
+                    }
+                    free(configvalue);
+                }
+                else if (strcmp(configparameter, "OUTPUT_FILE_PREFIX") == 0) {
+                    cfgvalues->output_file_prefix =
+                            string_duplicate(string_trim(configvalue, '"'));
+                }
+                else if (strcmp(configparameter, "OUTPUT_FILE_ROTATESIZE") == 0) {
+                    cfgvalues->output_file_rotatesize =
+                            atol(string_trim(configvalue, '"'));
+                }
+                else if (strcmp(configparameter, "SYSLOG_FACILITY") == 0) {
+                    configvalue = string_duplicate(string_trim(configvalue, '"'));
+                    if (string_icmp(configvalue, "user") == 0) {
+                        cfgvalues->syslog_facility = LOG_USER;
+                    } else if (string_icmp(configvalue, "local0") == 0) {
+                        cfgvalues->syslog_facility = LOG_LOCAL0;
+                    } else if (string_icmp(configvalue, "local1") == 0) {
+                        cfgvalues->syslog_facility = LOG_LOCAL1;
+                    } else if (string_icmp(configvalue, "local2") == 0) {
+                        cfgvalues->syslog_facility = LOG_LOCAL2;
+                    } else if (string_icmp(configvalue, "local3") == 0) {
+                        cfgvalues->syslog_facility = LOG_LOCAL3;
+                    } else if (string_icmp(configvalue, "local4") == 0) {
+                        cfgvalues->syslog_facility = LOG_LOCAL4;
+                    } else if (string_icmp(configvalue, "local5") == 0) {
+                        cfgvalues->syslog_facility = LOG_LOCAL5;
+                    } else if (string_icmp(configvalue, "local6") == 0) {
+                        cfgvalues->syslog_facility = LOG_LOCAL6;
+                    } else if (string_icmp(configvalue, "local7") == 0) {
+                        cfgvalues->syslog_facility = LOG_LOCAL7;
+                    } else {
+                        fprintf(stderr,
+                                "WARNING: Illegal entry in configuration file: %s=%s\n",
+                                configparameter, configvalue);
+                    }
+                    free(configvalue);
+                }
+                else if (strcmp(configparameter, "FW1_OUTPUT") == 0) {
+                    configvalue = string_duplicate(string_trim(configvalue, '"'));
+                    if (string_icmp(configvalue, "files") == 0) {
+                        cfgvalues->showfiles_mode = 1;
+                    }
+                    else if (string_icmp(configvalue, "logs") == 0) {
+                        cfgvalues->showfiles_mode = 0;
+                    }
+                    else {
+                        fprintf(stderr,
+                                "WARNING: Illegal entry in configuration file: %s=%s\n",
+                                configparameter, configvalue);
+                    }
+                    free(configvalue);
+                }
+                else if (strcmp(configparameter, "FW1_LOGFILE") == 0) {
+                    cfgvalues->fw1_logfile = string_duplicate(string_trim(configvalue, '"'));
+                }
+                else if (strcmp(configparameter, "FW1_FILTER_RULE") == 0) {
+                    cfgvalues->fw1_filter_count++;
+                    cfgvalues->fw1_filter_array =
+                            (char **) realloc(cfgvalues->fw1_filter_array,
+                                              cfgvalues->fw1_filter_count *
+                                              sizeof(char *));
+                    if (cfgvalues->fw1_filter_array == NULL) {
+                        fprintf(stderr, "ERROR: Out of memory\n");
+                        exit_loggrabber(1);
+                    }
+                    cfgvalues->fw1_filter_array[cfgvalues->fw1_filter_count - 1] =
+                            string_duplicate(string_trim(configvalue, '"'));
+                }
+                else if (strcmp(configparameter, "AUDIT_FILTER_RULE") == 0) {
+                    cfgvalues->audit_filter_count++;
+                    cfgvalues->audit_filter_array =
+                            (char **) realloc(cfgvalues->audit_filter_array,
+                                              cfgvalues->audit_filter_count *
+                                              sizeof(char *));
+                    if (cfgvalues->audit_filter_array == NULL) {
+                        fprintf(stderr, "ERROR: Out of memory\n");
+                        exit_loggrabber(1);
+                    }
+                    cfgvalues->audit_filter_array[cfgvalues->audit_filter_count -
+                                                  1] =
+                            string_duplicate(string_trim(configvalue, '"'));
+                }
+                else if (strcmp(configparameter, "IGNORE_FIELDS") == 0) {
+                    cfgvalues->ignore_fields =
+                            string_duplicate(string_trim(configvalue, '"'));
+                }
+                else if (strcmp(configparameter, "DATEFORMAT") == 0) {
+                    configvalue = string_duplicate(string_trim(configvalue, '"'));
+                    if (string_icmp(configvalue, "cp") == 0) {
+                        cfgvalues->dateformat = DATETIME_CP;
+                    }
+                    else if (string_icmp(configvalue, "unix") == 0) {
+                        cfgvalues->dateformat = DATETIME_UNIX;
+                    }
+                    else if (string_icmp(configvalue, "std") == 0) {
+                        cfgvalues->dateformat = DATETIME_STD;
+                    }
+                    else {
+                        fprintf(stderr,
+                                "WARNING: Illegal entry in configuration file: %s=%s\n",
+                                configparameter, configvalue);
+                    }
+                    free(configvalue);
+                }
+                else {
+                    fprintf(stderr,
+                            "WARNING: Illegal entry in configuration file: %s=%s\n",
+                            configparameter, configvalue);
+                }
+            }
+        }
+        fclose(fw1_loggrabber_configfile);
     }
 
-  while (fgets (line, sizeof line, configfile))
-    {
-      position = strchr (line, '\n');
-      if (position)
-        {
-          *position = 0;
-        }
 
-      position = strchr (line, '#');
-      if (position)
-        {
-          *position = 0;
-        }
+    if (fileExist(lea_config_filename) && (lea_configfile = fopen(lea_config_filename, "r")) != NULL) {
 
-      configparameter = string_trim (strtok (line, "="), ' ');
-      if (configparameter)
+        while (fgets(line, sizeof line, lea_configfile))
         {
-          configvalue = string_trim (strtok (NULL, ""), ' ');
-        }
+            position = strchr(line, '\n');
+            char *match_string_pointer = NULL;
+            if (position) {
+                *position = 0;
+            }
 
-      if (configparameter && configvalue)
-        {
-          if (debug_mode == 1)
-            {
-              fprintf (stderr, "DEBUG: %s=%s\n", configparameter,
-                       configvalue);
+            position = strchr(line, '#');
+            if (position) {
+                *position = 0;
             }
-          if (strcmp (configparameter, "RECORD_SEPARATOR") == 0)
+
+            if ((strcmp(cfgvalues->lea_server_ip, "") == 0) && ((match_string_pointer = strstr(line, "lea_server ip")) != NULL))
             {
-              tmpstr = string_trim (configvalue, '"');
-              if (tmpstr)
-                {
-                  cfgvalues->record_separator = tmpstr[0];
-                }
+                match_string_pointer = match_string_pointer + strlen("lea_server ip ");
+                cfgvalues->lea_server_ip = string_duplicate(string_trim(string_trim(string_trim(match_string_pointer, ' '), '\"'), '\''));
             }
-          else if (strcmp (configparameter, "DEBUG_LEVEL") == 0)
+
+            else if ((strcmp(cfgvalues->opsec_sic_name, "") == 0) && ((match_string_pointer = strstr(line, "opsec_sic_name ")) != NULL))
             {
-              cfgvalues->debug_mode = atoi (string_trim (configvalue, '"'));
+                match_string_pointer = match_string_pointer + strlen("opsec_sic_name ");
+                cfgvalues->opsec_sic_name = string_duplicate(string_trim(string_trim(string_trim(match_string_pointer, ' '), '\"'), '\''));
             }
-          else if (strcmp (configparameter, "MODE") == 0)
+
+            else if ((strcmp(cfgvalues->opsec_entity_sic_name, "") == 0) && 
+                ((match_string_pointer = strstr(line, "lea_server opsec_entity_sic_name ")) != NULL))
             {
-              configvalue = string_duplicate (string_trim (configvalue, '"'));
-              if (string_icmp (configvalue, "OFFLINE") == 0)
-                {
-                  cfgvalues->mode = OFFLINE;
-                }
-              else if (string_icmp (configvalue, "ONLINE") == 0)
-                {
-                  cfgvalues->mode = ONLINE;
-                }
-              else if (string_icmp (configvalue, "ONLINE-RESUME") == 0)
-                {
-                  cfgvalues->mode = ONLINE_RESUME;
-                }
-              else
-                {
-                  fprintf (stderr,
-                           "WARNING: Illegal entry in configuration file: %s=%s\n",
-                           configparameter, configvalue);
-                }
-              free (configvalue);
+                match_string_pointer = match_string_pointer + strlen("lea_server opsec_entity_sic_name ");
+                cfgvalues->opsec_entity_sic_name = string_duplicate(string_trim(string_trim(string_trim(match_string_pointer, ' '), '\"'), '\''));
             }
-          else if (strcmp (configparameter, "RESOLVE_MODE") == 0)
+     
+            else if ((strcmp(cfgvalues->opsec_sslca_file, "") == 0) && 
+                ((match_string_pointer = strstr(line, "opsec_sslca_file ")) != NULL))
             {
-              configvalue = string_duplicate (string_trim (configvalue, '"'));
-              if (string_icmp (configvalue, "no") == 0)
-                {
-                  cfgvalues->resolve_mode = 0;
-                }
-              else if (string_icmp (configvalue, "yes") == 0)
-                {
-                  cfgvalues->resolve_mode = 1;
-                }
-              else
-                {
-                  fprintf (stderr,
-                           "WARNING: Illegal entry in configuration file: %s=%s\n",
-                           configparameter, configvalue);
-                }
-              free (configvalue);
+                match_string_pointer = match_string_pointer + strlen("opsec_sslca_file ");
+                cfgvalues->opsec_sslca_file = string_duplicate(string_trim(string_trim(string_trim(match_string_pointer, ' '), '\"'), '\''));
             }
-          else if (strcmp (configparameter, "FW1_TYPE") == 0)
+
+            else if ((strcmp(cfgvalues->lea_server_auth_type, "") == 0) && 
+                ((match_string_pointer = strstr(line, "lea_server auth_type ")) != NULL))
             {
-              configvalue = string_duplicate (string_trim (configvalue, '"'));
-              if (string_icmp (configvalue, "ng") == 0)
-                {
-                  cfgvalues->fw1_2000 = 0;
-                }
-              else if (string_icmp (configvalue, "2000") == 0)
-                {
-                  cfgvalues->fw1_2000 = 1;
-                }
-              else
-                {
-                  fprintf (stderr,
-                           "WARNING: Illegal entry in configuration file: %s=%s\n",
-                           configparameter, configvalue);
-                }
-              free (configvalue);
+                match_string_pointer = match_string_pointer + strlen("lea_server auth_type ");
+                cfgvalues->lea_server_auth_type = string_duplicate(string_trim(string_trim(string_trim(match_string_pointer, ' '), '\"'), '\''));
             }
-          else if (strcmp (configparameter, "FW1_MODE") == 0)
+
+            else if ((strcmp(cfgvalues->lea_server_auth_port, "") == 0) && 
+                ((match_string_pointer = strstr(line, "lea_server auth_port ")) != NULL))
             {
-              configvalue = string_duplicate (string_trim (configvalue, '"'));
-              if (string_icmp (configvalue, "normal") == 0)
-                {
-                  cfgvalues->audit_mode = 0;
-                }
-              else if (string_icmp (configvalue, "audit") == 0)
-                {
-                  cfgvalues->audit_mode = 1;
-                }
-              else
-                {
-                  fprintf (stderr,
-                           "WARNING: Illegal entry in configuration file: %s=%s\n",
-                           configparameter, configvalue);
-                }
-              free (configvalue);
+                match_string_pointer = match_string_pointer + strlen("lea_server auth_port ");
+                cfgvalues->lea_server_auth_port = string_duplicate(string_trim(string_trim(string_trim(match_string_pointer, ' '), '\"'), '\''));
             }
-          else if (strcmp (configparameter, "LOGGING_CONFIGURATION") == 0)
-            {
-              configvalue = string_duplicate (string_trim (configvalue, '"'));
-              if (string_icmp (configvalue, "screen") == 0)
-                {
-                  cfgvalues->log_mode = SCREEN;
-                }
-              else if (string_icmp (configvalue, "file") == 0)
-                {
-                  cfgvalues->log_mode = LOGFILE;
-                }
-              else if (string_icmp (configvalue, "syslog") == 0)
-                {
-                  cfgvalues->log_mode = SYSLOG;
-                }
-              else
-                {
-                  fprintf (stderr,
-                           "WARNING: Illegal entry in configuration file: %s=%s\n",
-                           configparameter, configvalue);
-                }
-              free (configvalue);
-            }
-          else if (strcmp (configparameter, "OUTPUT_FILE_PREFIX") == 0)
-            {
-              cfgvalues->output_file_prefix =
-                string_duplicate (string_trim (configvalue, '"'));
-            }
-          else if (strcmp (configparameter, "OUTPUT_FILE_ROTATESIZE") == 0)
-            {
-              cfgvalues->output_file_rotatesize =
-                atol (string_trim (configvalue, '"'));
-            }
-          else if (strcmp (configparameter, "SYSLOG_FACILITY") == 0)
-            {
-              configvalue = string_duplicate (string_trim (configvalue, '"'));
-              if (string_icmp (configvalue, "user") == 0)
-                {
-                  cfgvalues->syslog_facility = LOG_USER;
-                }
-              else if (string_icmp (configvalue, "local0") == 0)
-                {
-                  cfgvalues->syslog_facility = LOG_LOCAL0;
-                }
-              else if (string_icmp (configvalue, "local1") == 0)
-                {
-                  cfgvalues->syslog_facility = LOG_LOCAL1;
-                }
-              else if (string_icmp (configvalue, "local2") == 0)
-                {
-                  cfgvalues->syslog_facility = LOG_LOCAL2;
-                }
-              else if (string_icmp (configvalue, "local3") == 0)
-                {
-                  cfgvalues->syslog_facility = LOG_LOCAL3;
-                }
-              else if (string_icmp (configvalue, "local4") == 0)
-                {
-                  cfgvalues->syslog_facility = LOG_LOCAL4;
-                }
-              else if (string_icmp (configvalue, "local5") == 0)
-                {
-                  cfgvalues->syslog_facility = LOG_LOCAL5;
-                }
-              else if (string_icmp (configvalue, "local6") == 0)
-                {
-                  cfgvalues->syslog_facility = LOG_LOCAL6;
-                }
-              else if (string_icmp (configvalue, "local7") == 0)
-                {
-                  cfgvalues->syslog_facility = LOG_LOCAL7;
-                }
-              else
-                {
-                  fprintf (stderr,
-                           "WARNING: Illegal entry in configuration file: %s=%s\n",
-                           configparameter, configvalue);
-                }
-              free (configvalue);
-            }
-          else if (strcmp (configparameter, "FW1_OUTPUT") == 0)
-            {
-              configvalue = string_duplicate (string_trim (configvalue, '"'));
-              if (string_icmp (configvalue, "files") == 0)
-                {
-                  cfgvalues->showfiles_mode = 1;
-                }
-              else if (string_icmp (configvalue, "logs") == 0)
-                {
-                  cfgvalues->showfiles_mode = 0;
-                }
-              else
-                {
-                  fprintf (stderr,
-                           "WARNING: Illegal entry in configuration file: %s=%s\n",
-                           configparameter, configvalue);
-                }
-              free (configvalue);
-            }
-          else if (strcmp (configparameter, "FW1_LOGFILE") == 0)
-            {
-              cfgvalues->fw1_logfile =
-                string_duplicate (string_trim (configvalue, '"'));
-            }
-          else if (strcmp (configparameter, "FW1_FILTER_RULE") == 0)
-            {
-              cfgvalues->fw1_filter_count++;
-              cfgvalues->fw1_filter_array =
-                (char **) realloc (cfgvalues->fw1_filter_array,
-                                   cfgvalues->fw1_filter_count *
-                                   sizeof (char *));
-              if (cfgvalues->fw1_filter_array == NULL)
-                {
-                  fprintf (stderr, "ERROR: Out of memory\n");
-                  exit_loggrabber (1);
-                }
-              cfgvalues->fw1_filter_array[cfgvalues->fw1_filter_count - 1] =
-                string_duplicate (string_trim (configvalue, '"'));
-            }
-          else if (strcmp (configparameter, "AUDIT_FILTER_RULE") == 0)
-            {
-              cfgvalues->audit_filter_count++;
-              cfgvalues->audit_filter_array =
-                (char **) realloc (cfgvalues->audit_filter_array,
-                                   cfgvalues->audit_filter_count *
-                                   sizeof (char *));
-              if (cfgvalues->audit_filter_array == NULL)
-                {
-                  fprintf (stderr, "ERROR: Out of memory\n");
-                  exit_loggrabber (1);
-                }
-              cfgvalues->audit_filter_array[cfgvalues->audit_filter_count -
-                                            1] =
-                string_duplicate (string_trim (configvalue, '"'));
-            }
-          else if (strcmp (configparameter, "IGNORE_FIELDS") == 0)
-            {
-              cfgvalues->ignore_fields =
-                string_duplicate (string_trim (configvalue, '"'));
-            }
-          else if (strcmp (configparameter, "DATEFORMAT") == 0)
-            {
-              configvalue = string_duplicate (string_trim (configvalue, '"'));
-              if (string_icmp (configvalue, "cp") == 0)
-                {
-                  cfgvalues->dateformat = DATETIME_CP;
-                }
-              else if (string_icmp (configvalue, "unix") == 0)
-                {
-                  cfgvalues->dateformat = DATETIME_UNIX;
-                }
-              else if (string_icmp (configvalue, "std") == 0)
-                {
-                  cfgvalues->dateformat = DATETIME_STD;
-                }
-              else
-                {
-                  fprintf (stderr,
-                       "WARNING: Illegal entry in configuration file: %s=%s\n",
-                       configparameter, configvalue);
-                }
-              free (configvalue);
-            }
-          else
-            {
-              fprintf (stderr,
-                       "WARNING: Illegal entry in configuration file: %s=%s\n",
-                       configparameter, configvalue);
+        }
+        fclose(lea_configfile);
+
+        // no opsec_sslca_file specified in lea.conf, so we probably don't need one...
+        if (cfgvalues->opsec_sslca_file != NULL) {
+            // first character of opsec_sslca_file filename is '/' -> absolute path
+            if (!(cfgvalues->opsec_sslca_file[0] == '/')) {
+                fprintf(stderr,
+                        "WARNING: You specified a relative path for opsec_sslca_file in\n");
+                fprintf(stderr, "         %s. When not using an\n", lea_config_filename);
+                fprintf(stderr,
+                        "         absolute path, the certificate will be searched in\n");
+                fprintf(stderr,
+                        "         $LOGGRABBER_TEMP_PATH or in current working.\n");
+                fprintf(stderr,
+                        "         directory if $LOGGRABBER_TEMP_PATH is not set.\n");
             }
         }
     }
 
-  fclose (configfile);
 }
 
 /*
@@ -5509,11 +5588,10 @@ check_config_files (char *loggrabberconf, char *leaconf)
 {
   char *configdir;
   char *tempdir;
-  char *opsecfile = NULL;
   char *tmpleaconf = NULL;
   char *tmploggrabberconf = NULL;
-  char filebuff[1024];
   char *tempbuffer;
+
 
   FILE *filetest;
 
@@ -5575,36 +5653,35 @@ check_config_files (char *loggrabberconf, char *leaconf)
           strcat (tmploggrabberconf, "/");
           strcat (tmploggrabberconf, loggrabberconf);
 
-          // also cannot read fw1-loggrabber.conf in LOGGRABBER_CONFIG_PATH
-          if ((filetest = fopen (tmploggrabberconf, "r")) == NULL)
-            {
-              fprintf (stderr,
-                       "ERROR: Cannot open FW1-Loggrabber configuration file (%s)\n",
-                       loggrabberconf);
-              fprintf (stderr,
-                       "       Specify either a absolute fw1-loggrabber.conf path on commandline,\n");
-              fprintf (stderr,
-                       "       or place fw1-loggrabber.conf into current working directory\n");
-              fprintf (stderr,
-                       "       or $LOGGRABBER_CONFIG_PATH directory.\n");
-              exit_loggrabber (1);
-            }
-          else
-            {
+            // also cannot read fw1-loggrabber.conf in LOGGRABBER_CONFIG_PATH
+            if ((filetest = fopen(tmploggrabberconf, "r")) == NULL) {
+                fprintf(stderr,
+                        "WARNING: Cannot open FW1-Loggrabber configuration file (%s)\n",
+                        loggrabberconf);
+                fprintf(stderr,
+                        "       Specify either a absolute fw1-loggrabber.conf path on commandline,\n");
+                fprintf(stderr,
+                        "       or place fw1-loggrabber.conf into current working directory\n");
+                fprintf(stderr,
+                        "       or $LOGGRABBER_CONFIG_PATH directory.\n");
+                fprintf(stderr, 
+                        "       Configuration values will be read from the command line arguments if provided, else will consider the default values\n");
+            } else {
               fclose (filetest);
             }
         }
       else
         {
-          fprintf (stderr,
-                   "ERROR: Cannot open FW1-Loggrabber configuration file (%s)\n",
-                   loggrabberconf);
-          fprintf (stderr,
-                   "       Specify either a absolute fw1-loggrabber.conf path on commandline,\n");
-          fprintf (stderr,
-                   "       or place fw1-loggrabber.conf into current working directory\n");
-          fprintf (stderr, "       or $LOGGRABBER_CONFIG_PATH directory.\n");
-          exit_loggrabber (1);
+            fprintf(stderr,
+                    "WARNING: Cannot open FW1-Loggrabber configuration file (%s)\n",
+                    loggrabberconf);
+            fprintf(stderr,
+                    "       Specify either a absolute fw1-loggrabber.conf path on commandline,\n");
+            fprintf(stderr,
+                    "       or place fw1-loggrabber.conf into current working directory\n");
+            fprintf(stderr, "       or $LOGGRABBER_CONFIG_PATH directory.\n");
+            fprintf(stderr, 
+                    "       Configuration values will be read from the command line arguments if provided, else will consider the default value of the configuration parameters\n");
         }
     }
   else
@@ -5660,82 +5737,37 @@ check_config_files (char *loggrabberconf, char *leaconf)
           strcat (tmpleaconf, "/");
           strcat (tmpleaconf, leaconf);
 
-          // also cannot read lea.conf in LOGGRABBER_CONFIG_PATH
-          if ((filetest = fopen (tmpleaconf, "r")) == NULL)
-            {
-              fprintf (stderr,
-                       "ERROR: Cannot open LEA configuration file (%s)\n",
-                       leaconf);
-              fprintf (stderr,
-                       "       Specify either a absolute lea.conf path on commandline,\n");
-              fprintf (stderr,
-                       "       or place lea.conf into current working directory\n");
-              fprintf (stderr,
-                       "       or $LOGGRABBER_CONFIG_PATH directory.\n");
-              exit_loggrabber (1);
+            // also cannot read lea.conf in LOGGRABBER_CONFIG_PATH
+            if ((filetest = fopen(tmpleaconf, "r")) == NULL) {
+                fprintf(stderr,
+                        "WARNING: Cannot open LEA configuration file (%s)\n",
+                        leaconf);
+                fprintf(stderr,
+                        "       Specify either a absolute lea.conf path on commandline,\n");
+                fprintf(stderr,
+                        "       or place lea.conf into current working directory\n");
+                fprintf(stderr,
+                        "       or $LOGGRABBER_CONFIG_PATH directory.\n");
+                fprintf(stderr,
+                        "       Configuration values will be read from the command line arguments if provided.\n");
+            } else {
+                fclose(filetest);
             }
-          else
-            {
-              fclose (filetest);
-            }
-        }
-      else
-        {
-          fprintf (stderr, "ERROR: Cannot open LEA configuration file (%s)\n",
-                   leaconf);
-          fprintf (stderr,
-                   "       Specify either a absolute lea.conf path on commandline,\n");
-          fprintf (stderr,
-                   "       or place lea.conf into current working directory\n");
-          fprintf (stderr, "       or $LOGGRABBER_CONFIG_PATH directory.\n");
-          exit_loggrabber (1);
+        } else {
+            fprintf(stderr, "WARNING: Cannot open LEA configuration file (%s)\n",
+                    leaconf);
+            fprintf(stderr,
+                    "       Specify either a absolute lea.conf path on commandline,\n");
+            fprintf(stderr,
+                    "       or place lea.conf into current working directory\n");
+            fprintf(stderr, "       or $LOGGRABBER_CONFIG_PATH directory.\n");
+            fprintf(stderr,
+                        "       Configuration values will be read from the command line arguments if provided.\n");
         }
     }
   else
     {
       fclose (filetest);
-    }
-
-  // open lea.conf in order to get opsec_sslca_file value
-  if ((filetest = fopen (tmpleaconf, "r")) == NULL)
-    {
-      fprintf (stderr, "ERROR: Cannot open LEA configuration file (%s)\n",
-               leaconf);
-      fprintf (stderr,
-               "       Specify either a absolute lea.conf path on commandline,\n");
-      fprintf (stderr,
-               "       or place lea.conf into current working directory\n");
-      fprintf (stderr, "       or $LOGGRABBER_CONFIG_PATH directory.\n");
-      exit_loggrabber (1);
-    }
-  else
-    {
-      while (fgets (filebuff, 1023, filetest))
-        {
-          if (string_incmp (filebuff, "opsec_sslca_file", 16) == 0)
-            {
-              opsecfile = string_trim (filebuff + (16 * sizeof (char)), ' ');
-              break;
-            }
-        }
-    }
-
-  // no opsec_sslca_file specified in lea.conf, so we probably don't need one...
-  if (opsecfile != NULL)
-    {
-      // first character of opsec_sslca_file filename is '/' -> absolute path
-      if (!(opsecfile[0] == '/'))
-        {
-          fprintf (stderr,
-                   "WARNING: You specified a relative path for opsec_sslca_file in\n");
-          fprintf (stderr, "         %s. When not using an\n", tmpleaconf);
-          fprintf (stderr,
-                   "         absolute path, the certificate will be searched in\n");
-          fprintf (stderr,
-                   "         $LOGGRABBER_TEMP_PATH or in current working.\n");
-          fprintf (stderr,
-                   "         directory if $LOGGRABBER_TEMP_PATH is not set.\n");
-        }
     }
 
   cfgvalues.leaconfig_filename = string_duplicate (tmpleaconf);
@@ -5846,4 +5878,162 @@ void signal_handler(int signal)
       fprintf (stderr, "DEBUG: Ending the OPSEC session\n");
     }
   opsec_raise_event (pEnv, shutdownent, (void *) 0);
+}
+
+// Helper function to allocate memory to a string value, and returns the pointer to the memory where the string is
+// stored
+char* allocParam(char * sstream)
+{
+    char* result = (char *) malloc (strlen(sstream) + 1);
+    strcpy(result, sstream);
+    return result;
+}
+
+// Helper function to add configuration values in the format that is required by OPSEC SDK for creating the session
+bool getLeaConfigArgs(configvalues *cfgvalues, int *argc, char***argv)
+{
+    // Directly re-initing count will lost the previous existing filters
+    // cfgvalues.fw1_filter_count = 0;
+    // char *sstream = NULL;
+    int i = 0;
+
+    *argv = malloc (MAX_LEA_PARAM);
+    {
+        (*argv)[i++] = allocParam("-v");
+    }
+    {
+        // stringstream sstream;
+        // sstream << "opsec_sic_name" ;
+        (*argv)[i++] = allocParam("opsec_sic_name");
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << cfgvalues->opsec_sic_name;
+        (*argv)[i++] = allocParam(cfgvalues->opsec_sic_name);
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << "-v";
+        (*argv)[i++] = allocParam("-v");
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << "opsec_sslca_file" ;
+        (*argv)[i++] = allocParam("opsec_sslca_file");
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << cfgvalues->opsec_sslca_file;
+        (*argv)[i++] = allocParam(cfgvalues->opsec_sslca_file);
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << "-v";
+        (*argv)[i++] = allocParam("-v");
+    }
+    {
+        // stringstream sstream;
+        // sstream << "lea_server";
+        (*argv)[i++] = allocParam("lea_server");
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << "ip";
+        (*argv)[i++] = allocParam("ip");
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << cfgvalues->lea_server_ip;
+        (*argv)[i++] = allocParam(cfgvalues->lea_server_ip);
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << "-v";
+        (*argv)[i++] = allocParam("-v");
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << "lea_server";
+        (*argv)[i++] = allocParam("lea_server");
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << "auth_port";
+        (*argv)[i++] = allocParam("auth_port");
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << cfgvalues->lea_server_auth_port;
+        (*argv)[i++] = allocParam(cfgvalues->lea_server_auth_port);
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << "-v";
+        (*argv)[i++] = allocParam("-v");
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << "lea_server";
+        (*argv)[i++] = allocParam("lea_server");
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << "auth_type";
+        (*argv)[i++] = allocParam("auth_type");
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << cfgvalues->lea_server_auth_type;
+        (*argv)[i++] = allocParam(cfgvalues->lea_server_auth_type);
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << "-v";
+        (*argv)[i++] = allocParam("-v");
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << "lea_server";
+        (*argv)[i++] = allocParam("lea_server");
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << "opsec_entity_sic_name";
+        (*argv)[i++] = allocParam("opsec_entity_sic_name");
+    }
+
+    {
+        // stringstream sstream;
+        // sstream << cfgvalues->opsec_entity_sic_name;
+        (*argv)[i++] = allocParam(cfgvalues->opsec_entity_sic_name);
+    }
+
+    *argc = i;
+
+    if (cfgvalues->debug_mode) {
+        for (i = 0; i < *argc; i++)
+        {
+            fprintf(stderr, "DEBUG: lea arg: %s\n", (*argv)[i]);
+        }
+    }
+
+    return true;
 }

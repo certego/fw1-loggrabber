@@ -121,6 +121,12 @@ typedef struct configvalues
   int audit_filter_count;
   char **audit_filter_array;
   char *last_record_location;
+  char *lea_server_ip;
+  char *lea_server_auth_port;
+  char *lea_server_auth_type;
+  char *opsec_sic_name;
+  char *opsec_sslca_file;
+  char *opsec_entity_sic_name;
 }
 configvalues;
 
@@ -240,7 +246,7 @@ void cleanup_fw1_environment (OpsecEnv *, OpsecEntity *, OpsecEntity *);
  * function to read configfile
  */
 void check_config_files (char *, char *);
-void read_config_file (char *, struct configvalues *);
+void read_config_file (char *, char *, struct configvalues *);
 
 /*
  * initilization function to define open, submit and close handler
@@ -340,6 +346,11 @@ void (*close_log) ();
 void signal_handler(int signal);
 
 /*
+ * funtion to get lea confg args to call SDK
+ */
+bool getLeaConfigArgs(configvalues *cfgvalues, int *argc, char***argv);
+
+/*
  * Global definitions
  */
 int debug_mode = -1;
@@ -357,7 +368,12 @@ int create_tables = FALSE;
 char *ignore_fields = NULL;
 int ignore_fields_count = 0;
 char **ignore_fields_array = NULL;
-
+char *lea_server_ip = NULL;
+char *lea_server_auth_port = NULL;
+char *lea_server_auth_type = NULL;
+char *opsec_sic_name = NULL;
+char *opsec_sslca_file = NULL;
+char *opsec_entity_sic_name = NULL;
 int ignore_attr_id_count = 0;
 int ignore_attr_id_array[NUMBER_FIELDS] = { 0 };
 
@@ -417,8 +433,14 @@ configvalues cfgvalues = {
   0,                            // fw1_filter_count
   NULL,                         // fw1_filter_array
   0,                            // audit_filter_count
-  NULL,                          // audit_filter_array
-  ""                            //last_record_location
+  NULL,                         // audit_filter_array
+  "",                           //last_record_location
+  "",                           // lea_server_ip
+  "18184",                      // lea_server_auth_port
+  "sslca",                      // lea_server_auth_type
+  "",                           // opsec_sic_name
+  "",                           // opsec_sslca_file
+  ""                            // opsec_entity_sic_name
 };
 
 /**
@@ -443,3 +465,5 @@ int established = FALSE;
 
 int initialCapacity = 1024;
 int capacityIncrement = 4096;
+
+#define MAX_LEA_PARAM 256
