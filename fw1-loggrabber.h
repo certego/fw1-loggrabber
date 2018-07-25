@@ -127,7 +127,7 @@ configvalues;
 /*
  * function to get the content of a given FW-1 Logfile
  */
-int read_fw1_logfile (char **);
+int read_fw1_logfile (char **,int);
 
 /*
  * event handler used by read_fw1_logfile to approve a rulebase

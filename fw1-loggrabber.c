@@ -38,6 +38,7 @@ int
 main (int argc, char *argv[])
 {
   int i;
+  int record_num = 0;
   stringlist *lstptr;
   char *foundstring;
   char *field;
@@ -127,6 +128,25 @@ main (int argc, char *argv[])
       else if (strcmp (argv[i], "--normallog") == 0)
         {
           audit_log = 0;
+        }
+      else if (strcmp (argv[i], "--loc") == 0)
+        {
+          i++;
+          if ( argv[i] == NULL )
+            {
+              fprintf (stderr, "ERROR: Value expected for argument: %s\n", argv[i - 1]);
+              usage (argv[0]);
+              exit_loggrabber (1);
+            }
+          if (argv[i][0] == '-')
+            {
+              fprintf (stderr, "ERROR: Value expected for argument %s\n",
+                       argv[i - 1]);
+              usage (argv[0]);
+              exit_loggrabber (1);
+            }
+
+          record_num = atoi ( argv[i] );
         }
       else if ((strcmp (argv[i], "-f") == 0)
                || (strcmp (argv[i], "--logfile") == 0))
@@ -464,7 +484,7 @@ main (int argc, char *argv[])
               fprintf (stderr, "DEBUG: Processing Logfile: %s\n",
                        lstptr->data);
             }
-          read_fw1_logfile (&(lstptr->data));
+          read_fw1_logfile (&(lstptr->data), record_num);
           lstptr = lstptr->next;
         }
     }
@@ -486,7 +506,7 @@ main (int argc, char *argv[])
               fprintf (stderr, "DEBUG: Processing Logfile: %s\n",
                        cfgvalues.fw1_logfile);
             }
-          read_fw1_logfile (&(cfgvalues.fw1_logfile));
+          read_fw1_logfile (&(cfgvalues.fw1_logfile), record_num);
         }
       while (lstptr)
         {
@@ -495,7 +515,7 @@ main (int argc, char *argv[])
               fprintf (stderr, "DEBUG: Processing Logfile: %s\n",
                        foundstring);
             }
-          read_fw1_logfile (&foundstring);
+          read_fw1_logfile (&foundstring, record_num);
           lstptr =
             stringlist_search (&(lstptr->next), cfgvalues.fw1_logfile,
                                &foundstring);
@@ -513,7 +533,7 @@ main (int argc, char *argv[])
  * function read_fw1_logfile
  */
 int
-read_fw1_logfile (char **LogfileName)
+read_fw1_logfile (char **LogfileName, int record_num)
 {
   OpsecEntity *pClient = NULL;
   OpsecEntity *pServer = NULL;
@@ -769,15 +789,24 @@ read_fw1_logfile (char **LogfileName)
             }
           else
             {
-              pSession =
-                lea_new_suspended_session (pClient, pServer, LEA_OFFLINE,
-                                           LEA_UNIFIED_SINGLE, *LogfileName,
-                                           LEA_AT_START);
+              if ( record_num > 0 )
+                {
+                  pSession = lea_new_suspended_session (pClient, pServer, LEA_OFFLINE,
+                                                        LEA_UNIFIED_SINGLE, *LogfileName,
+                                                        LEA_AT_POS, record_num);
+                }
+              else
+                {
+                  pSession =
+                    lea_new_suspended_session (pClient, pServer, LEA_OFFLINE,
+                                               LEA_UNIFIED_SINGLE, *LogfileName,
+                                               LEA_AT_START);
+                }
             }
           if (!pSession)
             {
-              fprintf (stderr, "ERROR: failed to create session (%s)\n",
-                       opsec_errno_str (opsec_errno));
+              fprintf (stderr, "ERROR: failed to create session (%s), loc=%d\n",
+                       opsec_errno_str (opsec_errno), record_num);
               cleanup_fw1_environment (pEnv, pClient, pServer);
               exit_loggrabber (1);
             }
@@ -1989,6 +2018,8 @@ usage (char *szProgName)
            "  --auditlog|--normallog     : Get data of audit-logfile (fw.adtlog)(default: normallog)\n");
   fprintf (stderr,
            "  --debug-level <level>      : Specify Debuglevel (default: 0 - no debugging)\n");
+  fprintf (stderr,
+           "  --loc <record number>      : Starting record number (default: 0 - start at the beginning of the log, ng only)\n");
   fprintf (stderr,
            "  --help                     : Show usage information\n");
 }
