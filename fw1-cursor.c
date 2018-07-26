@@ -1,5 +1,7 @@
 #include "fw1-cursor.h"
 
+#define CURSOR_FILE_EXT ".cursor"
+
 int read_fw1_cursorfile () {
    rewind (cursorstream);
    fgets (cursorline, (POSITION_MAX_SIZE + 1), cursorstream);
@@ -35,14 +37,14 @@ int write_fw1_cursorfile (const char *message, const char separator) {
 
 char* get_fw1_cursorname(const char *LogfileName) {
   char *cursorname =
-    (char *) malloc (strlen (LogfileName) + 7);
+    (char *) malloc (sizeof(char) * (strlen (LogfileName) + strlen (CURSOR_FILE_EXT) + 1));
   if (cursorname == NULL)
     {
       fprintf (stderr, "ERROR: Out of memory\n");
       exit(EXIT_FAILURE);
     }
   strcpy (cursorname, LogfileName);
-  strcat (cursorname, ".cursor");
+  strcat (cursorname, CURSOR_FILE_EXT);
 
   return cursorname;
 }
