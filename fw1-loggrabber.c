@@ -132,21 +132,28 @@ main (int argc, char *argv[])
       else if (strcmp (argv[i], "--loc") == 0)
         {
           i++;
-          if ( argv[i] == NULL )
+          if ( argv[i] == NULL || argv[i][0] == '-')
             {
-              fprintf (stderr, "ERROR: Value expected for argument: %s\n", argv[i - 1]);
-              usage (argv[0]);
-              exit_loggrabber (1);
-            }
-          if (argv[i][0] == '-')
-            {
-              fprintf (stderr, "ERROR: Value expected for argument %s\n",
+              fprintf (stderr, "ERROR: 0 or positive value expected for argument %s\n",
                        argv[i - 1]);
               usage (argv[0]);
               exit_loggrabber (1);
             }
 
-          record_num = atoi ( argv[i] );
+          errno = 0;
+          long raw_record_num = strtol ( argv[i], NULL, 10 );
+          if ( errno == ERANGE || raw_record_num < 0 || raw_record_num > INT_MAX)
+            {
+              fprintf (stderr,
+                       "WARNING: %s expects an integer range value greater than or equal to 0\n"
+                       "         The provided value will be treated as if it were 0\n",
+                       argv[i-1] );
+              record_num = 0;
+            }
+          else
+            {
+              record_num = (int) raw_record_num;
+            }
         }
       else if ((strcmp (argv[i], "-f") == 0)
                || (strcmp (argv[i], "--logfile") == 0))

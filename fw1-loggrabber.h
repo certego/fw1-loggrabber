@@ -36,6 +36,8 @@
 #include <ctype.h>
 #include <time.h>
 #include <signal.h>
+#include <errno.h>
+#include <limits.h>
 
 #define  SLEEP(sec) sleep(sec)
 #include <netinet/in.h>
