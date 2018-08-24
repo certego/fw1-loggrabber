@@ -1,4 +1,4 @@
-# FW1-LogGrabber
+# FW1-LogGrabber_test
 
 FW1-LogGrabber is a Linux command-line tool to grab logfiles from remote Checkpoint devices. It makes extensive use of OPSEC Log Export APIs (LEA) from Checkpoint's [OPSEC SDK 6.0 for Linux 50](http://supportcontent.checkpoint.com/file_download?id=48148).
 
