@@ -14,7 +14,7 @@ int read_fw1_cursorfile () {
  */
 int write_fw1_cursorfile (const char *message, const char separator) {
   char position[POSITION_MAX_SIZE];
-  int i, j = 0;
+  unsigned int i, j = 0;
 
   rewind (cursorstream);
 

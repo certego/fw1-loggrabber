@@ -42,6 +42,8 @@ main (int argc, char *argv[])
   stringlist *lstptr;
   char *foundstring;
   char *field;
+  char* mode_str;
+  long raw_record_num;
 
   /*
    * initialize field arrays
@@ -141,7 +143,7 @@ main (int argc, char *argv[])
             }
 
           errno = 0;
-          long raw_record_num = strtol ( argv[i], NULL, 10 );
+          raw_record_num = strtol ( argv[i], NULL, 10 );
           if ( errno == ERANGE || raw_record_num < 0 || raw_record_num > INT_MAX)
             {
               fprintf (stderr,
@@ -398,6 +400,7 @@ main (int argc, char *argv[])
   /*
    * add signal handler to stop the program properly
    */
+#ifndef WIN32
   struct sigaction sa;
   memset(&sa, 0, sizeof(sa));
   sa.sa_handler=&signal_handler;
@@ -405,6 +408,9 @@ main (int argc, char *argv[])
   sigaction(SIGINT,&sa,0);
   sigaction(SIGQUIT,&sa,0);
   sigaction(SIGTERM,&sa,0);
+#else
+  SetConsoleCtrlHandler((PHANDLER_ROUTINE)signal_handler, TRUE);
+#endif
 
 /* A mutex object to provide safe manipulation of Check Point FW-1 event queue across multiple threads.  */
   pthread_mutex_init(&mutex, NULL);
@@ -436,7 +442,6 @@ main (int argc, char *argv[])
                (cfgvalues.showfiles_mode ? "Yes" : "No"));
       fprintf (stderr, "DEBUG: FW1-2000         : %s\n",
                (cfgvalues.fw1_2000 ? "Yes" : "No"));
-               char* mode_str;
                switch(cfgvalues.mode){
                  case ONLINE:
                    mode_str = "ONLINE";
@@ -1035,6 +1040,7 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
   time_t logtime;
   struct tm *datetime;
   char szNum[20];
+  int j = 0;
 
   if (cfgvalues.debug_mode >= 2)
     {
@@ -1045,7 +1051,6 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
    * process all fields of logentry
    */
   number_fields = pRec->n_fields;
-  int j = 0;
   for (i = 0; i < number_fields; i++)
     {
       ignore = FALSE;
@@ -4975,10 +4980,15 @@ logging_init_env (int logging)
       close_log = &close_logfile;
       break;
     case SYSLOG:
+#ifndef WIN32
       open_log = &open_syslog;
       submit_log = &submit_syslog;
       close_log = &close_syslog;
-      break;
+#else  /* when running on windows we do write to logfile if syslog is selected*/
+	  open_log = &open_logfile;
+	  submit_log = &submit_logfile;
+	  close_log = &close_logfile;
+#endif
     default:
       open_log = &open_screen;
       submit_log = &submit_screen;
@@ -4988,6 +4998,7 @@ logging_init_env (int logging)
   return;
 }
 
+#ifndef WIN32 /* on windows we don't do SYSLOG*/
 /*
  * syslog initializations
  */
@@ -5049,6 +5060,7 @@ close_syslog ()
   closelog ();
   return;
 }
+#endif  /* on windows we don't do SYSLOG*/
 
 /*
  * screen initializations
@@ -5072,6 +5084,8 @@ open_screen ()
 void
 submit_screen (char *message)
 {
+  int nbchar = write_fw1_cursorfile (message, cfgvalues.record_separator);
+
   if (cfgvalues.debug_mode >= 2)
     {
       fprintf (stderr, "DEBUG: function submit_screen\n");
@@ -5085,7 +5099,6 @@ submit_screen (char *message)
   fflush (NULL);
 
   // update cursor
-  int nbchar = write_fw1_cursorfile (message, cfgvalues.record_separator);
   if (nbchar != (POSITION_MAX_SIZE + 1))
     {
       fprintf (stderr, "ERROR: Error when updating cursor.\n");
@@ -5142,6 +5155,11 @@ open_logfile ()
   strcpy (output_file_name, cfgvalues.output_file_prefix);
   strcat (output_file_name, ".log");
 
+  if (cfgvalues.debug_mode)
+    {
+      fprintf (stderr, "DEBUG: Opening output log file '%s'\n",output_file_name);
+    }
+
   if ((logstream = fopen (output_file_name, "a+")) == NULL)
     {
       fprintf (stderr, "ERROR: Fail to open the log file.\n");
@@ -5168,6 +5186,7 @@ submit_logfile (char *message)
   int hour;                       // 0 through 23
   int minute;                     // 0 through 59
   int second;                     // 0 through 59
+  int nbchar = write_fw1_cursorfile (message, cfgvalues.record_separator);
 
   if (cfgvalues.debug_mode >= 2)
     {
@@ -5182,7 +5201,6 @@ submit_logfile (char *message)
   fprintf (logstream, "%s\n", message);
 
   // update cursor
-  int nbchar = write_fw1_cursorfile (message, cfgvalues.record_separator);
   if (nbchar != (POSITION_MAX_SIZE + 1))
     {
       fprintf (stderr, "ERROR: Error when updating cursor.\n");
@@ -5393,7 +5411,12 @@ check_config_files (char *loggrabberconf, char *leaconf)
   configdir = getenv ("LOGGRABBER_CONFIG_PATH");
   tempdir = getenv ("LOGGRABBER_TEMP_PATH");
 
-  size = pathconf (".", _PC_PATH_MAX);
+#ifdef WIN32
+  size = MAX_PATH;
+#else
+  size = pathconf(".", _PC_PATH_MAX);
+#endif
+
   if ((tmploggrabberconf = (char *) malloc ((size_t) size)) == NULL)
     {
       fprintf (stderr, "ERROR: Out of memory\n");
@@ -5413,6 +5436,7 @@ check_config_files (char *loggrabberconf, char *leaconf)
   // fw1-loggrabber.conf specified via function parameter
   else
     {
+#ifndef WIN32
       // first character of fw1-loggrabber.conf filename is '/' -> absolute path
       if (loggrabberconf[0] == '/')
         {
@@ -5430,6 +5454,9 @@ check_config_files (char *loggrabberconf, char *leaconf)
           strcat (tmploggrabberconf, "/");
           strcat (tmploggrabberconf, loggrabberconf);
         }
+#else  /* On Windows we do not any special handling for relative or absolute path given */
+	  strcpy (tmploggrabberconf, loggrabberconf);
+#endif
     }
 
   // cannot read loggrabber.conf, so try to look into LOGGRABBER_CONFIG_PATH
@@ -5478,7 +5505,12 @@ check_config_files (char *loggrabberconf, char *leaconf)
       fclose (filetest);
     }
 
-  size = pathconf (".", _PC_PATH_MAX);
+#ifdef WIN32
+  size = MAX_PATH;
+#else
+  size = pathconf(".", _PC_PATH_MAX);
+#endif
+
   if ((tmpleaconf = (char *) malloc ((size_t) size)) == NULL)
     {
       fprintf (stderr, "ERROR: Out of memory\n");
@@ -5498,6 +5530,7 @@ check_config_files (char *loggrabberconf, char *leaconf)
   // lea.conf specified via function parameter
   else
     {
+#ifndef WIN32
       // first character of lea.conf filename is '/' -> absolute path
       if (leaconf[0] == '/')
         {
@@ -5515,6 +5548,9 @@ check_config_files (char *loggrabberconf, char *leaconf)
           strcat (tmpleaconf, "/");
           strcat (tmpleaconf, leaconf);
         }
+#else  /* On Windows we do not any special handling for relative or absolute path given */
+	  strcpy (tmpleaconf, leaconf);
+#endif
     }
 
   // cannot read lea.conf, so try to look into LOGGRABBER_CONFIG_PATH
@@ -5586,6 +5622,7 @@ check_config_files (char *loggrabberconf, char *leaconf)
         }
     }
 
+ #ifndef WIN32  /* ignore this check for relative path on Windows */
   // no opsec_sslca_file specified in lea.conf, so we probably don't need one...
   if (opsecfile != NULL)
     {
@@ -5603,6 +5640,7 @@ check_config_files (char *loggrabberconf, char *leaconf)
                    "         directory if $LOGGRABBER_TEMP_PATH is not set.\n");
         }
     }
+#endif
 
   cfgvalues.leaconfig_filename = string_duplicate (tmpleaconf);
   cfgvalues.config_filename = string_duplicate (tmploggrabberconf);

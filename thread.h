@@ -32,14 +32,24 @@
 #ifndef THREAD_H
 #define THREAD_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>   /* system types */
-#include <unistd.h>      /* standard UNIX stuff */
-#include <pthread.h>
+#ifdef WIN32
+#	include <stdio.h>
+#	include <stdlib.h>
+#	include <sys/types.h>   /* system types */
+#	include <pthread.h>     /* trying with pthreads-w32-2-9-1-release */
+#	include <windows.h>
+#	define SLEEPMIL(millisec) Sleep(millisec*1000)
+#else
+#	include <stdio.h>
+#	include <stdlib.h>
+#	include <sys/types.h>   /* system types */
+#	include <unistd.h>      /* standard UNIX stuff */
+#	include <pthread.h>
+#	define SLEEPMIL(millisec) usleep(millisec*1000)
+#endif
+
 #define ThreadFuncReturnType void *
 typedef void * (*ThreadFuncType) (void *);
-#define SLEEPMIL(millisec) usleep(millisec*1000)
 #define ThreadIDType pthread_t
 
 void createThread(ThreadIDType * threadID, ThreadFuncType thread_func, void * data);

@@ -16,6 +16,7 @@
 *.so
 *.so.*
 *.dylib
+*.lib
 
 # Executables
 *.exe
@@ -28,3 +29,15 @@
 # Output binary
 fw1-loggrabber
 
+# Visual Studio temp and user files
+*.filters
+*.user
+*.sdf
+*.suo
+*.opensdf
+.vs
+
+# Build directories
+Debug
+Release
+ipch
