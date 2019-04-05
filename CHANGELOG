@@ -1,3 +1,12 @@
+* 2.3 - ported to Windows 
+    * using preprocessor statements porting this tool to the Windows platform
+    * use Visual Studio 2010 C++ (Express) for compilation
+    * Windows build requires https://sourceware.org/pthreads-win32 library
+    * Windows build is using OPSEC SDK 6.2. MSVC 10.0 released on 14-12-2017
+    * included Visual Studio 2010 C++ (Express) solution and project file
+
+* 2.2 - unknown
+
 * 2.1 - use latest Checkpoint SDK (2016-05-05)
     * switch to new Checkpoint OPSEC SDK 6.0 for Linux 50
     * update online wiki documentation, remove outdated man page

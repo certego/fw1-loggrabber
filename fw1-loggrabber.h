@@ -30,21 +30,50 @@
 /******************************************************************************/
 
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <time.h>
-#include <signal.h>
-#include <errno.h>
-#include <limits.h>
-
-#define  SLEEP(sec) sleep(sec)
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <endian.h>
-#include <syslog.h>
+#ifdef WIN32
+#	include <stdio.h>
+#	include <string.h>
+#	include <stdlib.h>
+#	include <ctype.h>
+#   include <direct.h>
+#	include <time.h>
+#	include <winsock2.h>
+#	include <windows.h>
+#   define  getcwd _getcwd
+#   define  putenv _putenv
+#	define  BIG_ENDIAN    4321
+#	define  LITTLE_ENDIAN 1234
+#	define  BYTE_ORDER LITTLE_ENDIAN
+#	define  BUFSIZE MAX_PATH
+#	define  SLEEP(sec) Sleep(1000*sec)
+#	pragma comment(lib, "Ws2_32.lib")  /* we need the winsock library*/
+#	pragma comment(lib, "Mswsock.lib")  /* we need the winsock library*/
+/* define these syslog constants here to allow build without syslog.h. Syslog config will be ignored on Windows */
+#	define	LOG_USER	(1<<3)	/* random user-level messages */
+#	define	LOG_LOCAL0	(16<<3)	/* reserved for local use */
+#	define	LOG_LOCAL1	(17<<3)	/* reserved for local use */
+#	define	LOG_LOCAL2	(18<<3)	/* reserved for local use */
+#	define	LOG_LOCAL3	(19<<3)	/* reserved for local use */
+#	define	LOG_LOCAL4	(20<<3)	/* reserved for local use */
+#	define	LOG_LOCAL5	(21<<3)	/* reserved for local use */
+#	define	LOG_LOCAL6	(22<<3)	/* reserved for local use */
+#	define	LOG_LOCAL7	(23<<3)	/* reserved for local use */
+#else
+#	include <stdio.h>
+#	include <string.h>
+#	include <stdlib.h>
+#	include <ctype.h>
+#	include <time.h>
+#	include <signal.h>
+#	include <errno.h>
+#	include <limits.h>
+#	define  SLEEP(sec) sleep(sec)
+#	include <netinet/in.h>
+#	include <arpa/inet.h>
+#	include <unistd.h>
+#	include <endian.h>
+#	include <syslog.h>
+#endif
 
 /*
  * OPSEC SDK related header files
@@ -65,7 +94,7 @@
 /*
  * Constant definitions
  */
-#define VERSION             "2.2"
+#define VERSION             "2.3"
 
 #define TRUE                1
 #define FALSE               0
