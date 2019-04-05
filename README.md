@@ -23,7 +23,7 @@ Copyright (c) 2003-2005 Torsten Fellhauer, Xiaodong Lin
 
 Copyright (c) 2014-2016 CERTEGO s.r.l.
 
-Andreas Zengel, McAfee, LLC
+Windows port by Andreas Zengel, McAfee, LLC
 
 All rights reserved.
 
