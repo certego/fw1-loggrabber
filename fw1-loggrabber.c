@@ -298,6 +298,7 @@ main (int argc, char *argv[])
       cfgvalues.audit_filter_array = filterarray;
     }
 
+  
   /*
    * free no more used char*
    */
@@ -4676,6 +4677,10 @@ read_config_file (char *filename, configvalues * cfgvalues)
                 {
                   cfgvalues->log_mode = SYSLOG;
                 }
+              else if (string_icmp (configvalue, "tcp") == 0)
+                {
+                  cfgvalues->log_mode = NETTCP;
+                }
               else
                 {
                   fprintf (stderr,
@@ -4692,6 +4697,33 @@ read_config_file (char *filename, configvalues * cfgvalues)
           else if (strcmp (configparameter, "OUTPUT_FILE_ROTATESIZE") == 0)
             {
               cfgvalues->output_file_rotatesize =
+                atol (string_trim (configvalue, '"'));
+            }
+          else if (strcmp (configparameter, "OUTPUT_TCPLOG_HOST") == 0)
+            {
+              cfgvalues->output_tcp_host =
+                string_duplicate (string_trim (configvalue, '"'));
+            }
+          else if (strcmp (configparameter, "OUTPUT_TCPLOG_PORT") == 0)
+            {
+              cfgvalues->output_tcp_port =
+                atol (string_trim (configvalue, '"'));
+            }
+          else if (strcmp (configparameter, "OUTPUT_TCPLOG_RETRY_INTERVAL") == 0)
+            {
+              int cval = atol (string_trim (configvalue, '"'));
+              cfgvalues->output_tcp_retry_interval = cval;
+
+              if (cval < 1)
+                {
+                  fprintf (stderr,
+                           "WARNING: Illegal entry in configuration file: %s=%d\n",
+                           configparameter, cval);
+                }
+            }
+          else if (strcmp (configparameter, "OUTPUT_TCPLOG_RETRY_ATTEMPTS") == 0)
+            {
+              cfgvalues->output_tcp_retry_attempts =
                 atol (string_trim (configvalue, '"'));
             }
           else if (strcmp (configparameter, "SYSLOG_FACILITY") == 0)
@@ -4979,6 +5011,11 @@ logging_init_env (int logging)
       submit_log = &submit_syslog;
       close_log = &close_syslog;
       break;
+    case NETTCP:
+      open_log = &open_tcplog;
+      submit_log = &submit_tcplog;
+      close_log = &close_tcplog;
+      break;
     default:
       open_log = &open_screen;
       submit_log = &submit_screen;
@@ -5110,6 +5147,182 @@ close_screen ()
     }
   //We don't need to do anything here
   return;
+}
+
+/*
+ * tcplog initializations
+ * tcp support was implemented to circumvent 2GB file size limitations
+ * and the issues which comes from working around that limitation.
+ * using TCP also allows for more efficient log transmission to other platforms.
+ */
+void
+open_tcplog()
+{
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function open_tcplog\n");
+    }
+
+  if (cfgvalues.debug_mode)
+    {
+      fprintf (stderr, "DEBUG: Open connection to destination server.\n");
+    }
+
+  struct hostent *h_ent;
+  struct sockaddr_in dst_addr;
+
+  if ((h_ent = gethostbyname(cfgvalues.output_tcp_host)) == NULL)
+    {
+      perror("gethostbyname");
+      exit_loggrabber (1);
+    }
+
+  if ((output_tcpfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+    {
+      perror("socket");
+      exit_loggrabber (1);
+    }
+
+  dst_addr.sin_family = AF_INET;
+  dst_addr.sin_port = htons(cfgvalues.output_tcp_port);
+  dst_addr.sin_addr = *((struct in_addr *)h_ent->h_addr);
+  bzero(&(dst_addr.sin_zero), 8);
+  if (connect(output_tcpfd, (struct sockaddr *)&dst_addr, sizeof(struct sockaddr)) == -1)
+    {
+      perror("connect");
+      exit_loggrabber (1);
+    }
+}
+
+void
+submit_tcplog (char *message)
+{
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function submit_tcplog\n");
+    }
+
+  if (cfgvalues.debug_mode)
+    {
+      fprintf (stderr, "DEBUG: Sending message to host.\n");
+    }
+
+  char *new_message = (char *)malloc(sizeof(char) * (strlen(message) + 2));
+  strcpy(new_message, message);
+  strcat(new_message, "\n");
+  if (send(output_tcpfd, new_message, strlen(new_message), MSG_NOSIGNAL) == -1)
+    {
+      int reconnect_success = 0;
+      if (cfgvalues.output_tcp_retry_attempts > 0)
+        {
+          // if there's a connection drop prior to send()'ing (e.g.; timeout) try to reconnect right away
+          // if the receiving system is restarting services we'll continue to retry for a time to recover
+          int max_tries = cfgvalues.output_tcp_retry_attempts;
+          int cur_tries = 0;
+          int wait_time = cfgvalues.output_tcp_retry_interval;
+          while (cur_tries < max_tries)
+            {
+              struct hostent *h_ent;
+              struct sockaddr_in dst_addr;
+
+              close(output_tcpfd);
+
+              if ((h_ent = gethostbyname(cfgvalues.output_tcp_host)) == NULL)
+                {
+                  if (cfgvalues.debug_mode >= 2)
+                    {
+                      perror("gethostbyname");
+                    }
+                  exit_loggrabber (1);
+                }
+
+              if ((output_tcpfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+                {
+                  if (cfgvalues.debug_mode >= 2)
+                    {
+                      perror("socket");
+                    }
+                  exit_loggrabber (1);
+                }
+
+              dst_addr.sin_family = AF_INET;
+              dst_addr.sin_port = htons(cfgvalues.output_tcp_port);
+              dst_addr.sin_addr = *((struct in_addr *)h_ent->h_addr);
+              bzero(&(dst_addr.sin_zero), 8);
+              if ((connect(output_tcpfd, (struct sockaddr *)&dst_addr, sizeof(struct sockaddr))) == -1)
+                {
+                  if (cfgvalues.debug_mode >= 2)
+                    {
+                      // log reconnect attempts but don't exit
+                      perror("connect");
+                    }
+                }
+              else
+                {
+                  // connected! resend this message and continue as usual
+                  if (send(output_tcpfd, new_message, strlen(new_message), MSG_NOSIGNAL) == -1)
+                    {
+                      if (cfgvalues.debug_mode >= 2)
+                        {
+                          // lost connection immediately after reconnect? time to quit
+                          perror("send");
+                        }
+                      exit_loggrabber (1);
+                    }
+
+                  // successfully reconnected and sent message,
+                  // set flag and exit while() and continue as usual
+                  reconnect_success = 1;
+                  break;
+                }
+              cur_tries++;
+              sleep(wait_time);
+            }
+
+          if (reconnect_success == 0)
+            {
+              fprintf (stderr, "ERROR: Failed to reconnect to host.\n");
+            }
+        }
+
+      if (reconnect_success == 0)
+        {
+          if (cfgvalues.debug_mode >= 2)
+            {
+              perror("send");
+            }
+          fprintf (stderr, "ERROR: Unable to send message to host, connection lost.\n");
+          exit_loggrabber (1);
+        }
+    }
+
+  // update cursor
+  int nbchar = write_fw1_cursorfile (message, cfgvalues.record_separator);
+  if (nbchar != (POSITION_MAX_SIZE + 1))
+    {
+      fprintf (stderr, "ERROR: Error when updating cursor.\n");
+      fprintf (stderr, "ERROR: %d characters written instead of %d.\n", nbchar, (POSITION_MAX_SIZE + 1));
+      exit_loggrabber (1);
+    }
+
+  free (new_message);
+}
+
+void
+close_tcplog()
+{
+  if (cfgvalues.debug_mode >= 2)
+    {
+      fprintf (stderr, "DEBUG: function close_tcplog\n");
+    }
+
+  if (cfgvalues.debug_mode)
+    {
+      fprintf (stderr, "DEBUG: Sending message to host.\n");
+    }
+
+  close(output_tcpfd);
+  output_tcpfd = 0;
 }
 
 /*
