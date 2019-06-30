@@ -45,6 +45,8 @@
 #include <unistd.h>
 #include <endian.h>
 #include <syslog.h>
+#include <sys/types.h> 
+#include <netdb.h> 
 
 /*
  * OPSEC SDK related header files
@@ -79,6 +81,7 @@
 #define SCREEN              0
 #define LOGFILE             1
 #define SYSLOG              2
+#define NETTCP              3
 
 #define INITIAL_CAPACITY    1024
 #define CAPACITY_INCREMENT  4096
@@ -113,6 +116,10 @@ typedef struct configvalues
   char *fw1_logfile;
   char *output_file_prefix;
   long output_file_rotatesize;
+  char *output_tcp_host;
+  int output_tcp_port;
+  int output_tcp_retry_interval;
+  int output_tcp_retry_attempts;
   char *ignore_fields;
   int dateformat;
   int fw1_filter_count;
@@ -236,6 +243,13 @@ void read_config_file (char *, struct configvalues *);
 void logging_init_env (int);
 
 /*
+ * client socket initializations
+ */
+void open_tcplog();
+void submit_tcplog(char *);
+void close_tcplog();
+
+/*
  * syslog initializations
  */
 void open_syslog ();
@@ -349,6 +363,9 @@ char **ignore_fields_array = NULL;
 int ignore_attr_id_count = 0;
 int ignore_attr_id_array[NUMBER_FIELDS] = { 0 };
 
+// used when LOGFILESWAPON 
+int log_pointer_index = 1;
+
 /*
  * Holds the attribute ID for the "time" field from the ATTRIB_ID databases.
  * The value is set in the read_fw1_logfile_dict function
@@ -400,6 +417,10 @@ configvalues cfgvalues = {
   "fw.log",                     // fw1_logfile
   "fw1-loggrabber",             // output_file_prefix
   1048576,                      // output_file_rotatesize
+  "127.0.0.1",                  // output_tcp_host
+  5500,                         // output_tcp_port
+  6,                            // output_tcp_retry_interval
+  5,                            // output_tcp_retry_attempts
   NULL,                         // ignore_fields
   DATETIME_STD,                 // dateformat
   0,                            // fw1_filter_count
@@ -412,6 +433,11 @@ configvalues cfgvalues = {
  * The current log file descriptor
  **/
 FILE *logstream;
+
+/**
+ *  file descriptor for tcp output
+ **/
+int output_tcpfd = 0;
 
 /**
  * The flag, which is used to control whether or not fw1-loggrabber needs to exit
