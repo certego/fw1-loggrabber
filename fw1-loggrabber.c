@@ -298,7 +298,6 @@ main (int argc, char *argv[])
       cfgvalues.audit_filter_array = filterarray;
     }
 
-  
   /*
    * free no more used char*
    */
@@ -5151,9 +5150,6 @@ close_screen ()
 
 /*
  * tcplog initializations
- * tcp support was implemented to circumvent 2GB file size limitations
- * and the issues which comes from working around that limitation.
- * using TCP also allows for more efficient log transmission to other platforms.
  */
 void
 open_tcplog()
