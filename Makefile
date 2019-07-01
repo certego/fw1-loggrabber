@@ -61,15 +61,38 @@ install:
 	@install -v -o root -g root -m 644 -p fw1-loggrabber.conf ${INSTALL_ETC_DIR}/fw1-loggrabber.conf-sample
 	@install -v -o root -g root -m 644 -p lea.conf ${INSTALL_ETC_DIR}/lea.conf-sample
 	@install -v -o root -g root -m 644 -t ${INSTALL_LIB_DIR} ${OPSEC_LIB_DIR}/*.so
+ifeq ($(shell test -d /etc/ld.so.conf.d && echo -n yes),yes)
+	@echo
+	@echo "** ldconfig detected, adding ${INSTALL_LIB_DIR}."
+	@install -v -o root -g root -m 644 -p install/ldconfig/fw1-loggrabber.conf /etc/ld.so.conf.d/fw1-loggrabber.conf
+	rm /etc/ld.so.cache
+	ldconfig
+	@echo
+endif
+ifeq ($(shell test -d /etc/systemd/system && echo -n yes),yes)
+	@install -v -o root -g root -m 644 -p install/systemd/fw1-loggrabber.service /etc/systemd/system/fw1-loggrabber.service
+	systemctl daemon-reload
+	systemctl enable fw1-loggrabber
+	@echo
+	@echo
+	@echo "Installation complete! After configuration files are set you may start the service with the following command;"
+	@echo
+	@echo "  systemctl start fw1-loggrabber"
+else
+	@echo
 	@echo
 	@echo "Installation complete! Please declare the following environment variables in your shell configuration file:"
 	@echo
-	@echo "  LD_LIBRARY_PATH=\$$LD_LIBRARY_PATH:${INSTALL_LIB_DIR}"
-	@echo "  export LD_LIBRARY_PATH"
 	@echo "  LOGGRABBER_CONFIG_PATH=${INSTALL_ETC_DIR}"
 	@echo "  export LOGGRABBER_CONFIG_PATH"
 	@echo "  LOGGRABBER_TEMP_PATH=${TEMP_DIR}"
 	@echo "  export LOGGRABBER_TEMP_PATH"
+endif
+ifneq ($(shell test -d /etc/ld.so.conf.d && echo -n yes),yes)
+	@echo "  LD_LIBRARY_PATH=\$$LD_LIBRARY_PATH:${INSTALL_LIB_DIR}"
+	@echo "  export LD_LIBRARY_PATH"
+endif
+	@echo
 	@echo
 
 clean:
