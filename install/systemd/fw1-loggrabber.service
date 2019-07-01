@@ -1,0 +1,16 @@
+[Unit]
+Description=fw1-loggrabber
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+Environment=LOGGRABBER_CONFIG_PATH=/usr/local/fw1-loggrabber/etc
+WorkingDirectory=/usr/local/fw1-loggrabber
+ExecStart=/usr/local/fw1-loggrabber/bin/fw1-loggrabber
+Restart=always
+RestartSec=5
+TimeoutSec=5min
+
+[Install]
+WantedBy=multi-user.target
